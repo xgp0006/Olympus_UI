@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "name": "TypeScript Type Check",
+  "description": "Automatically runs TypeScript type checking when TypeScript files are saved to ensure type safety and catch errors early",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/**/*.ts",
+      "src/**/*.svelte",
+      "*.ts",
+      "tsconfig.json",
+      "tsconfig.*.json"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run TypeScript type checking on the codebase. Check all TypeScript files including .ts files and .svelte files with TypeScript. Use the appropriate TypeScript compiler or SvelteKit's type checking command (like `pnpm check` or `tsc --noEmit`) to validate types. Report any type errors found and suggest fixes if possible."
+  }
+}

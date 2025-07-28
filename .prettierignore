@@ -1,0 +1,12 @@
+# Ignore TypeScript configuration files
+tsconfig.json
+.svelte-kit/tsconfig.json
+
+# Build output
+build/
+.svelte-kit/
+node_modules/
+src-tauri/target/
+
+# Other files to ignore
+pnpm-lock.yaml

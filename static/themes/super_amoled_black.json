@@ -1,0 +1,84 @@
+{
+  "name": "Super AMOLED Black",
+  "metadata": {
+    "author": "Modular C2 Team",
+    "version": "1.0.0"
+  },
+  "colors": {
+    "background_primary": "#000000",
+    "background_secondary": "#0a0a0a",
+    "background_tertiary": "#1a1a1a",
+    "text_primary": "#ffffff",
+    "text_secondary": "#cccccc",
+    "text_disabled": "#666666",
+    "accent_yellow": "#ffd700",
+    "accent_blue": "#00bfff",
+    "accent_red": "#ff4444",
+    "accent_green": "#00ff88"
+  },
+  "typography": {
+    "font_family_sans": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    "font_family_mono": "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+    "font_size_base": "14px",
+    "font_size_lg": "18px",
+    "font_size_sm": "12px"
+  },
+  "layout": {
+    "border_radius": "6px",
+    "border_width": "1px",
+    "spacing_unit": "8px"
+  },
+  "components": {
+    "cli": {
+      "background": "#000000",
+      "text_color": "#00ff88",
+      "cursor_color": "#ffd700",
+      "cursor_shape": "block"
+    },
+    "map": {
+      "waypoint_color_default": "#00bfff",
+      "waypoint_color_selected": "#ffd700",
+      "path_color": "#00ff88",
+      "geofence_color": "#ff4444"
+    },
+    "button": {
+      "background_default": "#1a1a1a",
+      "text_color_default": "#ffffff",
+      "background_hover": "#2a2a2a",
+      "background_accent": "#00bfff",
+      "text_color_accent": "#000000"
+    },
+    "plugin_card": {
+      "background": "#0a0a0a",
+      "background_hover": "#1a1a1a",
+      "icon_color": "#00bfff",
+      "text_color": "#ffffff",
+      "border_radius": "8px"
+    },
+    "accordion": {
+      "background": "#0a0a0a",
+      "border_color": "#333333",
+      "header_text_color": "#ffffff"
+    },
+    "hex_coin": {
+      "background": "#1a1a1a",
+      "icon_color": "#00bfff",
+      "border_color_default": "#333333",
+      "border_color_pinned": "#ffd700",
+      "snap_point_color": "#00ff88"
+    },
+    "sdr": {
+      "spectrum_line_color": "#00bfff",
+      "spectrum_fill_color": "rgba(0, 191, 255, 0.3)",
+      "waterfall_color_gradient": "linear-gradient(to bottom, #ff4444, #ffd700, #00ff88, #00bfff)",
+      "grid_line_color": "#333333",
+      "axis_label_color": "#cccccc"
+    }
+  },
+  "animations": {
+    "transition_duration": "200ms",
+    "easing_function": "cubic-bezier(0.4, 0, 0.2, 1)",
+    "hover_scale": "1.05",
+    "button_press_scale": "0.95"
+  }
+}

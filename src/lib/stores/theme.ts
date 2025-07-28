@@ -1,0 +1,370 @@
+/**
+ * Theme store implementation for the Modular C2 Frontend
+ * Provides centralized theme management with Tauri integration
+ * Requirements: 3.1, 3.2, 3.3
+ */
+
+import { writable, derived, type Writable } from 'svelte/store';
+import { browser } from '$app/environment';
+import type { Theme, ThemeState, ThemeLoadOptions } from '../types/theme';
+
+// Default theme configuration
+const DEFAULT_THEME_NAME = 'super_amoled_black';
+const THEME_PATH_PREFIX = 'static/themes/';
+
+/**
+ * Internal theme state store
+ */
+const themeState: Writable<ThemeState> = writable({
+  current: null,
+  loading: false,
+  error: null,
+  lastLoaded: 0
+});
+
+/**
+ * Public theme store - exposes only the current theme
+ */
+export const theme = derived(themeState, ($state) => $state.current);
+
+/**
+ * Theme loading state store
+ */
+export const themeLoading = derived(themeState, ($state) => $state.loading);
+
+/**
+ * Theme error state store
+ */
+export const themeError = derived(themeState, ($state) => $state.error);
+
+/**
+ * Validates theme object structure
+ * @param themeData - Theme data to validate
+ * @returns boolean indicating if theme is valid
+ */
+function validateTheme(themeData: unknown): themeData is Theme {
+  if (!themeData || typeof themeData !== 'object') {
+    return false;
+  }
+
+  const data = themeData as Record<string, unknown>;
+
+  // Check required top-level properties
+  const requiredProps = ['name', 'metadata', 'colors', 'typography', 'layout', 'components'];
+  for (const prop of requiredProps) {
+    if (!(prop in data)) {
+      console.error(`Theme validation failed: missing property '${prop}'`);
+      return false;
+    }
+  }
+
+  // Check metadata structure
+  const metadata = data.metadata as Record<string, unknown>;
+  if (!metadata || typeof metadata !== 'object' || !metadata.author || !metadata.version) {
+    console.error('Theme validation failed: invalid metadata structure');
+    return false;
+  }
+
+  // Check colors structure
+  const colors = data.colors as Record<string, unknown>;
+  if (!colors || typeof colors !== 'object') {
+    console.error('Theme validation failed: invalid colors structure');
+    return false;
+  }
+  const requiredColors = [
+    'background_primary',
+    'background_secondary',
+    'background_tertiary',
+    'text_primary',
+    'text_secondary',
+    'text_disabled',
+    'accent_yellow',
+    'accent_blue',
+    'accent_red',
+    'accent_green'
+  ];
+  for (const color of requiredColors) {
+    if (!(color in colors)) {
+      console.error(`Theme validation failed: missing color '${color}'`);
+      return false;
+    }
+  }
+
+  // Check typography structure
+  const typography = data.typography as Record<string, unknown>;
+  if (!typography || typeof typography !== 'object') {
+    console.error('Theme validation failed: invalid typography structure');
+    return false;
+  }
+  const requiredTypography = [
+    'font_family_sans',
+    'font_family_mono',
+    'font_size_base',
+    'font_size_lg',
+    'font_size_sm'
+  ];
+  for (const typo of requiredTypography) {
+    if (!(typo in typography)) {
+      console.error(`Theme validation failed: missing typography '${typo}'`);
+      return false;
+    }
+  }
+
+  // Check layout structure
+  const layout = data.layout as Record<string, unknown>;
+  if (!layout || typeof layout !== 'object') {
+    console.error('Theme validation failed: invalid layout structure');
+    return false;
+  }
+  const requiredLayout = ['border_radius', 'border_width', 'spacing_unit'];
+  for (const layoutProp of requiredLayout) {
+    if (!(layoutProp in layout)) {
+      console.error(`Theme validation failed: missing layout '${layoutProp}'`);
+      return false;
+    }
+  }
+
+  // Check components structure
+  const components = data.components as Record<string, unknown>;
+  if (!components || typeof components !== 'object') {
+    console.error('Theme validation failed: invalid components structure');
+    return false;
+  }
+  const requiredComponents = ['cli', 'map', 'button', 'plugin_card', 'accordion', 'hex_coin'];
+  for (const component of requiredComponents) {
+    if (!(component in components)) {
+      console.error(`Theme validation failed: missing component '${component}'`);
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Applies theme to CSS custom properties on the root element
+ * @param themeData - Theme data to apply
+ */
+function applyThemeToRoot(themeData: Theme): void {
+  // Only apply theme in browser context
+  if (!browser) {
+    return;
+  }
+
+  const root = document.documentElement;
+
+  // Apply colors
+  Object.entries(themeData.colors).forEach(([key, value]) => {
+    root.style.setProperty(`--color-${key}`, value);
+  });
+
+  // Apply typography
+  Object.entries(themeData.typography).forEach(([key, value]) => {
+    root.style.setProperty(`--typography-${key}`, value);
+  });
+
+  // Apply layout
+  Object.entries(themeData.layout).forEach(([key, value]) => {
+    root.style.setProperty(`--layout-${key}`, value);
+  });
+
+  // Apply component-specific variables
+  Object.entries(themeData.components).forEach(([component, properties]) => {
+    Object.entries(properties).forEach(([key, value]) => {
+      root.style.setProperty(`--component-${component}-${key}`, value);
+    });
+  });
+
+  // Apply animations if present
+  if (themeData.animations) {
+    Object.entries(themeData.animations).forEach(([key, value]) => {
+      root.style.setProperty(`--animation-${key}`, value);
+    });
+  }
+
+  console.log(`Theme '${themeData.name}' applied to root element`);
+}
+
+/**
+ * Loads theme from file system
+ * @param themeName - Name of the theme to load
+ * @returns Promise resolving to the loaded theme
+ */
+async function loadThemeFromFile(themeName: string): Promise<Theme> {
+  const themePath = `${THEME_PATH_PREFIX}${themeName}.json`;
+
+  try {
+    console.log(`Loading theme from: ${themePath}`);
+
+    let themeContent: string;
+
+    if (browser) {
+      // In browser, use Tauri API
+      const { fs } = await import('@tauri-apps/api');
+      themeContent = await fs.readTextFile(themePath);
+    } else {
+      // In SSR, use fetch to load from static files
+      const response = await fetch(`/${themePath}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch theme: ${response.statusText}`);
+      }
+      themeContent = await response.text();
+    }
+
+    const themeData = JSON.parse(themeContent);
+
+    if (!validateTheme(themeData)) {
+      throw new Error(`Invalid theme structure in ${themePath}`);
+    }
+
+    return themeData;
+  } catch (error) {
+    console.error(`Failed to load theme from ${themePath}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Main theme loading function
+ * @param options - Theme loading options
+ * @returns Promise resolving to the loaded theme
+ */
+export async function loadTheme(options: ThemeLoadOptions = {}): Promise<Theme> {
+  const {
+    themeName = DEFAULT_THEME_NAME,
+    fallbackTheme = DEFAULT_THEME_NAME,
+    validateTheme: shouldValidate = true
+  } = options;
+
+  // Set loading state
+  themeState.update((state) => ({
+    ...state,
+    loading: true,
+    error: null
+  }));
+
+  try {
+    let themeData: Theme;
+
+    try {
+      // Try to load the requested theme
+      themeData = await loadThemeFromFile(themeName);
+    } catch (primaryError) {
+      console.warn(
+        `Failed to load primary theme '${themeName}', trying fallback '${fallbackTheme}'`
+      );
+
+      if (themeName !== fallbackTheme) {
+        try {
+          themeData = await loadThemeFromFile(fallbackTheme);
+        } catch (fallbackError) {
+          throw new Error(
+            `Failed to load both primary theme '${themeName}' and fallback theme '${fallbackTheme}': ${fallbackError}`
+          );
+        }
+      } else {
+        throw primaryError;
+      }
+    }
+
+    // Additional validation if requested
+    if (shouldValidate && !validateTheme(themeData)) {
+      throw new Error(
+        `Theme validation failed for '${(themeData as { name?: string })?.name || 'unknown'}'`
+      );
+    }
+
+    // Apply theme to DOM
+    applyThemeToRoot(themeData);
+
+    // Update store state
+    themeState.update((state) => ({
+      ...state,
+      current: themeData,
+      loading: false,
+      error: null,
+      lastLoaded: Date.now()
+    }));
+
+    console.log(`Successfully loaded theme: ${themeData.name}`);
+    return themeData;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown theme loading error';
+
+    // Update error state
+    themeState.update((state) => ({
+      ...state,
+      loading: false,
+      error: errorMessage
+    }));
+
+    console.error('Theme loading failed:', errorMessage);
+    throw error;
+  }
+}
+
+/**
+ * Reloads the current theme
+ * @returns Promise resolving to the reloaded theme
+ */
+export async function reloadTheme(): Promise<Theme | null> {
+  let currentTheme: Theme | null = null;
+
+  const unsubscribe = themeState.subscribe((state) => {
+    currentTheme = state.current;
+  });
+  unsubscribe();
+
+  if (!currentTheme) {
+    console.warn('No current theme to reload, loading default theme');
+    return loadTheme();
+  }
+
+  // TypeScript assertion since we know currentTheme is not null after the check
+  const themeName = (currentTheme as Theme).name;
+  return loadTheme({ themeName });
+}
+
+/**
+ * Gets the current theme state
+ * @returns Current theme state
+ */
+export function getThemeState(): ThemeState {
+  let state: ThemeState | undefined;
+  const unsubscribe = themeState.subscribe((s) => (state = s));
+  unsubscribe();
+  return state!;
+}
+
+/**
+ * Clears theme error state
+ */
+export function clearThemeError(): void {
+  themeState.update((state) => ({
+    ...state,
+    error: null
+  }));
+}
+
+/**
+ * Sets a custom theme (for testing or dynamic themes)
+ * @param themeData - Theme data to set
+ */
+export function setTheme(themeData: Theme): void {
+  if (!validateTheme(themeData)) {
+    throw new Error('Invalid theme data provided to setTheme');
+  }
+
+  applyThemeToRoot(themeData);
+
+  themeState.update((state) => ({
+    ...state,
+    current: themeData,
+    loading: false,
+    error: null,
+    lastLoaded: Date.now()
+  }));
+}
+
+// Export the theme state store for advanced use cases
+export { themeState };

@@ -1,0 +1,90 @@
+/* Import xterm.js styles for terminal component */
+@import '@xterm/xterm/css/xterm.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles for aerospace-grade interface */
+@layer base {
+  html {
+    font-family: var(--typography-font_family_sans, system-ui, -apple-system, sans-serif);
+    background-color: var(--color-background_primary, #000000);
+    color: var(--color-text_primary, #ffffff);
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background-color: var(--color-background_primary, #000000);
+    color: var(--color-text_primary, #ffffff);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+/* Component layer for reusable patterns */
+@layer components {
+  .btn-primary {
+    @apply bg-accent-blue text-white px-4 py-2 rounded-theme font-medium;
+    @apply hover:bg-opacity-80 transition-colors duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-opacity-50;
+  }
+
+  .btn-secondary {
+    @apply bg-background-secondary text-text-primary border border-border-primary px-4 py-2 rounded-theme font-medium;
+    @apply hover:bg-background-tertiary transition-colors duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-border-secondary focus:ring-opacity-50;
+  }
+
+  .card {
+    @apply bg-background-secondary border border-border-primary rounded-theme p-unit;
+    @apply shadow-lg;
+  }
+
+  .input-field {
+    @apply bg-background-tertiary border border-border-primary rounded-theme px-3 py-2;
+    @apply text-text-primary placeholder-text-disabled;
+    @apply focus:outline-none focus:ring-2 focus:ring-accent-blue focus:border-accent-blue;
+    @apply transition-colors duration-200;
+  }
+}
+
+/* Utility layer for custom utilities */
+@layer utilities {
+  .text-shadow-sm {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+
+  .backdrop-blur-theme {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-secondary, #555555)
+      var(--color-background-secondary, #111111);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: var(--color-background-secondary, #111111);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--color-border-secondary, #555555);
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-primary, #333333);
+  }
+}
