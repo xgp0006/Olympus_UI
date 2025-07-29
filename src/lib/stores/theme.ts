@@ -347,83 +347,72 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
     if (isBrowser) {
       // Check if we're in a Tauri context
       if ('__TAURI__' in window) {
-        // Use Tauri's asset protocol for secure file access
-        const { convertFileSrc } = await import('@tauri-apps/api/tauri');
-        const assetUrl = convertFileSrc(themePath);
+        try {
+          // Use Tauri's asset protocol for secure file access
+          const tauriModule = await import('@tauri-apps/api/tauri');
+          if (tauriModule?.convertFileSrc) {
+            const assetUrl = tauriModule.convertFileSrc(themePath);
 
-        // Fetch the theme file using the asset protocol
-        const response = await fetch(assetUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch theme via asset protocol: ${response.statusText}`);
+            // Fetch the theme file using the asset protocol
+            const response = await fetch(assetUrl);
+            if (!response.ok) {
+              throw new Error(`Failed to fetch theme via asset protocol: ${response.statusText}`);
+            }
+            themeContent = await response.text();
+          } else {
+            throw new Error('Tauri convertFileSrc not available');
+          }
+        } catch (tauriError) {
+          console.warn('Tauri asset protocol failed, falling back to regular fetch:', tauriError);
+          // Fall through to regular browser fetch logic
         }
-        themeContent = await response.text();
-      } else {
+      }
+      
+      if (!themeContent) {
         // In regular browser, use multiple fallback paths with better URL construction
         const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
         const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
         const basePath = currentPath.endsWith('/') ? currentPath.slice(0, -1) : currentPath;
         
         const fallbackPaths = [
+          `/static/themes/${themeName}.json`, // Full static path (primary for dev)
           `/themes/${themeName}.json`, // Primary path from root
           `./themes/${themeName}.json`, // Relative path
           `themes/${themeName}.json`, // Without leading slash
-          `/static/themes/${themeName}.json`, // Full static path
           `${basePath}/themes/${themeName}.json`, // Current path + themes
-          `${currentOrigin}/themes/${themeName}.json`, // Absolute URL from origin
-          `${currentOrigin}/static/themes/${themeName}.json`, // Absolute static path
-          // For Vite/SvelteKit dev server
-          `/@fs${process.cwd ? process.cwd() : ''}/static/themes/${themeName}.json`
         ].filter(Boolean); // Remove any empty paths
 
         let lastError: Error | null = null;
         let fetchSuccess = false;
 
-        // Try each path with better error handling
+        // Try each path with reduced logging noise
         for (let i = 0; i < fallbackPaths.length; i++) {
           const fallbackPath = fallbackPaths[i];
           try {
-            console.log(`[Attempt ${i + 1}/${fallbackPaths.length}] Loading theme from: ${fallbackPath}`);
+            const response = await fetch(fallbackPath, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'Cache-Control': 'no-cache'
+              },
+              mode: 'cors',
+              credentials: 'same-origin'
+            });
             
-            // Add retry logic for each path
-            let retries = 3;
-            while (retries > 0) {
-              try {
-                const response = await fetch(fallbackPath, {
-                  method: 'GET',
-                  headers: {
-                    'Accept': 'application/json',
-                    'Cache-Control': 'no-cache'
-                  },
-                  mode: 'cors',
-                  credentials: 'same-origin'
-                });
-                
-                if (response.ok) {
-                  themeContent = await response.text();
-                  fetchSuccess = true;
-                  console.log(`[Success] Theme loaded from: ${fallbackPath}`);
-                  break;
-                } else {
-                  lastError = new Error(`HTTP ${response.status}: ${response.statusText} for ${fallbackPath}`);
-                  console.warn(`HTTP error: ${lastError.message}`);
-                }
-                break; // Don't retry on HTTP errors
-              } catch (fetchError) {
-                retries--;
-                lastError = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
-                console.warn(`Fetch error (${3 - retries}/3) for ${fallbackPath}:`, lastError.message);
-                
-                if (retries > 0) {
-                  // Wait before retry
-                  await new Promise(resolve => setTimeout(resolve, 200));
-                }
-              }
+            if (response.ok) {
+              themeContent = await response.text();
+              fetchSuccess = true;
+              console.log(`Theme loaded successfully from: ${fallbackPath}`);
+              break;
+            } else {
+              lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
-            if (fetchSuccess) break;
-          } catch (error) {
-            lastError = error instanceof Error ? error : new Error(String(error));
-            console.error(`[Attempt ${i + 1}/${fallbackPaths.length}] Failed to fetch theme from ${fallbackPath}:`, error);
+          } catch (fetchError) {
+            lastError = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
+            // Only log the last failed attempt to reduce noise
+            if (i === fallbackPaths.length - 1) {
+              console.debug(`All theme fetch attempts failed. Last error: ${lastError.message}`);
+            }
           }
         }
 
@@ -495,9 +484,7 @@ export async function loadTheme(options: ThemeLoadOptions = {}): Promise<Theme> 
       console.log(`[loadTheme] Attempting to load primary theme: ${themeName}`);
       themeData = await loadThemeFromFile(themeName);
     } catch (primaryError) {
-      console.warn(
-        `[loadTheme] Failed to load primary theme '${themeName}', trying fallback '${fallbackTheme}'`
-      );
+      console.log(`Loading fallback theme '${fallbackTheme}'`);
 
       if (themeName !== fallbackTheme) {
         try {
@@ -505,7 +492,7 @@ export async function loadTheme(options: ThemeLoadOptions = {}): Promise<Theme> 
         } catch (fallbackError) {
           const errorMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
           // Try loading a hardcoded default theme as last resort
-          console.warn('Attempting to load hardcoded default theme as last resort...');
+          console.log('Loading hardcoded default theme...');
           try {
             themeData = await loadDefaultTheme();
           } catch (defaultError) {
@@ -515,8 +502,8 @@ export async function loadTheme(options: ThemeLoadOptions = {}): Promise<Theme> 
           }
         }
       } else {
-        // If primary and fallback are the same, still try the hardcoded default
-        console.warn('Primary and fallback themes are the same, loading hardcoded default theme...');
+        // If primary and fallback are the same, try the hardcoded default
+        console.log('Loading hardcoded default theme...');
         try {
           themeData = await loadDefaultTheme();
         } catch (defaultError) {

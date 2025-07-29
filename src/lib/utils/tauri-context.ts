@@ -42,8 +42,9 @@ export function detectTauriContext(): TauriContext {
   }
 
   try {
-    // Primary detection: Check for __TAURI__ global
-    if (typeof window !== 'undefined' && '__TAURI__' in window) {
+    // Primary detection: Check for actual Tauri runtime (not just mock)
+    if (typeof window !== 'undefined' && '__TAURI__' in window && 
+        typeof (window as any).__TAURI__?.invoke === 'function') {
       cachedContext = {
         isAvailable: true,
         isMockMode: false
@@ -51,8 +52,9 @@ export function detectTauriContext(): TauriContext {
       return cachedContext;
     }
 
-    // Secondary detection: Check for Tauri-specific window properties
-    if (typeof window !== 'undefined' && '__TAURI_IPC__' in window) {
+    // Secondary detection: Check for Tauri-specific window properties with actual functionality
+    if (typeof window !== 'undefined' && '__TAURI_IPC__' in window &&
+        typeof (window as any).__TAURI_IPC__ === 'object') {
       cachedContext = {
         isAvailable: true,
         isMockMode: false
@@ -93,30 +95,30 @@ export function detectTauriContext(): TauriContext {
  * @returns Module exports or null if unavailable
  */
 export async function importTauriModule<T = any>(module: string): Promise<T | null> {
-  const context = detectTauriContext();
+  // Early exit for SSR
+  if (!browser) {
+    return null;
+  }
 
-  if (!context.isAvailable) {
-    console.debug(`Tauri module '${module}' not available in browser context, skipping import`);
+  // Early exit if not in actual Tauri runtime (more robust check)
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  // Check if we're in actual Tauri app (not just dev environment with __TAURI__ mock)
+  const isTauriApp = '__TAURI__' in window && 
+    typeof (window as any).__TAURI__?.invoke === 'function';
+  
+  if (!isTauriApp) {
     return null;
   }
 
   try {
-    // Additional runtime check before attempting import
-    if (typeof window === 'undefined' || !('__TAURI__' in window)) {
-      console.debug(`Tauri runtime not detected at import time for module '${module}'`);
-      return null;
-    }
-
     const moduleExports = await import(`@tauri-apps/api/${module}`);
     return moduleExports;
   } catch (error) {
     // Only log errors if we're actually in a Tauri context
-    if (typeof window !== 'undefined' && '__TAURI__' in window) {
-      console.error(`Failed to import Tauri module '${module}':`, error);
-    } else {
-      // Silently skip in browser context - this is expected behavior
-      console.debug(`Tauri module '${module}' not available in browser context`);
-    }
+    console.error(`Failed to import Tauri module '${module}':`, error);
     return null;
   }
 }

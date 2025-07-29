@@ -90,7 +90,7 @@ async function safeInvoke<T>(command: string, args?: Record<string, unknown>): P
 
     // Only log errors and show notifications if we're in a Tauri context
     // In browser-only context, silently fail to avoid noise
-    if ('__TAURI__' in window) {
+    if (typeof window !== 'undefined' && '__TAURI__' in window) {
       console.error(`Tauri command '${command}' failed:`, errorMessage);
 
       showNotification({
@@ -98,8 +98,6 @@ async function safeInvoke<T>(command: string, args?: Record<string, unknown>): P
         message: `Command failed: ${command}`,
         details: errorMessage
       });
-    } else {
-      console.debug(`Tauri command '${command}' not available in browser context`);
     }
 
     return null;
@@ -164,7 +162,7 @@ export async function loadPlugins(): Promise<Plugin[]> {
       return loadedPlugins;
     } else {
       // Fallback to mock plugins if backend is not available or returns empty
-      console.warn('Backend not available or no plugins returned, using mock plugins');
+      console.log('Using mock plugins for development');
 
       pluginState.update((state) => ({
         ...state,
@@ -179,7 +177,7 @@ export async function loadPlugins(): Promise<Plugin[]> {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown plugin loading error';
 
-    console.warn(`Plugin loading from backend failed: ${errorMessage}, using mock plugins`);
+    console.log('Plugin backend unavailable, using mock plugins for development');
 
     // Fallback to mock plugins on error
     pluginState.update((state) => ({
@@ -298,13 +296,12 @@ export async function setupPluginEventListeners(): Promise<(() => void) | null> 
   }
 
   try {
-    console.log('Setting up plugin event listeners...');
-
     // Check if Tauri is available
     if (!TauriApi.isAvailable()) {
-      console.log('Tauri not available, skipping plugin event listeners');
       return null;
     }
+
+    console.log('Setting up plugin event listeners...');
 
     // Listen for plugin changes from backend
     pluginEventUnlisten = await TauriApi.listen<string[]>('plugins-changed', (payload) => {
