@@ -18,6 +18,8 @@
   // ===== PROPS =====
   export let items: MissionItem[] = [];
   export let selectedItemId: string | null = null;
+  export let isDocked: boolean = true;
+  export let isMinimized: boolean = false;
 
   // ===== EVENT DISPATCHER =====
   const dispatch = createEventDispatcher<{
@@ -27,25 +29,36 @@
     update: { itemId: string; params: WaypointParams };
     addWaypoint: void;
     error: string;
+    dock: void;
+    undock: void;
+    minimizeComponent: void;
+    expandComponent: void;
   }>();
 
   // ===== STATE =====
   let dragDisabled = false;
   let accordionItems: Array<MissionItem & { id: string }> = [];
-  let minimizedItems: Set<string> = new Set();
-  let pinnedCoins: Map<string, { x: number; y: number }> = new Map();
-  let coinSnapPoints: Array<{ x: number; y: number; id: string }> = [];
   let accordionElement: HTMLElement;
   let touchGestureCleanup: (() => void) | null = null;
+  let componentPosition: { x: number; y: number } = { x: 0, y: 0 };
+  let isDragging = false;
+
+  /**
+   * Calculate a good default position for the MinimizedCoin
+   */
+  function calculateDefaultCoinPosition(): { x: number; y: number } {
+    // Position in center-right of screen, away from other UI elements
+    const defaultX = typeof window !== 'undefined' ? window.innerWidth - 150 : 200;
+    const defaultY = typeof window !== 'undefined' ? window.innerHeight / 2 : 150;
+    
+    return {
+      x: Math.max(100, defaultX), // Ensure it's at least 100px from left edge
+      y: Math.max(100, Math.min(defaultY, (typeof window !== 'undefined' ? window.innerHeight - 100 : 400))) // Keep it within bounds
+    };
+  }
 
   // ===== REACTIVE STATEMENTS =====
   $: accordionItems = items.map((item) => ({ ...item, id: item.id }));
-
-  // Update snap points when coins are pinned
-  $: coinSnapPoints = Array.from(pinnedCoins.entries()).map(([id, position]) => ({
-    ...position,
-    id
-  }));
 
   // ===== FUNCTIONS =====
 
@@ -98,86 +111,56 @@
   }
 
   /**
-   * Handle item minimize
+   * Handle component dock/undock
    */
-  function handleItemMinimize(itemId: string): void {
-    minimizedItems.add(itemId);
-    minimizedItems = minimizedItems; // Trigger reactivity
-    dispatch('minimize', { itemId });
-    console.log(`Minimized item: ${itemId}`);
-  }
-
-  /**
-   * Handle coin expand
-   */
-  function handleCoinExpand(event: CustomEvent<{ itemId: string }>): void {
-    const { itemId } = event.detail;
-    minimizedItems.delete(itemId);
-    minimizedItems = minimizedItems; // Trigger reactivity
-
-    // Remove from pinned coins if it was pinned
-    pinnedCoins.delete(itemId);
-    pinnedCoins = pinnedCoins; // Trigger reactivity
-
-    dispatch('expand', { itemId });
-    console.log(`Expanded coin to full view: ${itemId}`);
-  }
-
-  /**
-   * Handle coin pin
-   */
-  function handleCoinPin(
-    event: CustomEvent<{ itemId: string; position: { x: number; y: number } }>
-  ): void {
-    const { itemId, position } = event.detail;
-    pinnedCoins.set(itemId, position);
-    pinnedCoins = pinnedCoins; // Trigger reactivity
-    console.log(`Pinned coin: ${itemId} at position`, position);
-  }
-
-  /**
-   * Handle coin unpin
-   */
-  function handleCoinUnpin(event: CustomEvent<{ itemId: string }>): void {
-    const { itemId } = event.detail;
-    pinnedCoins.delete(itemId);
-    pinnedCoins = pinnedCoins; // Trigger reactivity
-    console.log(`Unpinned coin: ${itemId}`);
-  }
-
-  /**
-   * Handle coin snap
-   */
-  function handleCoinSnap(
-    event: CustomEvent<{ itemId: string; snapToId: string; position: { x: number; y: number } }>
-  ): void {
-    const { itemId, snapToId, position } = event.detail;
-    console.log(`Coin ${itemId} snapped to ${snapToId} at position`, position);
-    // Additional snap logic can be added here if needed
-  }
-
-  /**
-   * Handle coin move
-   */
-  function handleCoinMove(
-    event: CustomEvent<{ itemId: string; position: { x: number; y: number } }>
-  ): void {
-    const { itemId, position } = event.detail;
-    // Update position if the coin is pinned
-    if (pinnedCoins.has(itemId)) {
-      pinnedCoins.set(itemId, position);
-      pinnedCoins = pinnedCoins; // Trigger reactivity
+  function handleToggleDock(): void {
+    if (isDocked) {
+      dispatch('undock');
+    } else {
+      dispatch('dock');
     }
   }
 
   /**
-   * Get initial coin position
+   * Handle component minimize/expand
    */
-  function getInitialCoinPosition(itemId: string): { x: number; y: number } {
-    // Return pinned position if available, otherwise default position
-    return (
-      pinnedCoins.get(itemId) || { x: 100 + Math.random() * 200, y: 100 + Math.random() * 200 }
-    );
+  function handleToggleMinimize(): void {
+    if (isMinimized) {
+      dispatch('expandComponent');
+    } else {
+      // Set a good position for the MinimizedCoin when first minimizing
+      if (componentPosition.x === 0 && componentPosition.y === 0) {
+        componentPosition = calculateDefaultCoinPosition();
+      }
+      dispatch('minimizeComponent');
+    }
+  }
+
+  /**
+   * Handle component dragging
+   */
+  function handleComponentDragStart(event: MouseEvent): void {
+    if (isDocked) return; // Can't drag when docked
+    
+    isDragging = true;
+    const startX = event.clientX - componentPosition.x;
+    const startY = event.clientY - componentPosition.y;
+
+    function handleDrag(e: MouseEvent): void {
+      componentPosition = {
+        x: e.clientX - startX,
+        y: e.clientY - startY
+      };
+    }
+
+    function handleDragEnd(): void {
+      isDragging = false;
+      document.removeEventListener('mousemove', handleDrag);
+      document.removeEventListener('mouseup', handleDragEnd);
+    }
+
+    document.addEventListener('mousemove', handleDrag);
+    document.addEventListener('mouseup', handleDragEnd);
   }
 
   /**
@@ -269,13 +252,11 @@
         const itemId = itemElement.getAttribute('data-testid')?.replace('accordion-item-', '');
 
         if (itemId && velocity > 0.5) {
-          if (direction === 'left') {
-            // Swipe left to minimize
-            handleItemMinimize(itemId);
-          } else if (direction === 'right') {
+          if (direction === 'right') {
             // Swipe right to select
             handleItemSelect(itemId);
           }
+          // Note: Individual waypoint minimization removed - swipe left now does nothing
         }
       }
     }
@@ -311,31 +292,107 @@
 </script>
 
 <!-- ===== TEMPLATE ===== -->
-<div
-  class="mission-accordion"
-  class:mobile={$isMobile}
-  bind:this={accordionElement}
-  data-testid="mission-accordion"
->
-  <div class="accordion-header">
-    <h3>Mission Items</h3>
-    <div class="header-actions">
-      <button
-        class="add-waypoint-button"
-        on:click={() => dispatch('addWaypoint')}
-        title="Add new waypoint"
-        data-testid="add-waypoint-button"
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M8 2v6H2v2h6v6h2v-6h6V8h-6V2H8z"/>
-        </svg>
-        <span>Add Waypoint</span>
-      </button>
-      <div class="item-count">
-        {accordionItems.length} item{accordionItems.length !== 1 ? 's' : ''}
+{#if isMinimized}
+  <!-- Use existing MinimizedCoin for the entire component -->
+  <MinimizedCoin
+    item={{
+      id: 'waypoint-component',
+      name: 'WP',
+      type: 'waypoint',
+      position: undefined,
+      params: { lat: 0, lng: 0, alt: 0, speed: 0 }
+    }}
+    isPinned={!isDocked}
+    snapPoints={[]}
+    initialPosition={componentPosition}
+    on:expand={() => dispatch('expandComponent')}
+    on:pin={(e) => {
+      componentPosition = e.detail.position;
+      dispatch('undock');
+    }}
+    on:unpin={() => dispatch('dock')}
+    on:move={(e) => {
+      componentPosition = e.detail.position;
+    }}
+    on:error={(e) => dispatch('error', e.detail)}
+  />
+{:else}
+  <!-- Full Component View -->
+  <div
+    class="mission-accordion"
+    class:mobile={$isMobile}
+    class:docked={isDocked}
+    class:undocked={!isDocked}
+    class:dragging={isDragging}
+    style={!isDocked ? `position: absolute; left: ${componentPosition.x}px; top: ${componentPosition.y}px; width: 320px;` : ''}
+    bind:this={accordionElement}
+    data-testid="mission-accordion"
+  >
+    <div 
+      class="accordion-header"
+      role={!isDocked ? "button" : undefined}
+      tabindex={!isDocked ? 0 : undefined}
+      on:mousedown={!isDocked ? handleComponentDragStart : undefined}
+      on:keydown={!isDocked ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          // Create a synthetic mouse event for keyboard activation
+          const syntheticEvent = new MouseEvent('mousedown', {
+            clientX: 0,
+            clientY: 0,
+            bubbles: true
+          });
+          handleComponentDragStart(syntheticEvent);
+        }
+      } : undefined}
+      aria-label={!isDocked ? "Drag to move component" : undefined}
+    >
+      <div class="header-title">
+        <h3>Waypoint Component</h3>
+        <div class="component-controls">
+          <button
+            class="control-button dock-button"
+            on:click={handleToggleDock}
+            title={isDocked ? 'Undock component' : 'Dock component'}
+            data-testid="dock-toggle-button"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              {#if isDocked}
+                <path d="M3 3h10v10H3V3zm2 2v6h6V5H5z"/>
+              {:else}
+                <path d="M2 2h4v4H2V2zm8 0h4v4h-4V2zM2 10h4v4H2v-4zm8 0h4v4h-4v-4z"/>
+              {/if}
+            </svg>
+          </button>
+          <button
+            class="control-button minimize-button"
+            on:click={handleToggleMinimize}
+            title="Minimize to hex coin"
+            data-testid="component-minimize-button"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M2 6h12v4H2z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button
+          class="add-waypoint-button"
+          on:click={() => dispatch('addWaypoint')}
+          title="Add new waypoint"
+          data-testid="add-waypoint-button"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 2v6H2v2h6v6h2v-6h6V8h-6V2H8z"/>
+          </svg>
+          <span>Add Waypoint</span>
+        </button>
+        <div class="item-count">
+          {accordionItems.length} item{accordionItems.length !== 1 ? 's' : ''}
+        </div>
       </div>
     </div>
-  </div>
 
   {#if accordionItems.length === 0}
     <div class="empty-state" data-testid="accordion-empty">
@@ -357,7 +414,7 @@
       on:consider={handleDndConsider}
       on:finalize={handleDndFinalize}
     >
-      {#each accordionItems.filter((item) => !minimizedItems.has(item.id)) as item (item.id)}
+      {#each accordionItems as item (item.id)}
         <div
           class="accordion-item"
           class:selected={selectedItemId === item.id}
@@ -398,24 +455,13 @@
               </div>
             </button>
 
-            <button
-              class="minimize-button"
-              on:click={() => handleItemMinimize(item.id)}
-              title="Minimize to coin"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M2 6h12v4H2z" />
-              </svg>
-            </button>
           </div>
 
           {#if selectedItemId === item.id}
             <div class="item-details">
               <WaypointItem
                 {item}
-                isSelected={true}
                 on:update={handleItemUpdate}
-                on:minimize={() => handleItemMinimize(item.id)}
               />
             </div>
           {/if}
@@ -423,44 +469,91 @@
       {/each}
     </div>
   {/if}
-
-  <!-- Minimized Coins Container -->
-  {#if minimizedItems.size > 0}
-    <div class="minimized-coins-container" data-testid="minimized-coins">
-      {#each accordionItems.filter((item) => minimizedItems.has(item.id)) as item (item.id)}
-        <MinimizedCoin
-          {item}
-          isPinned={pinnedCoins.has(item.id)}
-          snapPoints={coinSnapPoints.filter((point) => point.id !== item.id)}
-          initialPosition={getInitialCoinPosition(item.id)}
-          on:expand={handleCoinExpand}
-          on:pin={handleCoinPin}
-          on:unpin={handleCoinUnpin}
-          on:snap={handleCoinSnap}
-          on:move={handleCoinMove}
-          on:error={(e) => dispatch('error', e.detail)}
-        />
-      {/each}
-    </div>
-  {/if}
-</div>
+  </div>
+{/if}
 
 <style>
+  /* Mission Accordion Styles */
   .mission-accordion {
     height: 100%;
     display: flex;
     flex-direction: column;
     background-color: var(--component-accordion-background);
     color: var(--color-text_primary);
+    border-radius: var(--layout-border_radius);
+    transition: all var(--animation-transition_duration) var(--animation-easing_function);
+  }
+
+  .mission-accordion.undocked {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 2px solid var(--color-accent_blue);
+    z-index: 1000;
+  }
+
+  .mission-accordion.dragging {
+    z-index: 1001;
+    transform: scale(1.02);
   }
 
   .accordion-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: var(--layout-spacing_unit);
     padding: calc(var(--layout-spacing_unit) * 2);
     border-bottom: var(--layout-border_width) solid var(--component-accordion-border_color);
     background-color: var(--color-background_secondary);
+    cursor: move;
+  }
+
+  .mission-accordion.docked .accordion-header {
+    cursor: default;
+  }
+
+  .header-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .component-controls {
+    display: flex;
+    gap: calc(var(--layout-spacing_unit) / 2);
+  }
+
+  .control-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--color-text_disabled);
+    color: var(--color-text_disabled);
+    border-radius: var(--layout-border_radius);
+    padding: calc(var(--layout-spacing_unit) / 2);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    transition: all var(--animation-transition_duration) var(--animation-easing_function);
+  }
+
+  .control-button:hover {
+    border-color: var(--color-accent_blue);
+    color: var(--color-accent_blue);
+    background-color: rgba(0, 191, 255, 0.1);
+  }
+
+  .control-button:active {
+    transform: scale(0.95);
+  }
+
+  .control-button svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--layout-spacing_unit);
   }
 
   .accordion-header h3 {
@@ -629,25 +722,6 @@
     font-family: var(--typography-font_family_mono);
   }
 
-  .minimize-button {
-    background: transparent;
-    border: none;
-    color: var(--color-text_disabled);
-    cursor: pointer;
-    padding: calc(var(--layout-spacing_unit) / 2);
-    border-radius: var(--layout-border_radius);
-    transition: all var(--animation-transition_duration) var(--animation-easing_function);
-  }
-
-  .minimize-button:hover {
-    color: var(--color-text_secondary);
-    background-color: var(--color-background_tertiary);
-    transform: scale(var(--animation-hover_scale));
-  }
-
-  .minimize-button:active {
-    transform: scale(var(--animation-button_press_scale));
-  }
 
   .item-details {
     border-top: var(--layout-border_width) solid var(--component-accordion-border_color);
@@ -693,14 +767,6 @@
     background-color: rgba(0, 191, 255, 0.05);
   }
 
-  .minimized-coins-container {
-    position: relative;
-    width: 100%;
-    height: 200px;
-    background-color: var(--color-background_primary);
-    border-top: var(--layout-border_width) solid var(--component-accordion-border_color);
-    overflow: hidden;
-  }
 
   /* Touch-optimized styles */
   .mission-accordion.mobile .item-selector {
@@ -708,8 +774,8 @@
     padding: calc(var(--layout-spacing_unit) * 1.5);
   }
 
-  .mission-accordion.mobile .minimize-button,
-  .mission-accordion.mobile .drag-handle {
+  .mission-accordion.mobile .drag-handle,
+  .mission-accordion.mobile .control-button {
     min-width: 44px;
     min-height: 44px;
     display: flex;
@@ -729,7 +795,7 @@
       transform: scale(0.98);
     }
 
-    .minimize-button:active,
+    .control-button:active,
     .drag-handle:active {
       background-color: var(--color-background_tertiary);
       transform: scale(0.95);
@@ -782,10 +848,6 @@
       width: 20px;
       height: 20px;
     }
-
-    .minimized-coins-container {
-      height: 150px;
-    }
   }
 
   /* High contrast mode support */
@@ -800,8 +862,8 @@
   @media (prefers-reduced-motion: reduce) {
     .accordion-item,
     .item-selector,
-    .minimize-button,
-    .drag-handle {
+    .drag-handle,
+    .control-button {
       transition: none;
     }
   }

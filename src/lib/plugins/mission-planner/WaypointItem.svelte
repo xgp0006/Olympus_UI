@@ -10,7 +10,6 @@
 
   // ===== PROPS =====
   export let item: MissionItem;
-  export let isSelected: boolean = false;
 
   // ===== EVENT DISPATCHER =====
   const dispatch = createEventDispatcher<{

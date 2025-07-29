@@ -606,6 +606,7 @@
   .map-container {
     width: 100%;
     height: 100%;
+    cursor: crosshair; /* Indicate waypoint creation capability */
   }
 
   .loading-overlay {
@@ -699,6 +700,15 @@
   :global(.maplibregl-ctrl-group) {
     background-color: var(--color-background_tertiary) !important;
     border-radius: var(--layout-border_radius) !important;
+  }
+
+  /* Force crosshair cursor for waypoint creation */
+  :global(.maplibregl-canvas-container canvas) {
+    cursor: crosshair !important;
+  }
+
+  :global(.maplibregl-canvas) {
+    cursor: crosshair !important;
   }
 
   :global(.maplibregl-ctrl-group button) {

@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Create Favicon</title>
+  </head>
+  <body>
+    <h2>Aerospace C2 Favicon Generator</h2>
+    <canvas id="canvas" width="32" height="32"></canvas>
+    <br />
+    <a id="download" download="favicon.png">Download favicon.png</a>
+
+    <script>
+      // Create aerospace-themed favicon
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Background with rounded corners
+      ctx.fillStyle = '#1e40af';
+      roundRect(ctx, 0, 0, 32, 32, 6, true, false);
+
+      // Central command node
+      ctx.fillStyle = '#60a5fa';
+      ctx.beginPath();
+      ctx.arc(16, 16, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Orbital rings
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      ctx.arc(16, 16, 8, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.setLineDash([]);
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.arc(16, 16, 12, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // Communication points
+      ctx.fillStyle = '#93c5fd';
+      const points = [
+        [8, 8],
+        [24, 8],
+        [8, 24],
+        [24, 24]
+      ];
+      points.forEach(([x, y]) => {
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Connection lines
+      ctx.strokeStyle = '#60a5fa';
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.6;
+      points.forEach(([x, y]) => {
+        ctx.beginPath();
+        ctx.moveTo(16, 16);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      });
+
+      // Helper function for rounded rectangles
+      function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+        if (fill) ctx.fill();
+        if (stroke) ctx.stroke();
+      }
+
+      // Set download link
+      canvas.toBlob(function (blob) {
+        const url = URL.createObjectURL(blob);
+        document.getElementById('download').href = url;
+      });
+    </script>
+
+    <p>Open this file in a browser and click the download link to get favicon.png</p>
+  </body>
+</html>

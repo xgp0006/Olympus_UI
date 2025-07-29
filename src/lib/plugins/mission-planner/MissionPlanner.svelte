@@ -21,6 +21,8 @@
   // ===== STATE =====
   let error: string | null = null;
   let accordionCollapsed = false;
+  let accordionDocked = true;
+  let accordionMinimized = false;
 
   // Responsive state
   $: isMobileDevice = $isMobile;
@@ -30,14 +32,42 @@
   // ===== FUNCTIONS =====
 
   /**
-   * Handle map click events
+   * Handle map click events - create waypoint at clicked location
    */
-  function handleMapClick(event: CustomEvent<MapClickEvent>): void {
+  async function handleMapClick(event: CustomEvent<MapClickEvent>): Promise<void> {
     const { lngLat } = event.detail;
     console.log('Map clicked at:', lngLat);
 
-    // TODO: Add waypoint creation logic in future task
-    // For now, just log the click
+    try {
+      // Create a new waypoint at the clicked location
+      const newWaypoint = {
+        id: `waypoint-${Date.now()}`,
+        type: 'waypoint' as const,
+        name: `Waypoint ${$missionItems.length + 1}`,
+        params: {
+          lat: lngLat[1], // lat is second element
+          lng: lngLat[0], // lng is first element
+          alt: 100, // Default altitude
+          speed: 10 // Default speed
+        },
+        position: {
+          lat: lngLat[1],
+          lng: lngLat[0],
+          alt: 100
+        }
+      };
+      
+      // Add the waypoint to the mission store
+      await addMissionItem(newWaypoint);
+      
+      // Select the new waypoint
+      selectMissionItem(newWaypoint.id);
+      
+      console.log(`Created waypoint at ${lngLat[1].toFixed(4)}, ${lngLat[0].toFixed(4)}`);
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to create waypoint';
+      console.error('Failed to create waypoint:', err);
+    }
   }
 
   /**
@@ -71,6 +101,38 @@
   function handleAccordionError(event: CustomEvent<string>): void {
     error = event.detail;
     console.error('Accordion error:', error);
+  }
+
+  /**
+   * Handle component dock
+   */
+  function handleComponentDock(): void {
+    accordionDocked = true;
+    console.log('Waypoint component docked');
+  }
+
+  /**
+   * Handle component undock
+   */
+  function handleComponentUndock(): void {
+    accordionDocked = false;
+    console.log('Waypoint component undocked');
+  }
+
+  /**
+   * Handle component minimize
+   */
+  function handleComponentMinimize(): void {
+    accordionMinimized = true;
+    console.log('Waypoint component minimized');
+  }
+
+  /**
+   * Handle component expand
+   */
+  function handleComponentExpand(): void {
+    accordionMinimized = false;
+    console.log('Waypoint component expanded');
   }
 
   /**
@@ -167,7 +229,6 @@
   class="mission-planner"
   class:mobile={isMobileDevice}
   class:tablet={isTabletDevice}
-  class:accordion-collapsed={accordionCollapsed}
   data-testid="mission-planner"
 >
   {#if error}
@@ -187,6 +248,7 @@
       </div>
     </div>
   {:else}
+    <!-- Map fills entire container -->
     <div class="map-container">
       <MapViewer
         selectedItemId={$selectedMissionItem?.id || null}
@@ -195,7 +257,11 @@
         on:ready={handleMapReady}
         on:error={handleMapError}
       />
+    </div>
 
+    <!-- Components float over the map -->
+    <div class="floating-components">
+      <!-- Mobile accordion toggle button -->
       {#if isMobileDevice}
         <button
           class="accordion-toggle"
@@ -209,53 +275,72 @@
           Mission Items
         </button>
       {/if}
-    </div>
 
-    <div class="accordion-container" class:collapsed={accordionCollapsed}>
-      <MissionAccordion
-        items={$missionItems}
-        selectedItemId={$selectedMissionItem?.id || null}
-        on:select={handleAccordionSelect}
-        on:minimize={handleAccordionMinimize}
-        on:update={handleAccordionUpdate}
-        on:addWaypoint={handleAddWaypoint}
-        on:error={handleAccordionError}
-      />
+      <!-- Mission Accordion floats over the map -->
+      <div 
+        class="accordion-overlay" 
+        class:collapsed={accordionCollapsed}
+        class:docked={accordionDocked}
+        class:undocked={!accordionDocked}
+        class:mobile={isMobileDevice}
+      >
+        <MissionAccordion
+          items={$missionItems}
+          selectedItemId={$selectedMissionItem?.id || null}
+          isDocked={accordionDocked}
+          isMinimized={accordionMinimized}
+          on:select={handleAccordionSelect}
+          on:minimize={handleAccordionMinimize}
+          on:update={handleAccordionUpdate}
+          on:addWaypoint={handleAddWaypoint}
+          on:error={handleAccordionError}
+          on:dock={handleComponentDock}
+          on:undock={handleComponentUndock}
+          on:minimizeComponent={handleComponentMinimize}
+          on:expandComponent={handleComponentExpand}
+        />
+      </div>
     </div>
   {/if}
 </div>
 
 <style>
-  /* Mobile-first responsive design */
+  /* Overlay Layout - Map fills container, components float over */
   .mission-planner {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+    position: relative;
     width: 100%;
+    height: 100%;
     background-color: var(--color-background_primary);
-    position: relative;
+    overflow: hidden;
   }
 
+  /* Map fills entire container */
   .map-container {
-    flex: 1;
-    height: 100%;
-    position: relative;
-  }
-
-  .accordion-container {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
-    height: 50%;
-    background-color: var(--color-background_secondary);
-    border-top: var(--layout-border_width) solid var(--color-background_tertiary);
-    overflow-y: auto;
-    transition: transform var(--animations-transition_duration) var(--animations-easing_function);
+    height: 100%;
+    z-index: 1;
   }
 
+  /* Floating components layer over the map */
+  .floating-components {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none; /* Allow map interaction through empty areas */
+  }
+
+  /* Mobile accordion toggle */
   .accordion-toggle {
     position: absolute;
     top: var(--responsive-mobile-panel_padding, 12px);
     right: var(--responsive-mobile-panel_padding, 12px);
-    z-index: 100;
+    z-index: 20;
     display: flex;
     align-items: center;
     gap: calc(var(--layout-spacing_unit) / 2);
@@ -269,6 +354,7 @@
     transition: all var(--animations-mobile_transition_duration, 150ms);
     min-height: var(--responsive-mobile-touch_target_min, 44px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    pointer-events: auto; /* Re-enable pointer events for the button */
   }
 
   .accordion-toggle:hover,
@@ -284,22 +370,55 @@
     flex-shrink: 0;
   }
 
+  /* Accordion overlay positioning */
+  .accordion-overlay {
+    position: absolute;
+    z-index: 15;
+    pointer-events: auto; /* Re-enable pointer events for accordion */
+    transition: all var(--animations-transition_duration) var(--animations-easing_function);
+  }
+
+  /* Docked positioning - bottom right corner by default */
+  .accordion-overlay.docked {
+    bottom: var(--layout-spacing_unit);
+    right: var(--layout-spacing_unit);
+    width: 320px;
+    max-height: 400px;
+  }
+
+  /* Mobile docked positioning - bottom of screen */
+  .accordion-overlay.docked.mobile {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 50vh;
+  }
+
   /* Mobile collapsed state */
-  .mission-planner.mobile.accordion-collapsed .accordion-container {
+  .accordion-overlay.collapsed.mobile {
     transform: translateY(100%);
   }
 
-  .mission-planner.mobile.accordion-collapsed .map-container {
-    height: 100%;
+  /* Undocked state - can be positioned anywhere */
+  .accordion-overlay.undocked {
+    /* Position will be set dynamically by the component */
+    width: 320px;
+    max-height: 400px;
   }
 
+  /* Error state */
   .error-state {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    height: 100%;
     background-color: var(--color-background_primary);
+    z-index: 100;
   }
 
   .error-content {
@@ -342,46 +461,27 @@
     transform: scale(var(--animation-button_press_scale));
   }
 
-  /* Tablet responsive design */
+  /* Tablet responsive adjustments */
   @media (min-width: 768px) {
-    .mission-planner {
-      flex-direction: row;
-    }
-
-    .map-container {
-      flex: 1;
-      min-width: 50%;
-      height: 100%;
-    }
-
-    .accordion-container {
-      width: var(--responsive-tablet-accordion-tablet_width, 400px);
-      height: 100%;
-      border-top: none;
-      border-left: var(--layout-border_width) solid var(--color-background_tertiary);
-    }
-
     .accordion-toggle {
-      display: none;
+      display: none; /* Hide mobile toggle on tablet+ */
     }
 
-    .mission-planner.tablet.accordion-collapsed .accordion-container {
-      transform: none;
+    .accordion-overlay.docked {
+      width: var(--responsive-tablet-accordion-tablet_width, 400px);
+      max-height: 500px;
+    }
+
+    .accordion-overlay.collapsed.mobile {
+      transform: none; /* No mobile collapse behavior on tablet+ */
     }
   }
 
-  /* Desktop responsive design */
+  /* Desktop responsive adjustments */
   @media (min-width: 1024px) {
-    .accordion-container {
+    .accordion-overlay.docked {
       width: var(--responsive-desktop-accordion-desktop_width, 350px);
-    }
-
-    .accordion-toggle {
-      top: var(--responsive-desktop-panel_padding, 20px);
-      right: var(--responsive-desktop-panel_padding, 20px);
-      padding: var(--responsive-desktop-button-desktop_padding, 8px 12px);
-      font-size: var(--responsive-desktop-font_size_sm, 12px);
-      min-height: var(--responsive-desktop-touch_target_min, 32px);
+      max-height: 600px;
     }
   }
 
@@ -396,11 +496,15 @@
       width: 20px;
       height: 20px;
     }
+
+    .accordion-overlay.docked.mobile {
+      max-height: 60vh; /* More space on touch devices */
+    }
   }
 
   /* Reduced motion support */
   @media (prefers-reduced-motion: reduce) {
-    .accordion-container,
+    .accordion-overlay,
     .accordion-toggle {
       transition-duration: var(--animations-reduced_motion_duration, 0ms);
     }

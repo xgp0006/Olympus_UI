@@ -44,7 +44,7 @@ describe('WaypointItem', () => {
 
   test('renders without errors', () => {
     const { getByTestId } = render(WaypointItem, {
-      props: { item: mockWaypoint, isSelected: false }
+      props: { item: mockWaypoint }
     });
 
     expect(getByTestId('waypoint-item-waypoint-1')).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe('WaypointItem', () => {
 
   test('displays item information correctly', () => {
     const { getByTestId } = render(WaypointItem, {
-      props: { item: mockWaypoint, isSelected: false }
+      props: { item: mockWaypoint }
     });
 
     const itemElement = getByTestId('waypoint-item-waypoint-1');
@@ -72,7 +72,7 @@ describe('WaypointItem', () => {
 
   test('toggles edit mode when edit button is clicked', async () => {
     const { container } = render(WaypointItem, {
-      props: { item: mockWaypoint, isSelected: true }
+      props: { item: mockWaypoint }
     });
 
     const editButton = container.querySelector('.edit-button');
@@ -90,7 +90,7 @@ describe('WaypointItem', () => {
 
   test('displays correct parameters for waypoint type', async () => {
     const { container } = render(WaypointItem, {
-      props: { item: mockWaypoint, isSelected: true }
+      props: { item: mockWaypoint }
     });
 
     // Enter edit mode
@@ -106,7 +106,7 @@ describe('WaypointItem', () => {
 
   test('displays correct parameters for takeoff type', async () => {
     const { container } = render(WaypointItem, {
-      props: { item: mockTakeoff, isSelected: true }
+      props: { item: mockTakeoff }
     });
 
     // Enter edit mode
@@ -119,7 +119,7 @@ describe('WaypointItem', () => {
 
   test('displays action selector for loiter type', async () => {
     const { container } = render(WaypointItem, {
-      props: { item: mockLoiter, isSelected: true }
+      props: { item: mockLoiter }
     });
 
     // Enter edit mode
@@ -134,7 +134,7 @@ describe('WaypointItem', () => {
 
   test('handles parameter changes', async () => {
     const { container } = render(WaypointItem, {
-      props: { item: mockWaypoint, isSelected: true }
+      props: { item: mockWaypoint }
     });
 
     // Enter edit mode
@@ -153,7 +153,7 @@ describe('WaypointItem', () => {
 
   test('validates parameters correctly', async () => {
     const { container } = render(WaypointItem, {
-      props: { item: mockWaypoint, isSelected: true }
+      props: { item: mockWaypoint }
     });
 
     // Enter edit mode
@@ -180,7 +180,7 @@ describe('WaypointItem', () => {
   test('saves changes successfully', async () => {
     const { updateWaypointParams } = await import('$lib/stores/mission');
     const { container, component } = render(WaypointItem, {
-      props: { item: mockWaypoint, isSelected: true }
+      props: { item: mockWaypoint }
     });
 
     const updateHandler = vi.fn();
@@ -222,7 +222,7 @@ describe('WaypointItem', () => {
     vi.mocked(updateWaypointParams).mockRejectedValue(new Error('Save failed'));
 
     const { container, component } = render(WaypointItem, {
-      props: { item: mockWaypoint, isSelected: true }
+      props: { item: mockWaypoint }
     });
 
     const errorHandler = vi.fn();
@@ -254,7 +254,7 @@ describe('WaypointItem', () => {
 
   test('cancels changes correctly', async () => {
     const { container } = render(WaypointItem, {
-      props: { item: mockWaypoint, isSelected: true }
+      props: { item: mockWaypoint }
     });
 
     // Enter edit mode
@@ -279,7 +279,7 @@ describe('WaypointItem', () => {
   test('handles keyboard shortcuts', async () => {
     const { updateWaypointParams } = await import('$lib/stores/mission');
     const { container } = render(WaypointItem, {
-      props: { item: mockWaypoint, isSelected: true }
+      props: { item: mockWaypoint }
     });
 
     // Enter edit mode
@@ -301,7 +301,7 @@ describe('WaypointItem', () => {
 
   test('handles escape key to cancel', async () => {
     const { container } = render(WaypointItem, {
-      props: { item: mockWaypoint, isSelected: true }
+      props: { item: mockWaypoint }
     });
 
     // Enter edit mode
@@ -322,7 +322,7 @@ describe('WaypointItem', () => {
 
   test('handles minimize button click', async () => {
     const { container, component } = render(WaypointItem, {
-      props: { item: mockWaypoint, isSelected: true }
+      props: { item: mockWaypoint }
     });
 
     const minimizeHandler = vi.fn();
@@ -343,7 +343,7 @@ describe('WaypointItem', () => {
     );
 
     const { container } = render(WaypointItem, {
-      props: { item: mockWaypoint, isSelected: true }
+      props: { item: mockWaypoint }
     });
 
     // Enter edit mode
@@ -365,7 +365,7 @@ describe('WaypointItem', () => {
 
   test('formats coordinates correctly', () => {
     const { container } = render(WaypointItem, {
-      props: { item: mockWaypoint, isSelected: false }
+      props: { item: mockWaypoint }
     });
 
     // Check coordinate formatting

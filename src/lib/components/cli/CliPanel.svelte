@@ -8,6 +8,7 @@
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
   import { browser } from '$app/environment';
   import { isMobile, isTablet, currentBreakpoint } from '../../utils/responsive';
+  import { addTouchGestures } from '../../utils/touch';
   import CliView from './CliView.svelte';
 
   // Props
@@ -19,6 +20,8 @@
   let isDragging = false;
   let dragStartY = 0;
   let dragStartHeight = 0;
+  let touchGestureCleanup: (() => void) | null = null;
+  let resizeHandle: HTMLElement;
 
   // Component references
   let cliView: CliView | undefined;
@@ -124,12 +127,73 @@
     }
   }
 
+  // Set up touch gestures for handle
+  function setupTouchGestures(): void {
+    if (!resizeHandle || touchGestureCleanup) return;
+
+    touchGestureCleanup = addTouchGestures(resizeHandle, {
+      onLongPress: () => {
+        // Long press to toggle expansion
+        togglePanel();
+        
+        // Haptic feedback if supported
+        if ('vibrate' in navigator) {
+          navigator.vibrate(50);
+        }
+      },
+      
+      onTap: () => {
+        // Single tap to toggle when collapsed
+        if (!isExpanded) {
+          togglePanel();
+        }
+      },
+
+      onDoubleTap: () => {
+        // Double tap to toggle in any state
+        togglePanel();
+        
+        // Haptic feedback if supported
+        if ('vibrate' in navigator) {
+          navigator.vibrate([30, 30, 30]);
+        }
+      },
+
+      onPan: (gesture) => {
+        // Pan up/down to resize or expand/collapse
+        if (!isExpanded && gesture.deltaY < -20) {
+          // Pan up when collapsed to expand
+          togglePanel();
+        } else if (isExpanded && gesture.deltaY > 0) {
+          // Pan down when expanded to resize
+          const newHeight = Math.max(100, panelHeight - gesture.deltaY);
+          panelHeight = newHeight;
+          
+          if (cliView) {
+            setTimeout(() => {
+              cliView?.resizeTerminal();
+            }, 0);
+          }
+        }
+      }
+    });
+  }
+
   // Set up keyboard listener
   onMount(() => {
     window.addEventListener('keydown', handleKeydown);
 
     // Set initial height based on device
     panelHeight = responsivePanelHeight;
+
+    // Set up touch gestures for mobile devices - delay to ensure handle is bound
+    if (isMobileDevice) {
+      setTimeout(() => {
+        if (resizeHandle) {
+          setupTouchGestures();
+        }
+      }, 0);
+    }
 
     return () => {
       window.removeEventListener('keydown', handleKeydown);
@@ -141,6 +205,11 @@
     if (browser) {
       document.removeEventListener('mousemove', handleResizeDrag);
       document.removeEventListener('mouseup', handleResizeEnd);
+    }
+    
+    // Clean up touch gestures
+    if (touchGestureCleanup) {
+      touchGestureCleanup();
     }
   });
 </script>
@@ -156,11 +225,21 @@
   <button
     class="resize-handle"
     class:dragging={isDragging}
+    bind:this={resizeHandle}
     on:mousedown={handleResizeStart}
-    aria-label="Resize CLI panel"
+    on:click={() => !isExpanded && togglePanel()}
+    on:dblclick={togglePanel}
+    aria-label={isExpanded ? "Resize CLI panel" : "Expand CLI panel"}
     data-testid="resize-handle"
+    title={isExpanded ? "Drag to resize • Double-click or long press to collapse" : "Click, double-click, or long press to expand"}
   >
-    <div class="resize-indicator"></div>
+    <div class="resize-indicator">
+      <div class="center-handle">
+        <svg viewBox="0 0 24 24" fill="currentColor" class="handle-icon">
+          <path d="M8 6h8v2H8V6zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
+        </svg>
+      </div>
+    </div>
   </button>
 
   <!-- Panel Header -->
@@ -208,16 +287,16 @@
   /* Resize Handle */
   .resize-handle {
     position: absolute;
-    top: -4px;
+    top: -8px;
     left: 0;
     right: 0;
-    height: 8px;
+    height: 16px;
     cursor: ns-resize;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    transition: opacity var(--animation-transition_duration);
+    opacity: 1; /* Always visible for consistency */
+    transition: all var(--animation-transition_duration);
     z-index: 10;
     background: none;
     border: none;
@@ -230,16 +309,51 @@
   }
 
   .resize-indicator {
-    width: 40px;
-    height: 2px;
+    position: relative;
+    width: 60px;
+    height: 4px;
     background-color: var(--color-text_disabled);
-    border-radius: 1px;
-    transition: background-color var(--animation-transition_duration);
+    border-radius: 2px;
+    transition: all var(--animation-transition_duration);
+  }
+
+  .center-handle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 32px;
+    height: 16px;
+    background-color: var(--color-background_secondary);
+    border: 1px solid var(--color-text_disabled);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--animation-transition_duration);
+  }
+
+  .handle-icon {
+    width: 12px;
+    height: 12px;
+    color: var(--color-text_disabled);
+    transition: color var(--animation-transition_duration);
   }
 
   .resize-handle:hover .resize-indicator,
   .resize-handle.dragging .resize-indicator {
     background-color: var(--color-accent_blue);
+  }
+
+  .resize-handle:hover .center-handle,
+  .resize-handle.dragging .center-handle {
+    border-color: var(--color-accent_blue);
+    background-color: var(--color-background_tertiary);
+  }
+
+  .resize-handle:hover .handle-icon,
+  .resize-handle.dragging .handle-icon {
+    color: var(--color-accent_blue);
   }
 
   .resize-handle.dragging {
@@ -255,6 +369,11 @@
     background-color: var(--color-background_secondary);
     border-bottom: var(--layout-border_width) solid var(--color-background_tertiary);
     min-height: 32px;
+    transition: transform var(--animation-transition_duration);
+  }
+
+  .cli-panel.expanded .panel-header {
+    transform: translateY(-1em); /* Move up 1 line when active/expanded */
   }
 
   .header-left {
@@ -341,14 +460,26 @@
   }
 
   .cli-panel.mobile .resize-handle {
-    height: 12px;
-    top: -6px;
+    height: 20px;
+    top: -10px;
+    opacity: 1; /* Always visible on mobile */
   }
 
   .cli-panel.mobile .resize-indicator {
-    width: 60px;
-    height: 4px;
+    width: 80px;
+    height: 6px;
     background-color: var(--color-text_disabled);
+  }
+
+  .cli-panel.mobile .center-handle {
+    width: 40px;
+    height: 20px;
+    border-width: 2px;
+  }
+
+  .cli-panel.mobile .handle-icon {
+    width: 16px;
+    height: 16px;
   }
 
   /* Tablet styles */
@@ -379,13 +510,24 @@
   @media (hover: none) and (pointer: coarse) {
     .resize-handle {
       opacity: 1;
-      height: 16px;
-      top: -8px;
+      height: 24px;
+      top: -12px;
     }
 
     .resize-indicator {
-      width: 80px;
-      height: 6px;
+      width: 100px;
+      height: 8px;
+    }
+
+    .center-handle {
+      width: 48px;
+      height: 24px;
+      border-width: 2px;
+    }
+
+    .handle-icon {
+      width: 18px;
+      height: 18px;
     }
 
     .toggle-button {

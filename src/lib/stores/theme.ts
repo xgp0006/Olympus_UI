@@ -358,14 +358,22 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
         }
         themeContent = await response.text();
       } else {
-        // In regular browser, use multiple fallback paths
+        // In regular browser, use multiple fallback paths with better URL construction
+        const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+        const basePath = currentPath.endsWith('/') ? currentPath.slice(0, -1) : currentPath;
+        
         const fallbackPaths = [
-          `/themes/${themeName}.json`, // Primary path
+          `/themes/${themeName}.json`, // Primary path from root
           `./themes/${themeName}.json`, // Relative path
           `themes/${themeName}.json`, // Without leading slash
           `/static/themes/${themeName}.json`, // Full static path
-          (typeof window !== 'undefined' && (window as any).location?.origin) ? (window as any).location.origin + `/themes/${themeName}.json` : `/themes/${themeName}.json` // Absolute URL
-        ];
+          `${basePath}/themes/${themeName}.json`, // Current path + themes
+          `${currentOrigin}/themes/${themeName}.json`, // Absolute URL from origin
+          `${currentOrigin}/static/themes/${themeName}.json`, // Absolute static path
+          // For Vite/SvelteKit dev server
+          `/@fs${process.cwd ? process.cwd() : ''}/static/themes/${themeName}.json`
+        ].filter(Boolean); // Remove any empty paths
 
         let lastError: Error | null = null;
         let fetchSuccess = false;
@@ -421,15 +429,18 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
 
         if (!fetchSuccess || !themeContent) {
           // Provide detailed error information
+          const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
           const errorDetails = [
             '[loadThemeFromFile] All fetch attempts failed',
             `Theme name: ${themeName}`,
+            `Development mode: ${isDev}`,
             `Paths tried: ${fallbackPaths.join(', ')}`,
             `Last error: ${lastError?.message || 'Unknown error'}`,
-            `Window location: ${(typeof window !== 'undefined' && (window as any).location?.href) || 'unknown'}`,
-            `Origin: ${(typeof window !== 'undefined' && (window as any).location?.origin) || 'unknown'}`,
-            `Protocol: ${(typeof window !== 'undefined' && (window as any).location?.protocol) || 'unknown'}`
-          ].join('\n');
+            `Window location: ${(typeof window !== 'undefined' && window.location?.href) || 'unknown'}`,
+            `Origin: ${currentOrigin || 'unknown'}`,
+            `Protocol: ${(typeof window !== 'undefined' && window.location?.protocol) || 'unknown'}`,
+            isDev ? 'Dev server context - ensure static/themes/ directory exists and is accessible' : ''
+          ].filter(Boolean).join('\n');
           
           console.error(errorDetails);
           throw new Error(`Failed to fetch`);
