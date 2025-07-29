@@ -7,7 +7,7 @@
 // Component interaction tests
 export * from './component-interactions.test';
 
-// Plugin system tests  
+// Plugin system tests
 export * from './plugin-system.test';
 
 // Mission planning workflow tests

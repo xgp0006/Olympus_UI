@@ -55,7 +55,7 @@ describe('Theme Store Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearThemeError();
-    
+
     // Reset DOM
     document.documentElement.style.cssText = '';
   });
@@ -82,7 +82,9 @@ describe('Theme Store Integration', () => {
     const root = document.documentElement;
     expect(root.style.getPropertyValue('--color-background_primary')).toBe('#000000');
     expect(root.style.getPropertyValue('--color-text_primary')).toBe('#ffffff');
-    expect(root.style.getPropertyValue('--typography-font_family_sans')).toBe(mockTheme.typography.font_family_sans);
+    expect(root.style.getPropertyValue('--typography-font_family_sans')).toBe(
+      mockTheme.typography.font_family_sans
+    );
   });
 
   test('handles theme loading error', async () => {
@@ -90,10 +92,12 @@ describe('Theme Store Integration', () => {
     const error = new Error('Theme file not found');
     vi.mocked(fs.readTextFile).mockRejectedValue(error);
 
-    await expect(loadTheme({ 
-      themeName: 'nonexistent-theme',
-      fallbackTheme: 'nonexistent-theme' // Prevent fallback to default
-    })).rejects.toThrow();
+    await expect(
+      loadTheme({
+        themeName: 'nonexistent-theme',
+        fallbackTheme: 'nonexistent-theme' // Prevent fallback to default
+      })
+    ).rejects.toThrow();
 
     expect(get(themeLoading)).toBe(false);
     expect(get(themeError)).toBe('Theme file not found');
@@ -102,7 +106,7 @@ describe('Theme Store Integration', () => {
   test('falls back to default theme on error', async () => {
     const { fs } = await import('@tauri-apps/api');
     const defaultTheme = createMockTheme({ name: 'Default Theme' });
-    
+
     vi.mocked(fs.readTextFile)
       .mockRejectedValueOnce(new Error('Primary theme failed'))
       .mockResolvedValueOnce(JSON.stringify(defaultTheme));
@@ -119,7 +123,7 @@ describe('Theme Store Integration', () => {
   test('validates theme structure', async () => {
     const { fs } = await import('@tauri-apps/api');
     const invalidTheme = { name: 'Invalid Theme' }; // Missing required properties
-    
+
     vi.mocked(fs.readTextFile).mockResolvedValue(JSON.stringify(invalidTheme));
 
     await expect(loadTheme({ themeName: 'invalid-theme' })).rejects.toThrow();
@@ -128,13 +132,13 @@ describe('Theme Store Integration', () => {
 
   test('sets loading state during theme loading', async () => {
     const { fs } = await import('@tauri-apps/api');
-    
+
     // Create a promise that we can control
     let resolveTheme: (value: string) => void;
     const themePromise = new Promise<string>((resolve) => {
       resolveTheme = resolve;
     });
-    
+
     vi.mocked(fs.readTextFile).mockReturnValue(themePromise);
 
     // Start loading
@@ -209,8 +213,12 @@ describe('Theme Store Integration', () => {
     await loadTheme({ themeName: 'test-theme' });
 
     const root = document.documentElement;
-    expect(root.style.getPropertyValue('--component-cli-background')).toBe(mockTheme.components.cli.background);
-    expect(root.style.getPropertyValue('--component-button-background_default')).toBe(mockTheme.components.button.background_default);
+    expect(root.style.getPropertyValue('--component-cli-background')).toBe(
+      mockTheme.components.cli.background
+    );
+    expect(root.style.getPropertyValue('--component-button-background_default')).toBe(
+      mockTheme.components.button.background_default
+    );
   });
 
   test('applies animation variables when present', async () => {
@@ -224,7 +232,7 @@ describe('Theme Store Integration', () => {
         button_press_scale: '0.95'
       }
     };
-    
+
     vi.mocked(fs.readTextFile).mockResolvedValue(JSON.stringify(themeWithAnimations));
 
     await loadTheme({ themeName: 'animated-theme' });

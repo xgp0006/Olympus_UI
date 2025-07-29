@@ -498,9 +498,9 @@ export function enhanceButtonTouch(
 
   const handleTouchStart = () => {
     if (isPressed) return;
-    
+
     isPressed = true;
-    
+
     // Visual feedback
     if (options.visualFeedback !== false) {
       button.style.transform = 'scale(0.95)';
@@ -515,9 +515,9 @@ export function enhanceButtonTouch(
 
   const handleTouchEnd = () => {
     if (!isPressed) return;
-    
+
     isPressed = false;
-    
+
     // Reset visual feedback
     if (options.visualFeedback !== false) {
       button.style.transform = '';
@@ -541,7 +541,7 @@ export function enhanceButtonTouch(
     button.removeEventListener('touchstart', handleTouchStart);
     button.removeEventListener('touchend', handleTouchEnd);
     button.removeEventListener('touchcancel', handleTouchEnd);
-    
+
     if (pressTimeout) {
       clearTimeout(pressTimeout);
     }

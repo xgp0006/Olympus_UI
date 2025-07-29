@@ -12,13 +12,7 @@ export default defineConfig({
       'src/**/__tests__/**/*.{js,ts}',
       'tests/**/*.{test,spec}.{js,ts}'
     ],
-    exclude: [
-      'node_modules',
-      'dist',
-      'build',
-      '.svelte-kit',
-      'src-tauri'
-    ],
+    exclude: ['node_modules', 'dist', 'build', '.svelte-kit', 'src-tauri'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -68,8 +62,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '$lib': new URL('./src/lib', import.meta.url).pathname,
-      '$app': new URL('./node_modules/@sveltejs/kit/src/runtime/app', import.meta.url).pathname
+      $lib: new URL('./src/lib', import.meta.url).pathname,
+      $app: new URL('./node_modules/@sveltejs/kit/src/runtime/app', import.meta.url).pathname
     }
   }
 });

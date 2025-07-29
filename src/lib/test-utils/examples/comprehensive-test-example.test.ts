@@ -97,15 +97,15 @@ class MockComponent {
   constructor(options: any) {
     // Mock component implementation
   }
-  
+
   $set(props: any) {
     // Mock prop setting
   }
-  
+
   $on(event: string, handler: Function) {
     // Mock event handling
   }
-  
+
   $destroy() {
     // Mock cleanup
   }
@@ -134,7 +134,7 @@ describe('Comprehensive Test Example', () => {
   describe('Basic Component Testing', () => {
     it('should render component with default props', () => {
       const { getByTestId } = createTestComponent().render();
-      
+
       expect(getByTestId('mock-component')).toBeInTheDocument();
       expect(getByTestId('title')).toHaveTextContent('Default Title');
     });
@@ -143,13 +143,13 @@ describe('Comprehensive Test Example', () => {
       const { getByTestId } = createTestComponent().render({
         title: 'Custom Title'
       });
-      
+
       expect(getByTestId('title')).toHaveTextContent('Custom Title');
     });
 
     it('should have proper test IDs', () => {
       const { getByTestId } = createTestComponent().render();
-      
+
       expect(getByTestId('mock-component')).toHaveTestId('mock-component');
       expect(getByTestId('title')).toHaveTestId('title');
       expect(getByTestId('save-button')).toHaveTestId('save-button');
@@ -159,7 +159,7 @@ describe('Comprehensive Test Example', () => {
   describe('Theme Integration Testing', () => {
     it('should apply theme variables', () => {
       const { container } = renderWithTheme(MockComponent as any);
-      
+
       const component = container.querySelector('.component');
       expect(component).toBeThemed();
       expect(component).toHaveThemeVariable('color-background_primary');
@@ -167,7 +167,7 @@ describe('Comprehensive Test Example', () => {
 
     it('should use correct theme values', () => {
       const { container } = renderWithTheme(MockComponent as any);
-      
+
       const component = container.querySelector('.component');
       expect(component).toHaveThemeVariable('color-background_primary', '#000000');
     });
@@ -177,19 +177,19 @@ describe('Comprehensive Test Example', () => {
     it('should handle loading state', async () => {
       // Mock slow operation
       vi.mocked(mockTauri.invoke).mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve('data'), 100))
+        () => new Promise((resolve) => setTimeout(() => resolve('data'), 100))
       );
 
       const { getByTestId } = createTestComponent().render();
-      
+
       // Should show loading initially
       expect(getByTestId('loading')).toBeInTheDocument();
-      
+
       // Wait for loading to complete
       await waitFor(() => {
         expect(() => getByTestId('loading')).toThrow();
       });
-      
+
       // Should show content
       expect(getByTestId('content')).toBeInTheDocument();
     });
@@ -199,29 +199,26 @@ describe('Comprehensive Test Example', () => {
       vi.mocked(mockTauri.invoke).mockRejectedValue(new Error('Test error'));
 
       const { getByTestId } = createTestComponent().render();
-      
+
       // Wait for error to appear
       await waitFor(() => {
         expect(getByTestId('error')).toBeInTheDocument();
       });
-      
+
       expect(getByTestId('error')).toHaveTextContent('Test error');
     });
 
     it('should wait for specific conditions', async () => {
       const { getByTestId } = createTestComponent().render();
-      
-      await waitForCondition(
-        () => getByTestId('content').textContent === 'test data',
-        5000
-      );
-      
+
+      await waitForCondition(() => getByTestId('content').textContent === 'test data', 5000);
+
       expect(getByTestId('content')).toHaveTextContent('test data');
     });
 
     it('should wait for elements to appear', async () => {
       const { container } = createTestComponent().render();
-      
+
       const contentElement = await waitForElement(container, '[data-testid="content"]');
       expect(contentElement).toBeInTheDocument();
     });
@@ -231,11 +228,11 @@ describe('Comprehensive Test Example', () => {
     it('should handle button clicks', async () => {
       const { getByTestId, component } = createTestComponent().render();
       const saveHandler = vi.fn();
-      
+
       component.$on('save', saveHandler);
-      
+
       await fireEvent.click(getByTestId('save-button'));
-      
+
       expect(saveHandler).toHaveBeenCalledWith(
         expect.objectContaining({
           detail: expect.objectContaining({
@@ -248,20 +245,20 @@ describe('Comprehensive Test Example', () => {
     it('should handle keyboard shortcuts', async () => {
       const { component } = createTestComponent().render();
       const saveHandler = vi.fn();
-      
+
       component.$on('save', saveHandler);
-      
+
       await simulateKeyboardShortcut(document.body, TEST_KEYBOARD_SHORTCUTS.SAVE);
-      
+
       expect(saveHandler).toHaveBeenCalled();
     });
 
     it('should dispatch custom events', async () => {
       const { component } = createTestComponent().render();
       const loadedHandler = vi.fn();
-      
+
       component.$on('loaded', loadedHandler);
-      
+
       // Wait for component to load
       await waitFor(() => {
         expect(loadedHandler).toHaveBeenCalledWith(
@@ -276,14 +273,14 @@ describe('Comprehensive Test Example', () => {
   describe('Accessibility Testing', () => {
     it('should be accessible', () => {
       const { getByTestId } = createTestComponent().render();
-      
+
       const saveButton = getByTestId('save-button');
       expect(saveButton).toBeAccessible();
     });
 
     it('should support keyboard navigation', () => {
       const { container } = createTestComponent().render();
-      
+
       expect(container).toSupportKeyboardNavigation();
     });
 
@@ -291,7 +288,7 @@ describe('Comprehensive Test Example', () => {
       const { getByTestId } = createTestComponent().render({
         error: 'Test error'
       });
-      
+
       const errorElement = getByTestId('error');
       expect(errorElement).toHaveAttribute('role', 'alert');
     });
@@ -300,7 +297,7 @@ describe('Comprehensive Test Example', () => {
   describe('Tauri Integration Testing', () => {
     it('should call Tauri commands correctly', async () => {
       createTestComponent().render();
-      
+
       await waitFor(() => {
         expect(mockTauri.invoke).toHaveBeenCalledWithTauriCommand('load_data');
       });
@@ -308,9 +305,9 @@ describe('Comprehensive Test Example', () => {
 
     it('should handle Tauri command errors', async () => {
       vi.mocked(mockTauri.invoke).mockRejectedValue(new Error('Backend error'));
-      
+
       const { getByTestId } = createTestComponent().render();
-      
+
       await waitFor(() => {
         expect(getByTestId('error')).toHaveTextContent('Backend error');
       });
@@ -323,7 +320,7 @@ describe('Comprehensive Test Example', () => {
         name: 'Test Plugin',
         enabled: false
       });
-      
+
       expect(plugin).toEqual({
         id: 'test-plugin',
         name: 'Test Plugin',
@@ -335,7 +332,7 @@ describe('Comprehensive Test Example', () => {
 
     it('should use predefined test data', () => {
       const plugins = TEST_PLUGINS;
-      
+
       expect(plugins).toHaveLength(3);
       expect(plugins[0]).toHaveProperty('id', 'mission-planner');
       expect(plugins[0]).toHaveProperty('enabled', true);
@@ -346,7 +343,7 @@ describe('Comprehensive Test Example', () => {
         type: 'waypoint',
         name: 'Custom Waypoint'
       });
-      
+
       expect(waypoint.type).toBe('waypoint');
       expect(waypoint.name).toBe('Custom Waypoint');
       expect(waypoint.params).toHaveProperty('lat');
@@ -359,7 +356,7 @@ describe('Comprehensive Test Example', () => {
       const { getByTestId } = createTestComponent().render({
         loading: true
       });
-      
+
       expect(getByTestId('loading')).toBeInTheDocument();
     });
 
@@ -367,7 +364,7 @@ describe('Comprehensive Test Example', () => {
       const { getByTestId } = createTestComponent().render({
         error: 'Test error'
       });
-      
+
       expect(getByTestId('error')).toBeInTheDocument();
       expect(getByTestId('error')).toHandleErrorState();
     });
@@ -376,7 +373,7 @@ describe('Comprehensive Test Example', () => {
       const { getByTestId } = createTestComponent().render({
         loading: true
       });
-      
+
       expect(getByTestId('loading')).toHandleLoadingState();
     });
   });
@@ -384,9 +381,9 @@ describe('Comprehensive Test Example', () => {
   describe('Performance Testing', () => {
     it('should complete operations within time limits', async () => {
       const startTime = performance.now();
-      
+
       createTestComponent().render();
-      
+
       await waitFor(() => {
         expect(performance.now() - startTime).toBeLessThan(1000);
       });
@@ -398,20 +395,23 @@ describe('Comprehensive Test Example', () => {
       );
 
       const { getByTestId } = createTestComponent().render();
-      
+
       // Should eventually show error due to timeout handling
-      await waitFor(() => {
-        expect(getByTestId('error')).toBeInTheDocument();
-      }, { timeout: 6000 });
+      await waitFor(
+        () => {
+          expect(getByTestId('error')).toBeInTheDocument();
+        },
+        { timeout: 6000 }
+      );
     });
   });
 
   describe('Edge Cases', () => {
     it('should handle empty data', () => {
       vi.mocked(mockTauri.invoke).mockResolvedValue(null);
-      
+
       const { getByTestId } = createTestComponent().render();
-      
+
       waitFor(() => {
         expect(getByTestId('empty')).toBeInTheDocument();
       });
@@ -419,9 +419,9 @@ describe('Comprehensive Test Example', () => {
 
     it('should handle malformed data', async () => {
       vi.mocked(mockTauri.invoke).mockResolvedValue(undefined);
-      
+
       const { getByTestId } = createTestComponent().render();
-      
+
       await waitFor(() => {
         expect(getByTestId('empty')).toBeInTheDocument();
       });
@@ -429,13 +429,13 @@ describe('Comprehensive Test Example', () => {
 
     it('should handle rapid state changes', async () => {
       const { component } = createTestComponent().render();
-      
+
       // Simulate rapid prop changes
       component.$set({ loading: true });
       component.$set({ loading: false });
       component.$set({ error: 'Error' });
       component.$set({ error: null });
-      
+
       // Component should handle rapid changes gracefully
       expect(component).toBeDefined();
     });
@@ -446,7 +446,7 @@ describe('Comprehensive Test Example', () => {
       // This would test interaction between multiple components
       const component1 = createTestComponent().render({ title: 'Component 1' });
       const component2 = createTestComponent().render({ title: 'Component 2' });
-      
+
       expect(component1.getByTestId('title')).toHaveTextContent('Component 1');
       expect(component2.getByTestId('title')).toHaveTextContent('Component 2');
     });
@@ -454,17 +454,17 @@ describe('Comprehensive Test Example', () => {
     it('should handle complex user workflows', async () => {
       const { getByTestId, component } = createTestComponent().render();
       const saveHandler = vi.fn();
-      
+
       component.$on('save', saveHandler);
-      
+
       // Wait for component to load
       await waitFor(() => {
         expect(getByTestId('content')).toBeInTheDocument();
       });
-      
+
       // Simulate user interaction
       await fireEvent.click(getByTestId('save-button'));
-      
+
       // Verify workflow completion
       expect(saveHandler).toHaveBeenCalled();
     });

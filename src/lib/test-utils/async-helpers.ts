@@ -30,10 +30,7 @@ export async function waitForCondition(
 /**
  * Wait for a promise to resolve or reject
  */
-export async function waitForPromise<T>(
-  promise: Promise<T>,
-  timeout = 5000
-): Promise<T> {
+export async function waitForPromise<T>(promise: Promise<T>, timeout = 5000): Promise<T> {
   return Promise.race([
     promise,
     new Promise<never>((_, reject) =>
@@ -64,13 +61,10 @@ export async function waitForElement(
   selector: string,
   timeout = 5000
 ): Promise<HTMLElement> {
-  return waitForCondition(
-    () => {
-      const element = container.querySelector(selector) as HTMLElement;
-      return element !== null;
-    },
-    timeout
-  ).then(() => container.querySelector(selector) as HTMLElement);
+  return waitForCondition(() => {
+    const element = container.querySelector(selector) as HTMLElement;
+    return element !== null;
+  }, timeout).then(() => container.querySelector(selector) as HTMLElement);
 }
 
 /**
@@ -81,10 +75,7 @@ export async function waitForElementToDisappear(
   selector: string,
   timeout = 5000
 ): Promise<void> {
-  return waitForCondition(
-    () => container.querySelector(selector) === null,
-    timeout
-  );
+  return waitForCondition(() => container.querySelector(selector) === null, timeout);
 }
 
 /**
@@ -95,10 +86,7 @@ export async function waitForTextContent(
   text: string,
   timeout = 5000
 ): Promise<void> {
-  return waitForCondition(
-    () => container.textContent?.includes(text) ?? false,
-    timeout
-  );
+  return waitForCondition(() => container.textContent?.includes(text) ?? false, timeout);
 }
 
 /**
@@ -110,10 +98,7 @@ export async function waitForElementCount(
   count: number,
   timeout = 5000
 ): Promise<void> {
-  return waitForCondition(
-    () => container.querySelectorAll(selector).length === count,
-    timeout
-  );
+  return waitForCondition(() => container.querySelectorAll(selector).length === count, timeout);
 }
 
 /**
@@ -143,14 +128,8 @@ export async function waitForStoreValue<T>(
 /**
  * Wait for a mock function to be called
  */
-export async function waitForMockCall(
-  mockFn: any,
-  timeout = 5000
-): Promise<void> {
-  return waitForCondition(
-    () => mockFn.mock.calls.length > 0,
-    timeout
-  );
+export async function waitForMockCall(mockFn: any, timeout = 5000): Promise<void> {
+  return waitForCondition(() => mockFn.mock.calls.length > 0, timeout);
 }
 
 /**
@@ -161,14 +140,11 @@ export async function waitForMockCallWith(
   expectedArgs: unknown[],
   timeout = 5000
 ): Promise<void> {
-  return waitForCondition(
-    () => {
-      return mockFn.mock.calls.some((call: unknown[]) =>
-        JSON.stringify(call) === JSON.stringify(expectedArgs)
-      );
-    },
-    timeout
-  );
+  return waitForCondition(() => {
+    return mockFn.mock.calls.some(
+      (call: unknown[]) => JSON.stringify(call) === JSON.stringify(expectedArgs)
+    );
+  }, timeout);
 }
 
 /**
@@ -218,7 +194,7 @@ export async function waitForIdle(timeout = 1000): Promise<void> {
     async () => {
       // Check if there are any pending timers
       const hasPendingTimers = vi.getTimerCount() > 0;
-      
+
       if (hasPendingTimers) {
         return false;
       }
@@ -247,7 +223,7 @@ export async function retryOperation<T>(
       return await operation();
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      
+
       if (attempt === maxRetries) {
         throw lastError;
       }

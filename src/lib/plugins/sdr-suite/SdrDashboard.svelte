@@ -69,8 +69,8 @@
   });
 </script>
 
-<div 
-  class="sdr-dashboard" 
+<div
+  class="sdr-dashboard"
   class:mobile={isMobileDevice}
   class:tablet={isTabletDevice}
   class:controls-hidden={!showControls}

@@ -15,7 +15,12 @@
   } from 'maplibre-gl';
   import { theme } from '$lib/stores/theme';
   import { isMobile } from '$lib/utils/responsive';
-  import { addTouchGestures, type SwipeGesture, type PinchGesture, type TapGesture } from '$lib/utils/touch';
+  import {
+    addTouchGestures,
+    type SwipeGesture,
+    type PinchGesture,
+    type TapGesture
+  } from '$lib/utils/touch';
   import type { MapClickEvent, MissionItem } from './types';
 
   // ===== PROPS =====
@@ -82,7 +87,9 @@
               minzoom: 0,
               maxzoom: 22
             }
-          ]
+          ],
+          // Add glyphs for text rendering
+          glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf'
         },
         center: center as LngLatLike,
         zoom: zoom,
@@ -214,15 +221,15 @@
 
       onSwipe: (gesture) => {
         dispatch('swipe', gesture);
-        
+
         // Handle swipe gestures for map navigation
         if (map) {
           const currentCenter = map.getCenter();
           const currentZoom = map.getZoom();
-          
+
           // Calculate pan distance based on swipe velocity and direction
           const panDistance = Math.min(gesture.velocity * 100, 0.01); // Limit max pan
-          
+
           let newCenter: [number, number] = [currentCenter.lng, currentCenter.lat];
           switch (gesture.direction) {
             case 'up':
@@ -238,7 +245,7 @@
               newCenter = [currentCenter.lng - panDistance, currentCenter.lat];
               break;
           }
-          
+
           map.flyTo({
             center: newCenter,
             zoom: currentZoom,
@@ -249,16 +256,16 @@
 
       onPinch: (gesture) => {
         dispatch('pinch', gesture);
-        
+
         // Handle pinch-to-zoom
         if (map) {
           const currentZoom = map.getZoom();
           const zoomDelta = Math.log2(gesture.scale);
           const newZoom = Math.max(0, Math.min(22, currentZoom + zoomDelta));
-          
+
           // Convert screen center to map coordinates
           const lngLat = map.unproject([gesture.center.x, gesture.center.y]);
-          
+
           map.flyTo({
             center: [lngLat.lng, lngLat.lat],
             zoom: newZoom,
@@ -271,12 +278,12 @@
         // Show context menu or waypoint creation on long press
         if (map) {
           const lngLat = map.unproject([gesture.point.x, gesture.point.y]);
-          
+
           // Haptic feedback if supported
           if ('vibrate' in navigator) {
             navigator.vibrate(50);
           }
-          
+
           // Dispatch as a special map click for waypoint creation
           dispatch('mapclick', {
             lngLat: [lngLat.lng, lngLat.lat],
@@ -372,7 +379,7 @@
           source: 'mission-items',
           layout: {
             'text-field': ['get', 'name'],
-            'text-font': ['Open Sans Regular'],
+            'text-font': ['Noto Sans Regular', 'Arial Unicode MS Regular'],
             'text-offset': [0, 1.5],
             'text-anchor': 'top',
             'text-size': 12
@@ -532,7 +539,7 @@
       touchGestureCleanup();
       touchGestureCleanup = null;
     }
-    
+
     if (map) {
       map.remove();
       map = null;

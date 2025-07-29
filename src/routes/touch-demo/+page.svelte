@@ -9,7 +9,12 @@
   import MapViewer from '$lib/plugins/mission-planner/MapViewer.svelte';
   import MinimizedCoin from '$lib/plugins/mission-planner/MinimizedCoin.svelte';
   import MissionAccordion from '$lib/plugins/mission-planner/MissionAccordion.svelte';
-  import { addTouchGestures, type SwipeGesture, type PinchGesture, type TapGesture } from '$lib/utils/touch';
+  import {
+    addTouchGestures,
+    type SwipeGesture,
+    type PinchGesture,
+    type TapGesture
+  } from '$lib/utils/touch';
   import type { MissionItem } from '$lib/plugins/mission-planner/types';
 
   // ===== STATE =====
@@ -31,8 +36,8 @@
       id: 'waypoint-1',
       type: 'waypoint',
       name: 'Waypoint Alpha',
-      params: { lat: 37.7750, lng: -122.4190, alt: 100 },
-      position: { lat: 37.7750, lng: -122.4190, alt: 100 }
+      params: { lat: 37.775, lng: -122.419, alt: 100 },
+      position: { lat: 37.775, lng: -122.419, alt: 100 }
     },
     {
       id: 'waypoint-2',
@@ -45,8 +50,8 @@
       id: 'loiter-1',
       type: 'loiter',
       name: 'Loiter Point',
-      params: { lat: 37.7760, lng: -122.4180, alt: 100 },
-      position: { lat: 37.7760, lng: -122.4180, alt: 100 }
+      params: { lat: 37.776, lng: -122.418, alt: 100 },
+      position: { lat: 37.776, lng: -122.418, alt: 100 }
     },
     {
       id: 'land-1',
@@ -89,15 +94,21 @@
       },
 
       onSwipe: (gesture: SwipeGesture) => {
-        logGesture(`Swipe ${gesture.direction} - Distance: ${gesture.distance.toFixed(0)}px, Velocity: ${gesture.velocity.toFixed(2)}`);
+        logGesture(
+          `Swipe ${gesture.direction} - Distance: ${gesture.distance.toFixed(0)}px, Velocity: ${gesture.velocity.toFixed(2)}`
+        );
       },
 
       onPinch: (gesture: PinchGesture) => {
-        logGesture(`Pinch - Scale: ${gesture.scale.toFixed(2)}, Rotation: ${(gesture.rotation * 180 / Math.PI).toFixed(1)}°`);
+        logGesture(
+          `Pinch - Scale: ${gesture.scale.toFixed(2)}, Rotation: ${((gesture.rotation * 180) / Math.PI).toFixed(1)}°`
+        );
       },
 
       onLongPress: (gesture) => {
-        logGesture(`Long press at (${gesture.point.x}, ${gesture.point.y}) - Duration: ${gesture.duration}ms`);
+        logGesture(
+          `Long press at (${gesture.point.x}, ${gesture.point.y}) - Duration: ${gesture.duration}ms`
+        );
       },
 
       onGestureStart: () => {
@@ -140,11 +151,15 @@
   }
 
   function handleCoinPin(event: CustomEvent): void {
-    logGesture(`Coin pinned: ${event.detail.itemId} at (${event.detail.position.x}, ${event.detail.position.y})`);
+    logGesture(
+      `Coin pinned: ${event.detail.itemId} at (${event.detail.position.x}, ${event.detail.position.y})`
+    );
   }
 
   function handleCoinMove(event: CustomEvent): void {
-    logGesture(`Coin moved: ${event.detail.itemId} to (${event.detail.position.x}, ${event.detail.position.y})`);
+    logGesture(
+      `Coin moved: ${event.detail.itemId} to (${event.detail.position.x}, ${event.detail.position.y})`
+    );
   }
 
   // ===== LIFECYCLE =====
@@ -173,11 +188,9 @@
     <p class="demo-subtitle">
       Interactive demonstration of touch and gesture support for mission planning components
     </p>
-    
+
     {#if $isMobile}
-      <div class="mobile-indicator">
-        📱 Mobile Device Detected - Touch gestures are active
-      </div>
+      <div class="mobile-indicator">📱 Mobile Device Detected - Touch gestures are active</div>
     {:else}
       <div class="desktop-indicator">
         🖥️ Desktop Device - Mouse interactions with touch simulation
@@ -186,38 +199,38 @@
   </header>
 
   <nav class="demo-nav">
-    <button 
-      class="nav-button" 
+    <button
+      class="nav-button"
       class:active={activeDemo === 'overview'}
-      on:click={() => activeDemo = 'overview'}
+      on:click={() => (activeDemo = 'overview')}
     >
       Overview
     </button>
-    <button 
-      class="nav-button" 
+    <button
+      class="nav-button"
       class:active={activeDemo === 'gestures'}
-      on:click={() => activeDemo = 'gestures'}
+      on:click={() => (activeDemo = 'gestures')}
     >
       Basic Gestures
     </button>
-    <button 
-      class="nav-button" 
+    <button
+      class="nav-button"
       class:active={activeDemo === 'map'}
-      on:click={() => activeDemo = 'map'}
+      on:click={() => (activeDemo = 'map')}
     >
       Map Touch
     </button>
-    <button 
-      class="nav-button" 
+    <button
+      class="nav-button"
       class:active={activeDemo === 'coins'}
-      on:click={() => activeDemo = 'coins'}
+      on:click={() => (activeDemo = 'coins')}
     >
       Draggable Coins
     </button>
-    <button 
-      class="nav-button" 
+    <button
+      class="nav-button"
       class:active={activeDemo === 'accordion'}
-      on:click={() => activeDemo = 'accordion'}
+      on:click={() => (activeDemo = 'accordion')}
     >
       Mission Accordion
     </button>
@@ -227,7 +240,7 @@
     {#if activeDemo === 'overview'}
       <div class="demo-section">
         <h2>Touch & Gesture Support Overview</h2>
-        
+
         <div class="feature-grid">
           <div class="feature-card">
             <h3>🗺️ Map Interactions</h3>
@@ -276,7 +289,10 @@
 
         <div class="instructions">
           <h3>How to Test</h3>
-          <p>Navigate through the different demo sections using the tabs above. Each section demonstrates specific touch and gesture capabilities:</p>
+          <p>
+            Navigate through the different demo sections using the tabs above. Each section
+            demonstrates specific touch and gesture capabilities:
+          </p>
           <ol>
             <li><strong>Basic Gestures:</strong> Try different touch gestures on the demo area</li>
             <li><strong>Map Touch:</strong> Interact with the map using touch gestures</li>
@@ -285,16 +301,12 @@
           </ol>
         </div>
       </div>
-
     {:else if activeDemo === 'gestures'}
       <div class="demo-section">
         <h2>Basic Touch Gestures</h2>
-        
+
         <div class="gesture-demo-container">
-          <div 
-            class="gesture-demo-area"
-            bind:this={touchDemoElement}
-          >
+          <div class="gesture-demo-area" bind:this={touchDemoElement}>
             <div class="demo-instructions">
               <h3>Try these gestures:</h3>
               <ul>
@@ -318,19 +330,16 @@
                   {entry}
                 </div>
               {:else}
-                <div class="log-empty">
-                  No gestures detected yet. Try touching the demo area!
-                </div>
+                <div class="log-empty">No gestures detected yet. Try touching the demo area!</div>
               {/each}
             </div>
           </div>
         </div>
       </div>
-
     {:else if activeDemo === 'map'}
       <div class="demo-section">
         <h2>Map Touch Interactions</h2>
-        
+
         <div class="map-demo-container">
           <div class="map-container">
             <MapViewer
@@ -369,11 +378,10 @@
           </div>
         </div>
       </div>
-
     {:else if activeDemo === 'coins'}
       <div class="demo-section">
         <h2>Draggable Mission Coins</h2>
-        
+
         <div class="coins-demo-container">
           <div class="coins-area">
             {#each demoMissionItems as item, index}
@@ -381,9 +389,9 @@
                 {item}
                 isPinned={false}
                 snapPoints={[]}
-                initialPosition={{ 
-                  x: 100 + (index % 3) * 120, 
-                  y: 100 + Math.floor(index / 3) * 120 
+                initialPosition={{
+                  x: 100 + (index % 3) * 120,
+                  y: 100 + Math.floor(index / 3) * 120
                 }}
                 on:expand={handleCoinExpand}
                 on:pin={handleCoinPin}
@@ -416,17 +424,13 @@
           </div>
         </div>
       </div>
-
     {:else if activeDemo === 'accordion'}
       <div class="demo-section">
         <h2>Mission Accordion Touch</h2>
-        
+
         <div class="accordion-demo-container">
           <div class="accordion-container">
-            <MissionAccordion
-              items={demoMissionItems}
-              selectedItemId={null}
-            />
+            <MissionAccordion items={demoMissionItems} selectedItemId={null} />
           </div>
 
           <div class="accordion-instructions">
@@ -441,8 +445,10 @@
 
             <div class="touch-tips">
               <h4>Touch Tips</h4>
-              <p>All buttons are sized for easy touch interaction (minimum 44px). 
-              Swipe gestures work on the entire item area.</p>
+              <p>
+                All buttons are sized for easy touch interaction (minimum 44px). Swipe gestures work
+                on the entire item area.
+              </p>
             </div>
           </div>
         </div>

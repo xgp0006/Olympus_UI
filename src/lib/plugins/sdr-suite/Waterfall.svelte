@@ -329,17 +329,38 @@
     const startX = 30;
     const startY = 20;
 
-    // Create image data for efficient pixel manipulation
-    const imageData = ctx.createImageData(waterfallWidth, waterfallHeight);
+    // Validate dimensions before creating image data
+    if (waterfallWidth <= 0 || waterfallHeight <= 0) {
+      console.warn('Waterfall: Invalid dimensions, skipping render', {
+        waterfallWidth,
+        waterfallHeight
+      });
+      return;
+    }
+
+    // Additional safety checks for reasonable bounds
+    const MAX_DIMENSION = 4096; // Prevent excessive memory allocation
+    const safeWidth = Math.min(Math.max(1, Math.floor(waterfallWidth)), MAX_DIMENSION);
+    const safeHeight = Math.min(Math.max(1, Math.floor(waterfallHeight)), MAX_DIMENSION);
+
+    if (safeWidth !== waterfallWidth || safeHeight !== waterfallHeight) {
+      console.warn('Waterfall: Dimensions clamped for safety', {
+        original: { waterfallWidth, waterfallHeight },
+        clamped: { safeWidth, safeHeight }
+      });
+    }
+
+    // Create image data for efficient pixel manipulation with validated dimensions
+    const imageData = ctx.createImageData(safeWidth, safeHeight);
     const pixels = imageData.data;
 
-    // Render each line of the waterfall
-    for (let y = 0; y < waterfallHeight && y < history.length; y++) {
+    // Render each line of the waterfall using safe dimensions
+    for (let y = 0; y < safeHeight && y < history.length; y++) {
       const magnitudes = history[y];
 
-      for (let x = 0; x < waterfallWidth; x++) {
+      for (let x = 0; x < safeWidth; x++) {
         // Map x position to frequency bin
-        const binIndex = Math.floor((x / waterfallWidth) * dataLength);
+        const binIndex = Math.floor((x / safeWidth) * dataLength);
         const magnitude = magnitudes[binIndex] || state.minMagnitude;
 
         // Normalize magnitude to 0-1 range
@@ -352,8 +373,8 @@
         const colorIndex = Math.floor(normalizedMagnitude * 255);
         const colorMapPixel = colorIndex * 4;
 
-        // Set pixel color
-        const pixelIndex = (y * waterfallWidth + x) * 4;
+        // Set pixel color using safe dimensions
+        const pixelIndex = (y * safeWidth + x) * 4;
         pixels[pixelIndex] = state.colorMap.data[colorMapPixel]; // Red
         pixels[pixelIndex + 1] = state.colorMap.data[colorMapPixel + 1]; // Green
         pixels[pixelIndex + 2] = state.colorMap.data[colorMapPixel + 2]; // Blue
@@ -364,10 +385,10 @@
     // Draw the image data to canvas
     ctx.putImageData(imageData, startX, startY);
 
-    // Draw border around waterfall
+    // Draw border around waterfall using safe dimensions
     ctx.strokeStyle = getThemeColor('grid_line_color', '#333333');
     ctx.lineWidth = 1;
-    ctx.strokeRect(startX, startY, waterfallWidth, waterfallHeight);
+    ctx.strokeRect(startX, startY, safeWidth, safeHeight);
   }
 
   /**
@@ -385,8 +406,8 @@
     ctx.lineWidth = 1;
     ctx.font = '11px var(--typography-font_family_mono)';
 
-    const waterfallWidth = width - 60;
-    const waterfallHeight = Math.min(height - 40, state.waterfallHistory.length);
+    const waterfallWidth = Math.max(0, width - 60);
+    const waterfallHeight = Math.max(0, Math.min(height - 40, state.waterfallHistory.length));
     const startX = 30;
     const startY = 20;
 
@@ -478,6 +499,12 @@
     labelColor: string
   ): void {
     if (!state.colorMap) {
+      return;
+    }
+
+    // Validate dimensions to prevent canvas errors
+    if (!width || width <= 0 || !height || height <= 0) {
+      console.warn('Invalid dimensions for color scale:', { width, height });
       return;
     }
 

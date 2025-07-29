@@ -8,7 +8,12 @@
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   import { spring } from 'svelte/motion';
   import { isMobile } from '$lib/utils/responsive';
-  import { createTouchDragHandler, enhanceButtonTouch, type PanGesture, type TouchPoint } from '$lib/utils/touch';
+  import {
+    createTouchDragHandler,
+    enhanceButtonTouch,
+    type PanGesture,
+    type TouchPoint
+  } from '$lib/utils/touch';
   import type { MissionItem } from './types';
 
   // ===== PROPS =====
@@ -143,7 +148,7 @@
 
     dragging = true;
     dragStartPosition = { x: point.x, y: point.y };
-    
+
     const rect = coinElement.getBoundingClientRect();
     dragOffset = {
       x: point.x - rect.left - rect.width / 2,

@@ -25,6 +25,7 @@
     minimize: { itemId: string };
     expand: { itemId: string };
     update: { itemId: string; params: WaypointParams };
+    addWaypoint: void;
     error: string;
   }>();
 
@@ -52,6 +53,11 @@
    * Handle drag and drop events
    */
   function handleDndConsider(e: CustomEvent): void {
+    // Safeguard against undefined items
+    if (!e.detail || !e.detail.items) {
+      console.warn('DND consider event missing items:', e.detail);
+      return;
+    }
     accordionItems = e.detail.items;
   }
 
@@ -59,6 +65,11 @@
    * Handle drag and drop finalize
    */
   async function handleDndFinalize(e: CustomEvent): Promise<void> {
+    // Safeguard against undefined items
+    if (!e.detail || !e.detail.items) {
+      console.warn('DND finalize event missing items:', e.detail);
+      return;
+    }
     accordionItems = e.detail.items;
 
     // Only reorder if the event was triggered by pointer (user drag)
@@ -253,10 +264,10 @@
       // Find the item being swiped
       const target = document.elementFromPoint(gesture.startPoint.x, gesture.startPoint.y);
       const itemElement = target?.closest('[data-testid^="accordion-item-"]');
-      
+
       if (itemElement) {
         const itemId = itemElement.getAttribute('data-testid')?.replace('accordion-item-', '');
-        
+
         if (itemId && velocity > 0.5) {
           if (direction === 'left') {
             // Swipe left to minimize
@@ -275,7 +286,7 @@
       if (scrollContainer && velocity > 0.3) {
         const scrollAmount = Math.min(velocity * 200, 300);
         const scrollDirection = direction === 'up' ? -scrollAmount : scrollAmount;
-        
+
         scrollContainer.scrollBy({
           top: scrollDirection,
           behavior: 'smooth'
@@ -300,16 +311,29 @@
 </script>
 
 <!-- ===== TEMPLATE ===== -->
-<div 
-  class="mission-accordion" 
+<div
+  class="mission-accordion"
   class:mobile={$isMobile}
   bind:this={accordionElement}
   data-testid="mission-accordion"
 >
   <div class="accordion-header">
     <h3>Mission Items</h3>
-    <div class="item-count">
-      {accordionItems.length} item{accordionItems.length !== 1 ? 's' : ''}
+    <div class="header-actions">
+      <button
+        class="add-waypoint-button"
+        on:click={() => dispatch('addWaypoint')}
+        title="Add new waypoint"
+        data-testid="add-waypoint-button"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 2v6H2v2h6v6h2v-6h6V8h-6V2H8z"/>
+        </svg>
+        <span>Add Waypoint</span>
+      </button>
+      <div class="item-count">
+        {accordionItems.length} item{accordionItems.length !== 1 ? 's' : ''}
+      </div>
     </div>
   </div>
 
@@ -324,10 +348,11 @@
       class="accordion-content"
       use:dndzone={{
         items: accordionItems,
-        dragDisabled,
+        dragDisabled: dragDisabled || $isMobile,
         dropTargetStyle: {},
         morphDisabled: true,
-        flipDurationMs: 200
+        flipDurationMs: 200,
+        dropFromOthersDisabled: true
       }}
       on:consider={handleDndConsider}
       on:finalize={handleDndFinalize}
@@ -445,6 +470,41 @@
     font-weight: 600;
   }
 
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--layout-spacing_unit);
+  }
+
+  .add-waypoint-button {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--layout-spacing_unit) / 2);
+    background-color: var(--component-button-background_accent);
+    color: var(--component-button-text_color_accent);
+    border: none;
+    padding: calc(var(--layout-spacing_unit) / 2) var(--layout-spacing_unit);
+    border-radius: var(--layout-border_radius);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--typography-font_size_sm);
+    transition: all var(--animation-transition_duration);
+  }
+
+  .add-waypoint-button:hover {
+    background-color: var(--component-button-background_hover);
+    transform: scale(1.05);
+  }
+
+  .add-waypoint-button:active {
+    transform: scale(0.98);
+  }
+
+  .add-waypoint-button svg {
+    width: 14px;
+    height: 14px;
+  }
+
   .item-count {
     font-size: var(--typography-font_size_sm);
     color: var(--color-text_secondary);
@@ -457,6 +517,9 @@
     flex: 1;
     overflow-y: auto;
     padding: var(--layout-spacing_unit);
+    /* Prevent double-tap zoom and touch conflicts */
+    touch-action: pan-y;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .accordion-item {
@@ -465,6 +528,9 @@
     border-radius: var(--layout-border_radius);
     border: var(--layout-border_width) solid var(--component-accordion-border_color);
     transition: all var(--animation-transition_duration) var(--animation-easing_function);
+    /* Prevent touch conflicts */
+    touch-action: manipulation;
+    user-select: none;
   }
 
   .accordion-item:hover {
@@ -687,11 +753,7 @@
     transform: translateY(-50%);
     width: 3px;
     height: 20px;
-    background: linear-gradient(
-      to bottom,
-      var(--color-accent_blue),
-      var(--color-accent_yellow)
-    );
+    background: linear-gradient(to bottom, var(--color-accent_blue), var(--color-accent_yellow));
     border-radius: 2px;
     opacity: 0.3;
     pointer-events: none;

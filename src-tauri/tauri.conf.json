@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "build": {
-    "beforeBuildCommand": "pnpm run build",
-    "beforeDevCommand": "pnpm run dev",
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run dev",
     "devPath": "http://localhost:1420",
     "distDir": "../build"
   },
@@ -27,7 +27,12 @@
         "removeDir": true,
         "removeFile": true,
         "renameFile": true,
-        "exists": true
+        "exists": true,
+        "scope": ["$RESOURCE/*", "$APPDIR/*", "$APPDATA/*"]
+      },
+      "protocol": {
+        "asset": true,
+        "assetScope": ["$RESOURCE/*", "$APPDIR/*", "**"]
       },
       "path": {
         "all": true

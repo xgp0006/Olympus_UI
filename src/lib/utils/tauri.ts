@@ -3,12 +3,14 @@
  * Provides safe wrappers for Tauri command invocation with error handling
  * Requirements: 6.1 - Safe API invocation with comprehensive error handling
  */
-import { invoke } from '@tauri-apps/api/tauri';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { TauriApi, type TauriInvoke, type TauriListen } from './tauri-context';
 import { showError, showWarning, showInfo } from '../stores/notifications';
 
 // Re-export UnlistenFn for convenience
-export type { UnlistenFn };
+export type UnlistenFn = (() => void) | null;
+
+// Track if we've already shown the Tauri not available notification
+let tauriNotAvailableNotified = false;
 
 /**
  * Tauri error interface for structured error handling
@@ -103,13 +105,27 @@ export async function invokeTauriCommand<TResult>(
   const opts = { ...DEFAULT_API_OPTIONS, ...options };
   let lastError: TauriError;
 
+  // Check Tauri availability first
+  if (!TauriApi.isAvailable()) {
+    const error = new Error('Tauri runtime not available');
+    if (opts.showNotification && !tauriNotAvailableNotified) {
+      showWarning('Tauri Not Available', 'Some features require the desktop application');
+      tauriNotAvailableNotified = true;
+    }
+    throw error;
+  }
+
   for (let attempt = 0; attempt <= opts.retryAttempts; attempt++) {
     try {
-      // Create command promise with timeout
-      const commandPromise = invoke<TResult>(command, args);
-      const timeoutPromise = createTimeoutPromise(opts.timeout);
+      // Use safe invoke with proper error handling
+      const result = await TauriApi.invoke<TResult>(command, args);
+      if (result === undefined) {
+        throw new Error('Command failed: No result returned');
+      }
 
-      const result = await Promise.race([commandPromise, timeoutPromise]);
+      // Apply timeout if needed
+      const timeoutPromise = createTimeoutPromise(opts.timeout);
+      const finalResult = await Promise.race([Promise.resolve(result), timeoutPromise]);
 
       // Log successful retry if this wasn't the first attempt
       if (attempt > 0) {
@@ -119,7 +135,7 @@ export async function invokeTauriCommand<TResult>(
         }
       }
 
-      return result;
+      return finalResult;
     } catch (error) {
       lastError = parseTauriError(error);
 
@@ -371,6 +387,14 @@ export async function setupEventListener<T>(
 ): Promise<UnlistenFn> {
   const opts = { ...DEFAULT_EVENT_OPTIONS, ...options };
 
+  // Check Tauri availability
+  if (!TauriApi.isAvailable()) {
+    if (opts.enableLogging) {
+      console.warn(`Event listener setup skipped for '${eventName}': Tauri not available`);
+    }
+    return null;
+  }
+
   // Initialize error tracking for this event
   if (!eventErrorTracking.has(eventName)) {
     eventErrorTracking.set(eventName, {
@@ -381,7 +405,7 @@ export async function setupEventListener<T>(
   }
 
   try {
-    const unlisten = await listen<T>(eventName, (event) => {
+    const unlisten = await TauriApi.listen<T>(eventName, (payload) => {
       const tracking = eventErrorTracking.get(eventName)!;
 
       // Check if event handler is disabled due to too many errors
@@ -403,7 +427,7 @@ export async function setupEventListener<T>(
       }
 
       try {
-        handler(event.payload);
+        handler(payload);
 
         // Reset error count on successful handling
         if (tracking.errorCount > 0) {
@@ -454,7 +478,7 @@ export async function setupEventListener<T>(
       console.log(`Event listener setup for '${eventName}'`);
     }
 
-    return unlisten;
+    return unlisten || null;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
@@ -949,6 +973,7 @@ export const SdrCommands = {
       {
         notificationTitle: 'Failed to Get SDR Devices',
         retryAttempts: 2,
+        showNotification: false, // Device detection is non-critical in browser
         ...options
       }
     );
@@ -1097,6 +1122,12 @@ export async function checkBackendHealth(): Promise<{
   error?: string;
 }> {
   const startTime = performance.now();
+
+  // Check Tauri availability first
+  if (!TauriApi.isAvailable()) {
+    const latency = performance.now() - startTime;
+    return { healthy: false, latency, error: 'Tauri runtime not available' };
+  }
 
   try {
     // Use a simple command to test connectivity

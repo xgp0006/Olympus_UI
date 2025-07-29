@@ -42,6 +42,28 @@ export function generateCSSProperties(theme: Theme): string {
     });
   }
 
+  // Add responsive properties if present
+  if (theme.responsive) {
+    Object.entries(theme.responsive).forEach(([breakpoint, breakpointProps]) => {
+      if (breakpointProps && typeof breakpointProps === 'object') {
+        Object.entries(breakpointProps).forEach(([key, value]) => {
+          if (typeof value === 'string') {
+            properties.push(`--responsive-${breakpoint}-${key}: ${value};`);
+          }
+        });
+      }
+    });
+  }
+
+  // Add touch properties if present
+  if (theme.touch) {
+    Object.entries(theme.touch).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        properties.push(`--touch-${key}: ${value};`);
+      }
+    });
+  }
+
   return properties.join('\n  ');
 }
 
@@ -113,7 +135,13 @@ export function getComponentTheme<T extends keyof Theme['components']>(
   property: keyof Theme['components'][T],
   fallback: string = 'inherit'
 ): string {
-  return (theme?.components[component]?.[property] as string) || fallback;
+  if (!theme?.components) return fallback;
+  
+  const componentData = theme.components[component];
+  if (!componentData || typeof componentData !== "object") return fallback;
+  
+  const value = (componentData as any)[property];
+  return (typeof value === "string" ? value : fallback);
 }
 
 /**
@@ -146,6 +174,47 @@ export function isThemeDark(theme: Theme | null): boolean {
 }
 
 /**
+ * Gets a responsive theme value with fallback
+ * @param theme - Theme object
+ * @param breakpoint - Responsive breakpoint (mobile, tablet, desktop)
+ * @param property - Property name
+ * @param fallback - Fallback value
+ * @returns Responsive property value or fallback
+ */
+export function getResponsiveTheme(
+  theme: Theme | null,
+  breakpoint: 'mobile' | 'tablet' | 'desktop',
+  property: string,
+  fallback: string = 'inherit'
+): string {
+  if (!theme?.responsive?.[breakpoint]) return fallback;
+  
+  const breakpointData = theme.responsive[breakpoint];
+  if (!breakpointData || typeof breakpointData !== 'object') return fallback;
+  
+  const value = (breakpointData as any)[property];
+  return (typeof value === 'string' ? value : fallback);
+}
+
+/**
+ * Gets a touch theme value with fallback
+ * @param theme - Theme object
+ * @param property - Touch property name
+ * @param fallback - Fallback value
+ * @returns Touch property value or fallback
+ */
+export function getTouchTheme(
+  theme: Theme | null,
+  property: string,
+  fallback: string = 'inherit'
+): string {
+  if (!theme?.touch) return fallback;
+  
+  const value = (theme.touch as any)[property];
+  return (typeof value === 'string' ? value : fallback);
+}
+
+/**
  * Creates a CSS variable reference string
  * @param category - CSS variable category (color, typography, layout, component)
  * @param key - Variable key
@@ -153,7 +222,7 @@ export function isThemeDark(theme: Theme | null): boolean {
  * @returns CSS variable reference string
  */
 export function cssVar(
-  category: 'color' | 'typography' | 'layout' | 'component' | 'animation',
+  category: 'color' | 'typography' | 'layout' | 'component' | 'animation' | 'responsive' | 'touch',
   key: string,
   component?: string
 ): string {
@@ -171,7 +240,7 @@ export function cssVar(
 export function cssVars(
   variables: Array<{
     name: string;
-    category: 'color' | 'typography' | 'layout' | 'component' | 'animation';
+    category: 'color' | 'typography' | 'layout' | 'component' | 'animation' | 'responsive' | 'touch';
     key: string;
     component?: string;
   }>

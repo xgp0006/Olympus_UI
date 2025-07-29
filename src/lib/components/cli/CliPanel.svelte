@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
+  import { browser } from '$app/environment';
   import { isMobile, isTablet, currentBreakpoint } from '../../utils/responsive';
   import CliView from './CliView.svelte';
 
@@ -31,11 +32,29 @@
   $: breakpoint = $currentBreakpoint;
 
   // Responsive panel heights
-  $: responsivePanelHeight = isMobileDevice 
-    ? parseInt(getComputedStyle(document.documentElement).getPropertyValue('--responsive-mobile-cli-mobile_height') || '200px')
-    : isTabletDevice
-    ? parseInt(getComputedStyle(document.documentElement).getPropertyValue('--responsive-tablet-cli-tablet_height') || '250px')
-    : parseInt(getComputedStyle(document.documentElement).getPropertyValue('--responsive-desktop-cli-desktop_height') || '300px');
+  $: responsivePanelHeight = browser
+    ? isMobileDevice
+      ? parseInt(
+          getComputedStyle(document.documentElement).getPropertyValue(
+            '--responsive-mobile-cli-mobile_height'
+          ) || '200px'
+        )
+      : isTabletDevice
+        ? parseInt(
+            getComputedStyle(document.documentElement).getPropertyValue(
+              '--responsive-tablet-cli-tablet_height'
+            ) || '250px'
+          )
+        : parseInt(
+            getComputedStyle(document.documentElement).getPropertyValue(
+              '--responsive-desktop-cli-desktop_height'
+            ) || '300px'
+          )
+    : isMobileDevice
+      ? 200
+      : isTabletDevice
+        ? 250
+        : 300;
 
   // Update expansion state when collapsed prop changes
   $: isExpanded = !collapsed;
@@ -69,8 +88,10 @@
     dragStartY = event.clientY;
     dragStartHeight = panelHeight;
 
-    document.addEventListener('mousemove', handleResizeDrag);
-    document.addEventListener('mouseup', handleResizeEnd);
+    if (browser) {
+      document.addEventListener('mousemove', handleResizeDrag);
+      document.addEventListener('mouseup', handleResizeEnd);
+    }
 
     event.preventDefault();
   }
@@ -97,17 +118,19 @@
   // Handle resize drag end
   function handleResizeEnd() {
     isDragging = false;
-    document.removeEventListener('mousemove', handleResizeDrag);
-    document.removeEventListener('mouseup', handleResizeEnd);
+    if (browser) {
+      document.removeEventListener('mousemove', handleResizeDrag);
+      document.removeEventListener('mouseup', handleResizeEnd);
+    }
   }
 
   // Set up keyboard listener
   onMount(() => {
     window.addEventListener('keydown', handleKeydown);
-    
+
     // Set initial height based on device
     panelHeight = responsivePanelHeight;
-    
+
     return () => {
       window.removeEventListener('keydown', handleKeydown);
     };
@@ -115,13 +138,15 @@
 
   onDestroy(() => {
     // Clean up any remaining event listeners
-    document.removeEventListener('mousemove', handleResizeDrag);
-    document.removeEventListener('mouseup', handleResizeEnd);
+    if (browser) {
+      document.removeEventListener('mousemove', handleResizeDrag);
+      document.removeEventListener('mouseup', handleResizeEnd);
+    }
   });
 </script>
 
-<div 
-  class="cli-panel" 
+<div
+  class="cli-panel"
   class:expanded={isExpanded}
   class:mobile={isMobileDevice}
   class:tablet={isTabletDevice}

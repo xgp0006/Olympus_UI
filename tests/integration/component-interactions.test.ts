@@ -16,7 +16,12 @@ import NotificationCenter from '../../src/lib/components/ui/NotificationCenter.s
 import ErrorBoundary from '../../src/lib/components/core/ErrorBoundary.svelte';
 
 // Import stores
-import { plugins, setActivePlugin, initializePluginSystem, pluginState } from '../../src/lib/stores/plugins';
+import {
+  plugins,
+  setActivePlugin,
+  initializePluginSystem,
+  pluginState
+} from '../../src/lib/stores/plugins';
 import { theme, loadTheme } from '../../src/lib/stores/theme';
 import { notifications, showNotification } from '../../src/lib/stores/notifications';
 
@@ -40,7 +45,7 @@ vi.mock('@tauri-apps/api/event', () => ({
 describe('Component Interactions Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Reset stores
     pluginState.set({
       plugins: [],
@@ -51,7 +56,7 @@ describe('Component Interactions Integration Tests', () => {
     });
     setActivePlugin(null);
     notifications.set([]);
-    
+
     // Setup default mock responses
     mockInvoke.mockImplementation((command: string) => {
       switch (command) {
@@ -73,21 +78,23 @@ describe('Component Interactions Integration Tests', () => {
   describe('Plugin Dashboard and Card Interactions', () => {
     test('plugin card click activates plugin and shows notification', async () => {
       const { getByTestId, getByText } = render(PluginDashboard);
-      
+
       // Wait for plugins to load
       await waitFor(() => {
         expect(getByTestId('plugins-container')).toBeInTheDocument();
       });
 
       // Find and click a plugin card
-      const missionPlannerCard = getByText('Mission Planner').closest('[data-testid="plugin-card"]');
+      const missionPlannerCard = getByText('Mission Planner').closest(
+        '[data-testid="plugin-card"]'
+      );
       expect(missionPlannerCard).toBeInTheDocument();
 
       await fireEvent.click(missionPlannerCard!);
 
       // Verify plugin was activated
       await waitFor(() => {
-        const currentActivePlugin = get(plugins).find(p => p.id === 'mission-planner');
+        const currentActivePlugin = get(plugins).find((p) => p.id === 'mission-planner');
         expect(currentActivePlugin).toBeTruthy();
       });
 
@@ -114,17 +121,19 @@ describe('Component Interactions Integration Tests', () => {
       });
 
       const { getByTestId } = render(PluginDashboard);
-      
+
       await waitFor(() => {
         expect(getByTestId('plugins-container')).toBeInTheDocument();
       });
 
       // Find plugin card and toggle it
-      const pluginCards = getByTestId('plugins-container').querySelectorAll('[data-testid="plugin-card"]');
-      const missionPlannerCard = Array.from(pluginCards).find(card => 
+      const pluginCards = getByTestId('plugins-container').querySelectorAll(
+        '[data-testid="plugin-card"]'
+      );
+      const missionPlannerCard = Array.from(pluginCards).find((card) =>
         card.textContent?.includes('Mission Planner')
       );
-      
+
       expect(missionPlannerCard).toBeInTheDocument();
 
       // Find and click the toggle button
@@ -141,7 +150,7 @@ describe('Component Interactions Integration Tests', () => {
 
     test('search functionality filters plugin cards correctly', async () => {
       const { getByTestId, queryByText } = render(PluginDashboard);
-      
+
       await waitFor(() => {
         expect(getByTestId('plugins-container')).toBeInTheDocument();
       });
@@ -164,7 +173,7 @@ describe('Component Interactions Integration Tests', () => {
       const clearButton = searchInput.parentElement?.querySelector('.clear-search');
       if (clearButton) {
         await fireEvent.click(clearButton);
-        
+
         await waitFor(() => {
           expect(queryByText('Mission Planner')).toBeInTheDocument();
           expect(queryByText('SDR Suite')).toBeInTheDocument();
@@ -184,7 +193,7 @@ describe('Component Interactions Integration Tests', () => {
       });
 
       const { getByTestId, queryByText } = render(PluginDashboard);
-      
+
       await waitFor(() => {
         expect(getByTestId('plugins-container')).toBeInTheDocument();
       });
@@ -220,7 +229,7 @@ describe('Component Interactions Integration Tests', () => {
 
       // For now, just test that the theme store works
       const themeValue = get(theme);
-      
+
       // Wait for theme to load
       await waitFor(() => {
         const themeValue = get(theme);
@@ -230,7 +239,7 @@ describe('Component Interactions Integration Tests', () => {
       // Verify CSS custom properties are applied
       const rootElement = document.documentElement;
       const computedStyle = window.getComputedStyle(rootElement);
-      
+
       expect(computedStyle.getPropertyValue('--color-background_primary')).toBeTruthy();
       expect(computedStyle.getPropertyValue('--color-text_primary')).toBeTruthy();
     });
@@ -247,7 +256,7 @@ describe('Component Interactions Integration Tests', () => {
       });
 
       const { container } = render(ThemeProvider);
-      
+
       // Wait for fallback theme to load
       await waitFor(() => {
         const themeValue = get(theme);
@@ -262,13 +271,15 @@ describe('Component Interactions Integration Tests', () => {
   describe('Notification System Integration', () => {
     test('plugin operations trigger appropriate notifications', async () => {
       const { getByTestId } = render(PluginDashboard);
-      
+
       await waitFor(() => {
         expect(getByTestId('plugins-container')).toBeInTheDocument();
       });
 
       // Trigger plugin activation
-      const pluginCard = getByTestId('plugins-container').querySelector('[data-testid="plugin-card"]');
+      const pluginCard = getByTestId('plugins-container').querySelector(
+        '[data-testid="plugin-card"]'
+      );
       await fireEvent.click(pluginCard!);
 
       // Verify notification was created
@@ -289,7 +300,7 @@ describe('Component Interactions Integration Tests', () => {
       });
 
       const { getByTestId } = render(PluginDashboard);
-      
+
       // Wait for error state
       await waitFor(() => {
         expect(getByTestId('error-state')).toBeInTheDocument();
@@ -298,7 +309,7 @@ describe('Component Interactions Integration Tests', () => {
       // Verify error notification
       await waitFor(() => {
         const currentNotifications = get(notifications);
-        expect(currentNotifications.some(n => n.type === 'error')).toBe(true);
+        expect(currentNotifications.some((n) => n.type === 'error')).toBe(true);
       });
     });
 
@@ -340,7 +351,7 @@ describe('Component Interactions Integration Tests', () => {
     test('component errors are caught and handled gracefully', async () => {
       // Test that ErrorBoundary component exists and can be rendered
       const { container } = render(ErrorBoundary);
-      
+
       // Verify error boundary renders without errors
       expect(container).toBeInTheDocument();
     });
@@ -368,14 +379,14 @@ describe('Component Interactions Integration Tests', () => {
 
     test('store updates propagate to all subscribed components', async () => {
       const { getByTestId } = render(PluginDashboard);
-      
+
       await waitFor(() => {
         expect(getByTestId('plugins-container')).toBeInTheDocument();
       });
 
       // Manually update plugin store
       const newPlugin = createMockPlugin('test-plugin', 'Test Plugin');
-      pluginState.update(state => ({
+      pluginState.update((state) => ({
         ...state,
         plugins: [...state.plugins, newPlugin]
       }));
@@ -390,7 +401,7 @@ describe('Component Interactions Integration Tests', () => {
   describe('Keyboard and Accessibility Integration', () => {
     test('keyboard navigation works across components', async () => {
       const { getByTestId } = render(PluginDashboard);
-      
+
       await waitFor(() => {
         expect(getByTestId('plugins-container')).toBeInTheDocument();
       });
@@ -398,11 +409,11 @@ describe('Component Interactions Integration Tests', () => {
       // Test Escape key clears search
       const searchInput = getByTestId('plugin-search');
       await fireEvent.input(searchInput, { target: { value: 'test search' } });
-      
+
       expect(searchInput).toHaveValue('test search');
-      
+
       await fireEvent.keyDown(document, { key: 'Escape' });
-      
+
       await waitFor(() => {
         expect(searchInput).toHaveValue('');
       });
@@ -410,7 +421,7 @@ describe('Component Interactions Integration Tests', () => {
 
     test('ARIA attributes are properly set for screen readers', async () => {
       const { getByTestId } = render(PluginDashboard);
-      
+
       await waitFor(() => {
         expect(getByTestId('plugins-container')).toBeInTheDocument();
       });
@@ -427,13 +438,13 @@ describe('Component Interactions Integration Tests', () => {
   describe('Performance and Memory Management', () => {
     test('components properly cleanup event listeners', async () => {
       const { unmount } = render(PluginDashboard);
-      
+
       // Verify event listeners are set up
       expect(mockListen).toHaveBeenCalled();
-      
+
       // Unmount component
       unmount();
-      
+
       // Event listeners should be cleaned up (this would be verified by checking
       // that the unlisten function returned by mockListen was called)
       // In a real implementation, we'd track this more precisely
@@ -441,7 +452,7 @@ describe('Component Interactions Integration Tests', () => {
 
     test('large plugin lists render efficiently', async () => {
       // Create a large number of mock plugins
-      const manyPlugins = Array.from({ length: 100 }, (_, i) => 
+      const manyPlugins = Array.from({ length: 100 }, (_, i) =>
         createMockPlugin(`plugin-${i}`, `Plugin ${i}`)
       );
 
@@ -454,7 +465,7 @@ describe('Component Interactions Integration Tests', () => {
 
       const startTime = performance.now();
       const { getByTestId } = render(PluginDashboard);
-      
+
       await waitFor(() => {
         expect(getByTestId('plugins-container')).toBeInTheDocument();
       });
@@ -464,7 +475,7 @@ describe('Component Interactions Integration Tests', () => {
 
       // Verify reasonable render time (should be under 1 second for 100 items)
       expect(renderTime).toBeLessThan(1000);
-      
+
       // Verify all plugins are rendered
       expect(getByTestId('plugins-container').children).toHaveLength(100);
     });

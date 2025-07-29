@@ -18,7 +18,7 @@ const args = process.argv.slice(2);
 const isWatch = args.includes('--watch') || args.includes('-w');
 const isCoverage = args.includes('--coverage') || args.includes('-c');
 const isVerbose = args.includes('--verbose') || args.includes('-v');
-const pattern = args.find(arg => arg.startsWith('--pattern='))?.split('=')[1];
+const pattern = args.find((arg) => arg.startsWith('--pattern='))?.split('=')[1];
 
 // Build vitest command
 const vitestArgs = ['vitest'];
@@ -42,14 +42,15 @@ if (pattern) {
 }
 
 // Add any remaining arguments
-const remainingArgs = args.filter(arg => 
-  !arg.startsWith('--watch') && 
-  !arg.startsWith('-w') &&
-  !arg.startsWith('--coverage') &&
-  !arg.startsWith('-c') &&
-  !arg.startsWith('--verbose') &&
-  !arg.startsWith('-v') &&
-  !arg.startsWith('--pattern=')
+const remainingArgs = args.filter(
+  (arg) =>
+    !arg.startsWith('--watch') &&
+    !arg.startsWith('-w') &&
+    !arg.startsWith('--coverage') &&
+    !arg.startsWith('-c') &&
+    !arg.startsWith('--verbose') &&
+    !arg.startsWith('-v') &&
+    !arg.startsWith('--pattern=')
 );
 
 vitestArgs.push(...remainingArgs);

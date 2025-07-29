@@ -56,9 +56,9 @@
             <span class="value">{window?.innerWidth || 0} × {window?.innerHeight || 0}</span>
           </div>
         </div>
-        <button 
-          class="close-info" 
-          on:click={() => showResponsiveInfo = false}
+        <button
+          class="close-info"
+          on:click={() => (showResponsiveInfo = false)}
           aria-label="Close responsive info"
         >
           ×
@@ -69,25 +69,25 @@
 
   <!-- Demo Navigation -->
   <nav class="demo-nav">
-    <button 
+    <button
       class="nav-button {activeDemo === 'dashboard' ? 'active' : ''}"
       on:click={() => setDemo('dashboard')}
     >
       Plugin Dashboard
     </button>
-    <button 
+    <button
       class="nav-button {activeDemo === 'mission' ? 'active' : ''}"
       on:click={() => setDemo('mission')}
     >
       Mission Planner
     </button>
-    <button 
+    <button
       class="nav-button {activeDemo === 'sdr' ? 'active' : ''}"
       on:click={() => setDemo('sdr')}
     >
       SDR Suite
     </button>
-    <button 
+    <button
       class="nav-button {activeDemo === 'cli' ? 'active' : ''}"
       on:click={() => setDemo('cli')}
     >
@@ -108,25 +108,19 @@
     {:else if activeDemo === 'mission'}
       <div class="demo-section">
         <h3>Mission Planner - Adaptive Layout</h3>
-        <p class="demo-description">
-          Mobile: Stacked with toggle | Tablet/Desktop: Side-by-side
-        </p>
+        <p class="demo-description">Mobile: Stacked with toggle | Tablet/Desktop: Side-by-side</p>
         <MissionPlanner />
       </div>
     {:else if activeDemo === 'sdr'}
       <div class="demo-section">
         <h3>SDR Suite - Flexible Layout</h3>
-        <p class="demo-description">
-          Mobile: Stacked controls | Tablet/Desktop: Side controls
-        </p>
+        <p class="demo-description">Mobile: Stacked controls | Tablet/Desktop: Side controls</p>
         <SdrDashboard />
       </div>
     {:else if activeDemo === 'cli'}
       <div class="demo-section">
         <h3>CLI Panel - Touch Optimized</h3>
-        <p class="demo-description">
-          Mobile: Overlay with gestures | Desktop: Persistent panel
-        </p>
+        <p class="demo-description">Mobile: Overlay with gestures | Desktop: Persistent panel</p>
         <CliPanel collapsed={false} />
       </div>
     {/if}
@@ -197,12 +191,24 @@
     background-color: var(--color-background_tertiary);
   }
 
-  .value.xs { color: var(--color-accent_red); }
-  .value.sm { color: var(--color-accent_yellow); }
-  .value.md { color: var(--color-accent_blue); }
-  .value.lg { color: var(--color-accent_green); }
-  .value.xl { color: var(--color-accent_blue); }
-  .value.\32 xl { color: var(--color-accent_green); }
+  .value.xs {
+    color: var(--color-accent_red);
+  }
+  .value.sm {
+    color: var(--color-accent_yellow);
+  }
+  .value.md {
+    color: var(--color-accent_blue);
+  }
+  .value.lg {
+    color: var(--color-accent_green);
+  }
+  .value.xl {
+    color: var(--color-accent_blue);
+  }
+  .value.\32 xl {
+    color: var(--color-accent_green);
+  }
 
   .close-info {
     position: absolute;

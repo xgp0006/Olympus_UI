@@ -134,7 +134,7 @@ export const mockTheme = {
 export async function waitForComponentReady(container: HTMLElement): Promise<void> {
   // Wait for any pending updates
   await new Promise((resolve) => setTimeout(resolve, 0));
-  
+
   // Wait for any animations to complete
   await new Promise((resolve) => setTimeout(resolve, 100));
 }
@@ -145,7 +145,9 @@ export async function waitForComponentReady(container: HTMLElement): Promise<voi
 export function getByTestIdSafe(container: HTMLElement, testId: string): HTMLElement {
   const element = container.querySelector(`[data-testid="${testId}"]`) as HTMLElement;
   if (!element) {
-    throw new Error(`Element with test ID "${testId}" not found. Available test IDs: ${getAvailableTestIds(container).join(', ')}`);
+    throw new Error(
+      `Element with test ID "${testId}" not found. Available test IDs: ${getAvailableTestIds(container).join(', ')}`
+    );
   }
   return element;
 }
@@ -155,7 +157,9 @@ export function getByTestIdSafe(container: HTMLElement, testId: string): HTMLEle
  */
 export function getAvailableTestIds(container: HTMLElement): string[] {
   const elements = container.querySelectorAll('[data-testid]');
-  return Array.from(elements).map((el) => el.getAttribute('data-testid')).filter(Boolean) as string[];
+  return Array.from(elements)
+    .map((el) => el.getAttribute('data-testid'))
+    .filter(Boolean) as string[];
 }
 
 /**
@@ -204,10 +208,13 @@ export function createMockEventDispatcher() {
         const handler = events.get(type);
         return handler ? handler.mock.calls : [];
       }
-      return Array.from(events.entries()).reduce((acc, [eventType, handler]) => {
-        acc[eventType] = handler.mock.calls;
-        return acc;
-      }, {} as Record<string, unknown[]>);
+      return Array.from(events.entries()).reduce(
+        (acc, [eventType, handler]) => {
+          acc[eventType] = handler.mock.calls;
+          return acc;
+        },
+        {} as Record<string, unknown[]>
+      );
     }
   };
 }

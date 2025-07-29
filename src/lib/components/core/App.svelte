@@ -47,7 +47,8 @@
           cliCollapsed = true;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown initialization error';
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown initialization error';
         initializationError = errorMessage;
         console.error('Application initialization failed:', errorMessage);
       }
@@ -76,7 +77,7 @@
   // Handle swipe gestures on mobile
   function handleTouchStart(event: TouchEvent) {
     if (!isMobileDevice) return;
-    
+
     const touch = event.touches[0];
     touchStartY = touch.clientY;
     touchStartTime = Date.now();
@@ -84,11 +85,11 @@
 
   function handleTouchEnd(event: TouchEvent) {
     if (!isMobileDevice) return;
-    
+
     const touch = event.changedTouches[0];
     const deltaY = touch.clientY - touchStartY;
     const deltaTime = Date.now() - touchStartTime;
-    
+
     // Swipe up to show CLI, swipe down to hide CLI
     if (Math.abs(deltaY) > 50 && deltaTime < 500) {
       if (deltaY < -50 && cliCollapsed) {
@@ -105,8 +106,8 @@
 
 <ThemeProvider themeName="super_amoled_black_responsive">
   <ErrorBoundary>
-    <div 
-      class="app-container" 
+    <div
+      class="app-container"
       class:mobile={isMobileDevice}
       class:tablet={isTabletDevice}
       class:cli-collapsed={cliCollapsed}
@@ -164,7 +165,9 @@
                   title={cliCollapsed ? 'Show CLI' : 'Hide CLI'}
                 >
                   <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4V8h16v10zm-10-1h2v-2h-2v2zm4 0h2v-2h-2v2zm4 0h2v-2h-2v2z"/>
+                    <path
+                      d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4V8h16v10zm-10-1h2v-2h-2v2zm4 0h2v-2h-2v2zm4 0h2v-2h-2v2z"
+                    />
                   </svg>
                 </button>
               {/if}
@@ -192,6 +195,19 @@
 
       <!-- Persistent CLI Panel -->
       <div class="cli-container" class:collapsed={cliCollapsed}>
+        {#if cliCollapsed}
+          <button
+            class="cli-expand-tab"
+            on:click={handleCliToggle}
+            data-testid="cli-expand-tab"
+            title="Show Command Line"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4V8h16v10zm-10-1h2v-2h-2v2zm4 0h2v-2h-2v2zm4 0h2v-2h-2v2z"/>
+            </svg>
+            <span>CLI</span>
+          </button>
+        {/if}
         <CliPanel collapsed={cliCollapsed} on:toggle={handleCliToggle} />
       </div>
 
@@ -420,7 +436,8 @@
   .dashboard-content {
     flex: 1;
     overflow: auto;
-    padding: 0 var(--responsive-mobile-panel_padding, 12px) var(--responsive-mobile-panel_padding, 12px);
+    padding: 0 var(--responsive-mobile-panel_padding, 12px)
+      var(--responsive-mobile-panel_padding, 12px);
     /* Smooth scrolling on mobile */
     -webkit-overflow-scrolling: touch;
     scroll-behavior: var(--touch-scroll_behavior, smooth);
@@ -429,11 +446,45 @@
   /* CLI Container */
   .cli-container {
     flex-shrink: 0;
-    transition: transform var(--animations-transition_duration, 200ms) var(--animations-easing_function);
+    transition: transform var(--animations-transition_duration, 200ms)
+      var(--animations-easing_function);
   }
 
   .cli-container.collapsed {
-    transform: translateY(100%);
+    transform: translateY(calc(100% - 44px));
+  }
+
+  /* CLI Expand Tab */
+  .cli-expand-tab {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: var(--color-background_secondary);
+    border: 1px solid var(--color-border_primary, #333333);
+    border-bottom: none;
+    border-radius: var(--layout-border_radius) var(--layout-border_radius) 0 0;
+    padding: 0.5rem 1rem;
+    color: var(--color-text_secondary);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--typography-font_size_sm);
+    transition: all var(--animation-transition_duration);
+    height: 44px;
+  }
+
+  .cli-expand-tab:hover {
+    background-color: var(--color-background_tertiary);
+    color: var(--color-accent_blue);
+    transform: translateX(-50%) translateY(-2px);
+  }
+
+  .cli-expand-tab svg {
+    width: 18px;
+    height: 18px;
   }
 
   /* Mobile-specific styles */
@@ -499,7 +550,8 @@
     }
 
     .dashboard-content {
-      padding: 0 var(--responsive-tablet-panel_padding, 16px) var(--responsive-tablet-panel_padding, 16px);
+      padding: 0 var(--responsive-tablet-panel_padding, 16px)
+        var(--responsive-tablet-panel_padding, 16px);
     }
 
     .cli-toggle-mobile {
@@ -548,7 +600,8 @@
     }
 
     .dashboard-content {
-      padding: 0 var(--responsive-desktop-panel_padding, 20px) var(--responsive-desktop-panel_padding, 20px);
+      padding: 0 var(--responsive-desktop-panel_padding, 20px)
+        var(--responsive-desktop-panel_padding, 20px);
     }
   }
 

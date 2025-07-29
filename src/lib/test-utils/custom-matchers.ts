@@ -39,15 +39,27 @@ function toBeAccessible(received: HTMLElement): MatcherResult {
   const issues: string[] = [];
 
   // Check for basic accessibility requirements
-  if (received.tagName === 'BUTTON' && !received.hasAttribute('aria-label') && !received.textContent?.trim()) {
+  if (
+    received.tagName === 'BUTTON' &&
+    !received.hasAttribute('aria-label') &&
+    !received.textContent?.trim()
+  ) {
     issues.push('Button elements should have aria-label or text content');
   }
 
-  if (received.tagName === 'INPUT' && !received.hasAttribute('aria-label') && !received.hasAttribute('aria-labelledby')) {
+  if (
+    received.tagName === 'INPUT' &&
+    !received.hasAttribute('aria-label') &&
+    !received.hasAttribute('aria-labelledby')
+  ) {
     issues.push('Input elements should have aria-label or aria-labelledby');
   }
 
-  if (received.hasAttribute('role') && received.getAttribute('role') === 'button' && !received.hasAttribute('tabindex')) {
+  if (
+    received.hasAttribute('role') &&
+    received.getAttribute('role') === 'button' &&
+    !received.hasAttribute('tabindex')
+  ) {
     issues.push('Elements with role="button" should have tabindex');
   }
 
@@ -84,10 +96,11 @@ function toHaveTestId(received: HTMLElement, expectedTestId: string): MatcherRes
 function toBeThemed(received: HTMLElement): MatcherResult {
   const computedStyle = window.getComputedStyle(received);
   const cssText = computedStyle.cssText || '';
-  
+
   // Check if element uses CSS variables (contains var(--))
-  const usesVariables = cssText.includes('var(--') || 
-    Array.from(computedStyle).some(prop => {
+  const usesVariables =
+    cssText.includes('var(--') ||
+    Array.from(computedStyle).some((prop) => {
       const value = computedStyle.getPropertyValue(prop);
       return value.includes('var(--');
     });
@@ -107,7 +120,8 @@ function toBeThemed(received: HTMLElement): MatcherResult {
  * Check if component properly handles loading state
  */
 function toHandleLoadingState(received: HTMLElement): MatcherResult {
-  const hasLoadingIndicator = received.querySelector('[data-testid*="loading"]') !== null ||
+  const hasLoadingIndicator =
+    received.querySelector('[data-testid*="loading"]') !== null ||
     received.querySelector('.loading') !== null ||
     (received.textContent?.includes('Loading') ?? false) ||
     (received.textContent?.includes('loading') ?? false);
@@ -127,7 +141,8 @@ function toHandleLoadingState(received: HTMLElement): MatcherResult {
  * Check if component properly handles error state
  */
 function toHandleErrorState(received: HTMLElement): MatcherResult {
-  const hasErrorIndicator = received.querySelector('[data-testid*="error"]') !== null ||
+  const hasErrorIndicator =
+    received.querySelector('[data-testid*="error"]') !== null ||
     received.querySelector('.error') !== null ||
     received.querySelector('[role="alert"]') !== null;
 
@@ -149,8 +164,10 @@ function toSupportKeyboardNavigation(received: HTMLElement): MatcherResult {
   const issues: string[] = [];
 
   // Check if interactive elements are focusable
-  const interactiveElements = received.querySelectorAll('button, input, select, textarea, a[href], [tabindex]');
-  
+  const interactiveElements = received.querySelectorAll(
+    'button, input, select, textarea, a[href], [tabindex]'
+  );
+
   interactiveElements.forEach((element) => {
     const tabIndex = element.getAttribute('tabindex');
     if (tabIndex === '-1' && element.tagName !== 'INPUT') {
@@ -160,10 +177,12 @@ function toSupportKeyboardNavigation(received: HTMLElement): MatcherResult {
   });
 
   // Check for keyboard event handlers on interactive elements
-  const hasKeyboardHandlers = Array.from(interactiveElements).some(element => {
-    return element.hasAttribute('onkeydown') || 
-           element.hasAttribute('onkeyup') || 
-           element.hasAttribute('onkeypress');
+  const hasKeyboardHandlers = Array.from(interactiveElements).some((element) => {
+    return (
+      element.hasAttribute('onkeydown') ||
+      element.hasAttribute('onkeyup') ||
+      element.hasAttribute('onkeypress')
+    );
   });
 
   if (interactiveElements.length > 0 && !hasKeyboardHandlers) {
@@ -200,7 +219,7 @@ function toHaveBeenCalledWithTauriCommand(
   const matchingCall = calls.find((call: any[]) => {
     if (call[0] !== command) return false;
     if (!args) return true;
-    
+
     const callArgs = call[1];
     return JSON.stringify(callArgs) === JSON.stringify(args);
   });

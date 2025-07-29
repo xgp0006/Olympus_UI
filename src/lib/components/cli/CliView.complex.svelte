@@ -5,21 +5,24 @@
 -->
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { Terminal } from '@xterm/xterm';
-  import { FitAddon } from '@xterm/addon-fit';
-  import { WebLinksAddon } from '@xterm/addon-web-links';
+  import { browser } from '$app/environment';
   import { theme } from '$lib/stores/theme';
   import { cliStore, type CliOutput } from '$lib/stores/cli';
   import type { Theme } from '$lib/types/theme';
+
+  // Browser-only imports
+  let Terminal: any;
+  let FitAddon: any;
+  let WebLinksAddon: any;
 
   // Props
   export let height: number = 200;
   export let autoFocus: boolean = true;
 
   // Terminal instance and addons
-  let terminal: Terminal | null = null;
-  let fitAddon: FitAddon | null = null;
-  let webLinksAddon: WebLinksAddon | null = null;
+  let terminal: any | null = null;
+  let fitAddon: any | null = null;
+  let webLinksAddon: any | null = null;
   let terminalElement: HTMLElement;
 
   // State
@@ -158,7 +161,7 @@
   function setupInputHandling() {
     if (!terminal) return;
 
-    terminal.onData((data) => {
+    terminal.onData((data: string) => {
       const code = data.charCodeAt(0);
 
       // Handle special keys
@@ -440,8 +443,19 @@
 
   // Lifecycle
   onMount(async () => {
-    // Wait for DOM element to be available
-    if (terminalElement) {
+    // Only load xterm in browser environment
+    if (browser && terminalElement) {
+      // Dynamically import xterm modules to avoid SSR issues
+      const [terminalModule, fitModule, webLinksModule] = await Promise.all([
+        import('@xterm/xterm'),
+        import('@xterm/addon-fit'),
+        import('@xterm/addon-web-links')
+      ]);
+
+      Terminal = terminalModule.Terminal;
+      FitAddon = fitModule.FitAddon;
+      WebLinksAddon = webLinksModule.WebLinksAddon;
+
       await initializeTerminal($theme);
     }
   });

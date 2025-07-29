@@ -10,7 +10,7 @@
 
   // ===== PROPS =====
   export let item: MissionItem;
-  export const isSelected: boolean = false;
+  export let isSelected: boolean = false;
 
   // ===== EVENT DISPATCHER =====
   const dispatch = createEventDispatcher<{
@@ -51,17 +51,17 @@
     const errors: string[] = [];
 
     // Validate latitude
-    if (Math.abs(params.lat) > 90) {
+    if (params.lat !== undefined && Math.abs(params.lat) > 90) {
       errors.push('Latitude must be between -90 and 90 degrees');
     }
 
     // Validate longitude
-    if (Math.abs(params.lng) > 180) {
+    if (params.lng !== undefined && Math.abs(params.lng) > 180) {
       errors.push('Longitude must be between -180 and 180 degrees');
     }
 
     // Validate altitude
-    if (params.alt < -1000 || params.alt > 50000) {
+    if (params.alt !== undefined && (params.alt < -1000 || params.alt > 50000)) {
       errors.push('Altitude must be between -1000 and 50000 meters');
     }
 

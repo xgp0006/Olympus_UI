@@ -861,7 +861,10 @@
   /* Desktop responsive design */
   @media (min-width: 1024px) {
     .plugins-container.grid {
-      grid-template-columns: var(--responsive-desktop-dashboard-desktop_columns, repeat(auto-fill, minmax(300px, 1fr)));
+      grid-template-columns: var(
+        --responsive-desktop-dashboard-desktop_columns,
+        repeat(auto-fill, minmax(300px, 1fr))
+      );
       gap: var(--responsive-desktop-dashboard-desktop_gap, 20px);
     }
 

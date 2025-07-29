@@ -130,11 +130,25 @@ function validateTheme(themeData: unknown): themeData is Theme {
     console.error('Theme validation failed: invalid components structure');
     return false;
   }
+  // Check required components - 'sdr' and 'dashboard' are optional for basic themes
   const requiredComponents = ['cli', 'map', 'button', 'plugin_card', 'accordion', 'hex_coin'];
+  const optionalComponents = ['sdr', 'dashboard'];
+  
   for (const component of requiredComponents) {
     if (!(component in components)) {
-      console.error(`Theme validation failed: missing component '${component}'`);
+      console.error(`Theme validation failed: missing required component '${component}'`);
       return false;
+    }
+  }
+  
+  // Validate optional components if present
+  for (const component of optionalComponents) {
+    if (component in components) {
+      const componentData = components[component] as Record<string, unknown>;
+      if (!componentData || typeof componentData !== 'object') {
+        console.error(`Theme validation failed: invalid optional component '${component}'`);
+        return false;
+      }
     }
   }
 
@@ -170,9 +184,13 @@ function applyThemeToRoot(themeData: Theme): void {
 
   // Apply component-specific variables
   Object.entries(themeData.components).forEach(([component, properties]) => {
-    Object.entries(properties).forEach(([key, value]) => {
-      root.style.setProperty(`--component-${component}-${key}`, value);
-    });
+    if (properties && typeof properties === 'object') {
+      Object.entries(properties).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          root.style.setProperty(`--component-${component}-${key}`, value);
+        }
+      });
+    }
   });
 
   // Apply animations if present
@@ -181,8 +199,119 @@ function applyThemeToRoot(themeData: Theme): void {
       root.style.setProperty(`--animation-${key}`, value);
     });
   }
+  // Apply responsive properties if present
+  if (themeData.responsive) {
+    Object.entries(themeData.responsive).forEach(([breakpoint, properties]) => {
+      Object.entries(properties).forEach(([key, value]) => {
+        root.style.setProperty(`--responsive-${breakpoint}-${key}`, value);
+      });
+    });
+  }
+
+  // Apply touch properties if present
+  if (themeData.touch) {
+    Object.entries(themeData.touch).forEach(([key, value]) => {
+      root.style.setProperty(`--touch-${key}`, value);
+    });
+  }
 
   console.log(`Theme '${themeData.name}' applied to root element`);
+}
+
+/**
+ * Loads a hardcoded default theme as last resort
+ * @returns Promise resolving to default theme
+ */
+async function loadDefaultTheme(): Promise<Theme> {
+  console.log('Loading hardcoded default theme...');
+  
+  const defaultTheme: Theme = {
+    name: 'default_fallback',
+    metadata: {
+      author: 'System',
+      version: '1.0.0',
+      description: 'Emergency fallback theme'
+    },
+    colors: {
+      background_primary: '#000000',
+      background_secondary: '#1a1a1a',
+      background_tertiary: '#2a2a2a',
+      text_primary: '#ffffff',
+      text_secondary: '#b0b0b0',
+      text_disabled: '#666666',
+      accent_yellow: '#ffd700',
+      accent_blue: '#00bfff',
+      accent_red: '#ff4444',
+      accent_green: '#00ff00'
+    },
+    typography: {
+      font_family_sans: "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      font_family_mono: "'JetBrains Mono', 'Consolas', 'Monaco', monospace",
+      font_size_base: '14px',
+      font_size_lg: '16px',
+      font_size_sm: '12px'
+    },
+    layout: {
+      border_radius: '6px',
+      border_width: '1px',
+      spacing_unit: '8px'
+    },
+    components: {
+      cli: {
+        background: '#0a0a0a',
+        text_color: '#00ff00',
+        cursor_color: '#00ff00',
+        cursor_shape: 'block'
+      },
+      map: {
+        waypoint_color_default: '#ffd700',
+        waypoint_color_selected: '#00ff00',
+        path_color: '#00bfff',
+        geofence_color: '#ff4444'
+      },
+      button: {
+        background_default: '#333333',
+        text_color_default: '#ffffff',
+        background_hover: '#444444',
+        background_accent: '#00bfff',
+        text_color_accent: '#000000'
+      },
+      plugin_card: {
+        background: '#1a1a1a',
+        background_hover: '#2a2a2a',
+        icon_color: '#00bfff',
+        text_color: '#ffffff',
+        border_radius: '6px'
+      },
+      accordion: {
+        background: '#1a1a1a',
+        border_color: '#333333',
+        header_text_color: '#ffffff'
+      },
+      hex_coin: {
+        background: '#ffd700',
+        icon_color: '#000000',
+        border_color_default: '#ffed4e',
+        border_color_pinned: '#00ff00',
+        snap_point_color: '#00bfff'
+      },
+      sdr: {
+        spectrum_line_color: '#00ff00',
+        spectrum_fill_color: 'rgba(0, 255, 0, 0.2)',
+        waterfall_color_gradient: 'viridis',
+        grid_line_color: '#003366',
+        axis_label_color: '#00bfff'
+      }
+    },
+    animations: {
+      transition_duration: '200ms',
+      easing_function: 'ease-in-out',
+      hover_scale: '1.05',
+      button_press_scale: '0.98'
+    }
+  };
+  
+  return defaultTheme;
 }
 
 /**
@@ -195,22 +324,123 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
 
   try {
     console.log(`Loading theme from: ${themePath}`);
+    console.log(`Browser environment: ${browser}`);
+    console.log(`Window.__TAURI__ exists: ${'__TAURI__' in (typeof window !== 'undefined' ? window : {})}`);
 
-    let themeContent: string;
+    let themeContent: string | undefined;
 
-    if (browser) {
-      // In browser, use Tauri API
-      const { fs } = await import('@tauri-apps/api');
-      themeContent = await fs.readTextFile(themePath);
-    } else {
-      // In SSR, use fetch to load from static files
-      const response = await fetch(`/${themePath}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch theme: ${response.statusText}`);
+    // Only load themes in browser context
+    if (!browser) {
+      throw new Error('Theme loading is only supported in browser context');
+    }
+    
+    // Add a small delay on first load to ensure dev server is ready
+    const win = window as any;
+    if (typeof window !== 'undefined' && !win.__theme_init_delay__) {
+      win.__theme_init_delay__ = true;
+      console.log('[loadThemeFromFile] Adding initial delay for dev server readiness');
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    const isBrowser = browser && typeof window !== 'undefined';
+    
+    if (isBrowser) {
+      // Check if we're in a Tauri context
+      if ('__TAURI__' in window) {
+        // Use Tauri's asset protocol for secure file access
+        const { convertFileSrc } = await import('@tauri-apps/api/tauri');
+        const assetUrl = convertFileSrc(themePath);
+
+        // Fetch the theme file using the asset protocol
+        const response = await fetch(assetUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch theme via asset protocol: ${response.statusText}`);
+        }
+        themeContent = await response.text();
+      } else {
+        // In regular browser, use multiple fallback paths
+        const fallbackPaths = [
+          `/themes/${themeName}.json`, // Primary path
+          `./themes/${themeName}.json`, // Relative path
+          `themes/${themeName}.json`, // Without leading slash
+          `/static/themes/${themeName}.json`, // Full static path
+          (typeof window !== 'undefined' && (window as any).location?.origin) ? (window as any).location.origin + `/themes/${themeName}.json` : `/themes/${themeName}.json` // Absolute URL
+        ];
+
+        let lastError: Error | null = null;
+        let fetchSuccess = false;
+
+        // Try each path with better error handling
+        for (let i = 0; i < fallbackPaths.length; i++) {
+          const fallbackPath = fallbackPaths[i];
+          try {
+            console.log(`[Attempt ${i + 1}/${fallbackPaths.length}] Loading theme from: ${fallbackPath}`);
+            
+            // Add retry logic for each path
+            let retries = 3;
+            while (retries > 0) {
+              try {
+                const response = await fetch(fallbackPath, {
+                  method: 'GET',
+                  headers: {
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache'
+                  },
+                  mode: 'cors',
+                  credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                  themeContent = await response.text();
+                  fetchSuccess = true;
+                  console.log(`[Success] Theme loaded from: ${fallbackPath}`);
+                  break;
+                } else {
+                  lastError = new Error(`HTTP ${response.status}: ${response.statusText} for ${fallbackPath}`);
+                  console.warn(`HTTP error: ${lastError.message}`);
+                }
+                break; // Don't retry on HTTP errors
+              } catch (fetchError) {
+                retries--;
+                lastError = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
+                console.warn(`Fetch error (${3 - retries}/3) for ${fallbackPath}:`, lastError.message);
+                
+                if (retries > 0) {
+                  // Wait before retry
+                  await new Promise(resolve => setTimeout(resolve, 200));
+                }
+              }
+            }
+            
+            if (fetchSuccess) break;
+          } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+            console.error(`[Attempt ${i + 1}/${fallbackPaths.length}] Failed to fetch theme from ${fallbackPath}:`, error);
+          }
+        }
+
+        if (!fetchSuccess || !themeContent) {
+          // Provide detailed error information
+          const errorDetails = [
+            '[loadThemeFromFile] All fetch attempts failed',
+            `Theme name: ${themeName}`,
+            `Paths tried: ${fallbackPaths.join(', ')}`,
+            `Last error: ${lastError?.message || 'Unknown error'}`,
+            `Window location: ${(typeof window !== 'undefined' && (window as any).location?.href) || 'unknown'}`,
+            `Origin: ${(typeof window !== 'undefined' && (window as any).location?.origin) || 'unknown'}`,
+            `Protocol: ${(typeof window !== 'undefined' && (window as any).location?.protocol) || 'unknown'}`
+          ].join('\n');
+          
+          console.error(errorDetails);
+          throw new Error(`Failed to fetch`);
+        }
       }
-      themeContent = await response.text();
     }
 
+    if (!themeContent) {
+      throw new Error('No theme content loaded');
+    }
+    
     const themeData = JSON.parse(themeContent);
 
     if (!validateTheme(themeData)) {
@@ -230,6 +460,9 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
  * @returns Promise resolving to the loaded theme
  */
 export async function loadTheme(options: ThemeLoadOptions = {}): Promise<Theme> {
+  console.log('[loadTheme] Starting theme load with options:', options);
+  console.log('[loadTheme] Browser environment:', browser);
+  
   const {
     themeName = DEFAULT_THEME_NAME,
     fallbackTheme = DEFAULT_THEME_NAME,
@@ -248,22 +481,38 @@ export async function loadTheme(options: ThemeLoadOptions = {}): Promise<Theme> 
 
     try {
       // Try to load the requested theme
+      console.log(`[loadTheme] Attempting to load primary theme: ${themeName}`);
       themeData = await loadThemeFromFile(themeName);
     } catch (primaryError) {
       console.warn(
-        `Failed to load primary theme '${themeName}', trying fallback '${fallbackTheme}'`
+        `[loadTheme] Failed to load primary theme '${themeName}', trying fallback '${fallbackTheme}'`
       );
 
       if (themeName !== fallbackTheme) {
         try {
           themeData = await loadThemeFromFile(fallbackTheme);
         } catch (fallbackError) {
-          throw new Error(
-            `Failed to load both primary theme '${themeName}' and fallback theme '${fallbackTheme}': ${fallbackError}`
-          );
+          const errorMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+          // Try loading a hardcoded default theme as last resort
+          console.warn('Attempting to load hardcoded default theme as last resort...');
+          try {
+            themeData = await loadDefaultTheme();
+          } catch (defaultError) {
+            throw new Error(
+              `Failed to load both primary theme '${themeName}' and fallback theme '${fallbackTheme}': ${errorMsg}`
+            );
+          }
         }
       } else {
-        throw primaryError;
+        // If primary and fallback are the same, still try the hardcoded default
+        console.warn('Primary and fallback themes are the same, loading hardcoded default theme...');
+        try {
+          themeData = await loadDefaultTheme();
+        } catch (defaultError) {
+          throw new Error(
+            `Failed to load theme '${themeName}': ${primaryError instanceof Error ? primaryError.message : String(primaryError)}`
+          );
+        }
       }
     }
 

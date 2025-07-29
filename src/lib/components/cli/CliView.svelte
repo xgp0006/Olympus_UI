@@ -5,22 +5,24 @@
 -->
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { Terminal } from '@xterm/xterm';
-  import { FitAddon } from '@xterm/addon-fit';
-  import { WebLinksAddon } from '@xterm/addon-web-links';
-  import { invoke } from '@tauri-apps/api/tauri';
-  import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+  import { browser } from '$app/environment';
+  import { TauriApi, type UnlistenFn } from '$lib/utils/tauri-context';
   import { theme } from '$lib/stores/theme';
   import type { Theme } from '$lib/types/theme';
+
+  // Browser-only imports
+  let Terminal: any;
+  let FitAddon: any;
+  let WebLinksAddon: any;
 
   // Props
   export let height: number = 200;
   export let autoFocus: boolean = true;
 
   // Terminal instance and addons
-  let terminal: Terminal | null = null;
-  let fitAddon: FitAddon | null = null;
-  let webLinksAddon: WebLinksAddon | null = null;
+  let terminal: any | null = null;
+  let fitAddon: any | null = null;
+  let webLinksAddon: any | null = null;
   let terminalElement: HTMLElement;
 
   // Event listeners
@@ -119,7 +121,7 @@
   function setupInputHandling() {
     if (!terminal) return;
 
-    terminal.onData((data) => {
+    terminal.onData((data: string) => {
       const code = data.charCodeAt(0);
 
       switch (code) {
@@ -163,7 +165,10 @@
 
       // Execute command via Tauri (Requirement 6.6)
       try {
-        await invoke('run_cli_command', { command: currentCommand.trim() });
+        const result = await TauriApi.invoke('run_cli_command', { command: currentCommand.trim() });
+        if (result === undefined && TauriApi.isAvailable()) {
+          throw new Error('Command execution failed');
+        }
       } catch (error) {
         terminal.writeln(`\x1b[31mError: ${error}\x1b[0m`);
         terminal.write('$ ');
@@ -261,35 +266,47 @@
    * Sets up event listeners for backend communication (Requirements 2.6, 6.7, 6.8)
    */
   async function setupEventListeners() {
+    // Skip if Tauri not available
+    if (!TauriApi.isAvailable()) {
+      console.log('Tauri not available, skipping event listeners');
+      return;
+    }
+
     try {
       // Listen for CLI output (Requirement 2.6, 6.7)
-      cliOutputUnlisten = await listen('cli-output', (event) => {
-        const { line, stream } = event.payload as { line: string; stream: 'stdout' | 'stderr' };
+      cliOutputUnlisten = await TauriApi.listen<{ line: string; stream: 'stdout' | 'stderr' }>(
+        'cli-output',
+        (payload) => {
+          const { line, stream } = payload;
 
-        if (!terminal) return;
+          if (!terminal) return;
 
-        // Visually distinguish between stdout and stderr (Requirement 2.7)
-        if (stream === 'stderr') {
-          terminal.writeln(`\x1b[31m${line}\x1b[0m`); // Red text for stderr
-        } else {
-          terminal.writeln(line); // Normal text for stdout
+          // Visually distinguish between stdout and stderr (Requirement 2.7)
+          if (stream === 'stderr') {
+            terminal.writeln(`\x1b[31m${line}\x1b[0m`); // Red text for stderr
+          } else {
+            terminal.writeln(line); // Normal text for stdout
+          }
         }
-      });
+      );
 
       // Listen for CLI termination (Requirement 6.8)
-      cliTerminatedUnlisten = await listen('cli-terminated', (event) => {
-        const { code } = event.payload as { code: number };
+      cliTerminatedUnlisten = await TauriApi.listen<{ code: number }>(
+        'cli-terminated',
+        (payload) => {
+          const { code } = payload;
 
-        if (!terminal) return;
+          if (!terminal) return;
 
-        if (code === 0) {
-          terminal.writeln(`\x1b[32mProcess completed successfully\x1b[0m`);
-        } else {
-          terminal.writeln(`\x1b[31mProcess exited with code ${code}\x1b[0m`);
+          if (code === 0) {
+            terminal.writeln(`\x1b[32mProcess completed successfully\x1b[0m`);
+          } else {
+            terminal.writeln(`\x1b[31mProcess exited with code ${code}\x1b[0m`);
+          }
+
+          terminal.write('$ ');
         }
-
-        terminal.write('$ ');
-      });
+      );
     } catch (error) {
       console.error('Failed to setup event listeners:', error);
     }
@@ -352,8 +369,19 @@
 
   // Lifecycle
   onMount(async () => {
-    // Initialize terminal when component mounts
-    if (terminalElement) {
+    // Only load xterm in browser environment
+    if (browser && terminalElement) {
+      // Dynamically import xterm modules to avoid SSR issues
+      const [terminalModule, fitModule, webLinksModule] = await Promise.all([
+        import('@xterm/xterm'),
+        import('@xterm/addon-fit'),
+        import('@xterm/addon-web-links')
+      ]);
+
+      Terminal = terminalModule.Terminal;
+      FitAddon = fitModule.FitAddon;
+      WebLinksAddon = webLinksModule.WebLinksAddon;
+
       await initializeTerminal($theme);
     }
   });

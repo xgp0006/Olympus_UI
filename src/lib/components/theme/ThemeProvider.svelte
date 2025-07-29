@@ -5,11 +5,12 @@
 -->
 <script lang="ts">
   import { onMount, onDestroy, tick } from 'svelte';
+  import { browser } from '$app/environment';
   import { loadTheme, theme, themeLoading, themeError } from '../../stores/theme';
   import type { ThemeLoadOptions } from '../../types/theme';
 
   // Props
-  export let themeName: string = 'super_amoled_black';
+  export let themeName: string = 'super_amoled_black_responsive';
   export let fallbackTheme: string = 'super_amoled_black';
   export let autoLoad: boolean = true;
   export let showLoadingIndicator: boolean = false;
@@ -21,7 +22,10 @@
 
   // Load theme function
   async function loadCurrentTheme() {
-    if (!mounted) return;
+    if (!mounted || !browser) {
+      console.log('[ThemeProvider] Skipping theme load - mounted:', mounted, 'browser:', browser);
+      return;
+    }
 
     try {
       const options: ThemeLoadOptions = {
@@ -34,6 +38,21 @@
       await tick(); // Ensure DOM updates
     } catch (error) {
       console.error('Failed to load theme in ThemeProvider:', error);
+      // Try one more time after a delay
+      if (browser) {
+        console.log('Retrying theme load after delay...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        try {
+          const retryOptions: ThemeLoadOptions = {
+            themeName: currentThemeName,
+            fallbackTheme,
+            validateTheme: true
+          };
+          await loadTheme(retryOptions);
+        } catch (retryError) {
+          console.error('Retry also failed:', retryError);
+        }
+      }
     }
   }
 
@@ -41,7 +60,10 @@
   onMount(async () => {
     mounted = true;
 
-    if (autoLoad) {
+    if (autoLoad && browser) {
+      // Add delay to ensure dev server and browser environment are ready
+      console.log('[ThemeProvider] Waiting for environment to stabilize...');
+      await new Promise(resolve => setTimeout(resolve, 250));
       await loadCurrentTheme();
     }
   });
@@ -70,8 +92,11 @@
 {#if showErrorMessages && $themeError}
   <div class="theme-error" data-testid="theme-error">
     <span class="error-icon">⚠️</span>
-    <span class="error-message">Theme Error: {$themeError}</span>
-    <button class="retry-button" on:click={() => loadTheme({ themeName, fallbackTheme })}>
+    <div class="error-details">
+      <span class="error-message">Theme Error: {$themeError}</span>
+      <span class="error-hint">The app will continue with a default theme.</span>
+    </div>
+    <button class="retry-button" on:click={() => loadCurrentTheme()}>
       Retry
     </button>
   </div>
@@ -134,9 +159,21 @@
     font-size: 1.2em;
   }
 
-  .error-message {
+  .error-details {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .error-message {
     font-size: 0.9em;
+    font-weight: 600;
+  }
+  
+  .error-hint {
+    font-size: 0.8em;
+    opacity: 0.9;
   }
 
   .retry-button {

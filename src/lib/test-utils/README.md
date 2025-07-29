@@ -43,7 +43,7 @@ test('renders component correctly', () => {
   const { getByTestId } = renderComponent(MyComponent, {
     props: { title: 'Test Title' }
   });
-  
+
   expect(getByTestId('my-component')).toBeInTheDocument();
 });
 ```
@@ -55,7 +55,7 @@ import { renderWithTheme, mockTheme } from '$lib/test-utils';
 
 test('applies theme correctly', () => {
   const { container } = renderWithTheme(ThemedComponent);
-  
+
   expect(container.firstChild).toBeThemed();
   expect(container.firstChild).toHaveThemeVariable('color-background_primary', '#000000');
 });
@@ -68,7 +68,7 @@ import { renderWithErrorBoundary } from '$lib/test-utils';
 
 test('handles errors gracefully', () => {
   const { container } = renderWithErrorBoundary(ProblematicComponent);
-  
+
   expect(container).toHandleErrorState();
 });
 ```
@@ -78,11 +78,7 @@ test('handles errors gracefully', () => {
 ### Creating Mock Data
 
 ```typescript
-import { 
-  createMockPlugin, 
-  createMockMissionItem, 
-  createMockNotification 
-} from '$lib/test-utils';
+import { createMockPlugin, createMockMissionItem, createMockNotification } from '$lib/test-utils';
 
 // Create mock plugin with defaults
 const plugin = createMockPlugin();
@@ -96,7 +92,7 @@ const customPlugin = createMockPlugin({
 // Create mock mission item
 const waypoint = createMockMissionItem({
   type: 'waypoint',
-  params: { lat: 40.7128, lng: -74.0060, alt: 100 }
+  params: { lat: 40.7128, lng: -74.006, alt: 100 }
 });
 ```
 
@@ -152,11 +148,7 @@ const result = await retryOperation(
 ### User Interactions
 
 ```typescript
-import { 
-  simulateKeyboardShortcut, 
-  simulateTyping, 
-  simulateDragAndDrop 
-} from '$lib/test-utils';
+import { simulateKeyboardShortcut, simulateTyping, simulateDragAndDrop } from '$lib/test-utils';
 
 // Simulate keyboard shortcut
 await simulateKeyboardShortcut(element, { key: 's', ctrlKey: true });
@@ -224,11 +216,11 @@ expect(mockInvoke).toHaveBeenCalledWithTauriCommand('load_plugin', { name: 'test
 ### Using Predefined Data
 
 ```typescript
-import { 
-  TEST_PLUGINS, 
-  TEST_MISSION_ITEMS, 
+import {
+  TEST_PLUGINS,
+  TEST_MISSION_ITEMS,
   TEST_THEME,
-  TEST_SDR_DEVICES 
+  TEST_SDR_DEVICES
 } from '$lib/test-utils/test-data';
 
 // Use predefined test plugins
@@ -272,11 +264,11 @@ test('should update waypoint parameters', async () => {
   // Arrange
   const waypoint = createMockMissionItem();
   const { getByTestId } = renderComponent(WaypointEditor, { props: { waypoint } });
-  
+
   // Act
   await simulateTyping(getByTestId('lat-input'), '40.7128');
   await fireEvent.click(getByTestId('save-button'));
-  
+
   // Assert
   expect(mockUpdateWaypoint).toHaveBeenCalledWith(waypoint.id, {
     lat: 40.7128
@@ -318,9 +310,9 @@ test('should load data asynchronously', () => {
 ```typescript
 test('should handle network errors gracefully', async () => {
   vi.mocked(invoke).mockRejectedValue(new Error('Network error'));
-  
+
   const { getByTestId } = renderComponent(DataLoader);
-  
+
   await waitFor(() => {
     expect(getByTestId('error-message')).toBeInTheDocument();
   });
@@ -372,11 +364,11 @@ import { createMockStore } from '$lib/test-utils';
 
 test('should react to store changes', () => {
   const mockStore = createMockStore('initial');
-  
+
   const { getByText } = renderComponent(StoreConsumer, {
     context: new Map([['store', mockStore]])
   });
-  
+
   mockStore.set('updated');
   expect(getByText('updated')).toBeInTheDocument();
 });
@@ -388,11 +380,11 @@ test('should react to store changes', () => {
 test('should dispatch custom event', async () => {
   const { component } = renderComponent(EventDispatcher);
   const eventHandler = vi.fn();
-  
+
   component.$on('custom-event', eventHandler);
-  
+
   await fireEvent.click(getByTestId('trigger-button'));
-  
+
   expect(eventHandler).toHaveBeenCalledWith(
     expect.objectContaining({
       detail: { data: 'test' }

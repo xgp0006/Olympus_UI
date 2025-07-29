@@ -37,11 +37,11 @@ export async function simulateTyping(
   delay = 0
 ): Promise<void> {
   input.focus();
-  
+
   for (const char of text) {
     await fireEvent.keyDown(input, { key: char });
     await fireEvent.input(input, { target: { value: input.value + char } });
-    
+
     if (delay > 0) {
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
@@ -76,16 +76,16 @@ export async function simulateDragAndDrop(
   }
 
   await fireEvent(source, dragStartEvent);
-  
+
   await fireEvent.dragEnter(target);
   await fireEvent.dragOver(target);
-  
+
   const dropEvent = new DragEvent('drop', {
     bubbles: true,
     cancelable: true,
     dataTransfer: dragStartEvent.dataTransfer
   });
-  
+
   await fireEvent(target, dropEvent);
   await fireEvent.dragEnd(source);
 }
@@ -191,7 +191,7 @@ export async function simulateScroll(
     value: scrollTop,
     writable: true
   });
-  
+
   Object.defineProperty(element, 'scrollLeft', {
     value: scrollLeft,
     writable: true
@@ -242,10 +242,7 @@ export async function simulateBlur(element: HTMLElement): Promise<void> {
 /**
  * Simulate clipboard operations
  */
-export async function simulatePaste(
-  element: HTMLElement,
-  text: string
-): Promise<void> {
+export async function simulatePaste(element: HTMLElement, text: string): Promise<void> {
   const clipboardData = new DataTransfer();
   clipboardData.setData('text/plain', text);
 
@@ -270,10 +267,7 @@ export async function simulateCopy(element: HTMLElement): Promise<void> {
 /**
  * Simulate file drop
  */
-export async function simulateFileDrop(
-  element: HTMLElement,
-  files: File[]
-): Promise<void> {
+export async function simulateFileDrop(element: HTMLElement, files: File[]): Promise<void> {
   const dataTransfer = new DataTransfer();
   files.forEach((file) => dataTransfer.items.add(file));
 
@@ -289,11 +283,7 @@ export async function simulateFileDrop(
 /**
  * Create mock file for testing
  */
-export function createMockFile(
-  name: string,
-  content: string,
-  type = 'text/plain'
-): File {
+export function createMockFile(name: string, content: string, type = 'text/plain'): File {
   const blob = new Blob([content], { type });
   return new File([blob], name, { type });
 }
@@ -307,7 +297,7 @@ export async function simulateWindowResize(width: number, height: number): Promi
     configurable: true,
     value: width
   });
-  
+
   Object.defineProperty(window, 'innerHeight', {
     writable: true,
     configurable: true,

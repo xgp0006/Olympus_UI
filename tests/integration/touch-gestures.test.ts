@@ -172,32 +172,36 @@ describe('Touch Gesture Integration', () => {
 
     it('should detect tap gestures', async () => {
       const touchStart = new TouchEvent('touchstart', {
-        touches: [new Touch({
-          identifier: 0,
-          target: document.body,
-          clientX: 100,
-          clientY: 100
-        })]
+        touches: [
+          new Touch({
+            identifier: 0,
+            target: document.body,
+            clientX: 100,
+            clientY: 100
+          })
+        ]
       });
 
       const touchEnd = new TouchEvent('touchend', {
-        changedTouches: [new Touch({
-          identifier: 0,
-          target: document.body,
-          clientX: 100,
-          clientY: 100
-        })]
+        changedTouches: [
+          new Touch({
+            identifier: 0,
+            target: document.body,
+            clientX: 100,
+            clientY: 100
+          })
+        ]
       });
 
       recognizer.handleTouchStart(touchStart);
-      
+
       // Wait a short time to simulate tap duration
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       recognizer.handleTouchEnd(touchEnd);
 
       // Wait for tap timeout
-      await new Promise(resolve => setTimeout(resolve, 350));
+      await new Promise((resolve) => setTimeout(resolve, 350));
 
       expect(mockCallbacks.onTap).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -212,28 +216,32 @@ describe('Touch Gesture Integration', () => {
 
     it('should detect swipe gestures', async () => {
       const touchStart = new TouchEvent('touchstart', {
-        touches: [new Touch({
-          identifier: 0,
-          target: document.body,
-          clientX: 100,
-          clientY: 100
-        })]
+        touches: [
+          new Touch({
+            identifier: 0,
+            target: document.body,
+            clientX: 100,
+            clientY: 100
+          })
+        ]
       });
 
       const touchEnd = new TouchEvent('touchend', {
-        changedTouches: [new Touch({
-          identifier: 0,
-          target: document.body,
-          clientX: 200,
-          clientY: 100
-        })]
+        changedTouches: [
+          new Touch({
+            identifier: 0,
+            target: document.body,
+            clientX: 200,
+            clientY: 100
+          })
+        ]
       });
 
       recognizer.handleTouchStart(touchStart);
-      
+
       // Wait a short time to simulate swipe duration
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
       recognizer.handleTouchEnd(touchEnd);
 
       expect(mockCallbacks.onSwipe).toHaveBeenCalledWith(
@@ -298,7 +306,7 @@ describe('Touch Gesture Integration', () => {
   describe('MapViewer Touch Integration', () => {
     it('should handle touch gestures on mobile', async () => {
       const mockDispatch = vi.fn();
-      
+
       const { container } = render(MapViewer, {
         props: {
           selectedItemId: null,
@@ -318,25 +326,29 @@ describe('Touch Gesture Integration', () => {
 
       // Simulate touch tap
       const touchStart = new TouchEvent('touchstart', {
-        touches: [new Touch({
-          identifier: 0,
-          target: mapContainer,
-          clientX: 150,
-          clientY: 150
-        })]
+        touches: [
+          new Touch({
+            identifier: 0,
+            target: mapContainer,
+            clientX: 150,
+            clientY: 150
+          })
+        ]
       });
 
       const touchEnd = new TouchEvent('touchend', {
-        changedTouches: [new Touch({
-          identifier: 0,
-          target: mapContainer,
-          clientX: 150,
-          clientY: 150
-        })]
+        changedTouches: [
+          new Touch({
+            identifier: 0,
+            target: mapContainer,
+            clientX: 150,
+            clientY: 150
+          })
+        ]
       });
 
       fireEvent(mapContainer, touchStart);
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       fireEvent(mapContainer, touchEnd);
 
       // Touch gestures should be set up (we can't easily test the actual gesture recognition
@@ -404,7 +416,7 @@ describe('Touch Gesture Integration', () => {
 
     it('should handle touch drag gestures', async () => {
       const mockDispatch = vi.fn();
-      
+
       const { container } = render(MinimizedCoin, {
         props: {
           item: mockItem,
@@ -414,35 +426,43 @@ describe('Touch Gesture Integration', () => {
         }
       });
 
-      const coinElement = container.querySelector('[data-testid="minimized-coin-test-waypoint-1"]') as HTMLElement;
+      const coinElement = container.querySelector(
+        '[data-testid="minimized-coin-test-waypoint-1"]'
+      ) as HTMLElement;
       expect(coinElement).toBeInTheDocument();
 
       // Simulate touch drag
       const touchStart = new TouchEvent('touchstart', {
-        touches: [new Touch({
-          identifier: 0,
-          target: coinElement,
-          clientX: 100,
-          clientY: 100
-        })]
+        touches: [
+          new Touch({
+            identifier: 0,
+            target: coinElement,
+            clientX: 100,
+            clientY: 100
+          })
+        ]
       });
 
       const touchMove = new TouchEvent('touchmove', {
-        touches: [new Touch({
-          identifier: 0,
-          target: coinElement,
-          clientX: 150,
-          clientY: 120
-        })]
+        touches: [
+          new Touch({
+            identifier: 0,
+            target: coinElement,
+            clientX: 150,
+            clientY: 120
+          })
+        ]
       });
 
       const touchEnd = new TouchEvent('touchend', {
-        changedTouches: [new Touch({
-          identifier: 0,
-          target: coinElement,
-          clientX: 150,
-          clientY: 120
-        })]
+        changedTouches: [
+          new Touch({
+            identifier: 0,
+            target: coinElement,
+            clientX: 150,
+            clientY: 120
+          })
+        ]
       });
 
       fireEvent(coinElement, touchStart);
@@ -463,16 +483,20 @@ describe('Touch Gesture Integration', () => {
         }
       });
 
-      const coinElement = container.querySelector('[data-testid="minimized-coin-test-waypoint-1"]') as HTMLElement;
+      const coinElement = container.querySelector(
+        '[data-testid="minimized-coin-test-waypoint-1"]'
+      ) as HTMLElement;
 
       // Simulate touch
       const touchStart = new TouchEvent('touchstart', {
-        touches: [new Touch({
-          identifier: 0,
-          target: coinElement,
-          clientX: 100,
-          clientY: 100
-        })]
+        touches: [
+          new Touch({
+            identifier: 0,
+            target: coinElement,
+            clientX: 100,
+            clientY: 100
+          })
+        ]
       });
 
       fireEvent(coinElement, touchStart);
@@ -495,8 +519,8 @@ describe('Touch Gesture Integration', () => {
         id: 'waypoint-2',
         type: 'waypoint',
         name: 'Waypoint 2',
-        params: { lat: 37.7750, lng: -122.4195, alt: 120 },
-        position: { lat: 37.7750, lng: -122.4195, alt: 120 }
+        params: { lat: 37.775, lng: -122.4195, alt: 120 },
+        position: { lat: 37.775, lng: -122.4195, alt: 120 }
       }
     ];
 
@@ -508,33 +532,41 @@ describe('Touch Gesture Integration', () => {
         }
       });
 
-      const accordionElement = container.querySelector('[data-testid="mission-accordion"]') as HTMLElement;
+      const accordionElement = container.querySelector(
+        '[data-testid="mission-accordion"]'
+      ) as HTMLElement;
       expect(accordionElement).toBeInTheDocument();
 
-      const firstItem = container.querySelector('[data-testid="accordion-item-waypoint-1"]') as HTMLElement;
+      const firstItem = container.querySelector(
+        '[data-testid="accordion-item-waypoint-1"]'
+      ) as HTMLElement;
       expect(firstItem).toBeInTheDocument();
 
       // Simulate swipe left gesture
       const touchStart = new TouchEvent('touchstart', {
-        touches: [new Touch({
-          identifier: 0,
-          target: firstItem,
-          clientX: 200,
-          clientY: 100
-        })]
+        touches: [
+          new Touch({
+            identifier: 0,
+            target: firstItem,
+            clientX: 200,
+            clientY: 100
+          })
+        ]
       });
 
       const touchEnd = new TouchEvent('touchend', {
-        changedTouches: [new Touch({
-          identifier: 0,
-          target: firstItem,
-          clientX: 100,
-          clientY: 100
-        })]
+        changedTouches: [
+          new Touch({
+            identifier: 0,
+            target: firstItem,
+            clientX: 100,
+            clientY: 100
+          })
+        ]
       });
 
       fireEvent(accordionElement, touchStart);
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       fireEvent(accordionElement, touchEnd);
 
       // Touch gestures should be set up
@@ -549,7 +581,9 @@ describe('Touch Gesture Integration', () => {
         }
       });
 
-      const accordionElement = container.querySelector('[data-testid="mission-accordion"]') as HTMLElement;
+      const accordionElement = container.querySelector(
+        '[data-testid="mission-accordion"]'
+      ) as HTMLElement;
       expect(accordionElement).toHaveClass('mobile');
 
       // Check for touch-friendly styling
@@ -576,7 +610,9 @@ describe('Touch Gesture Integration', () => {
         }
       });
 
-      const coinElement = container.querySelector('[data-testid="minimized-coin-test-waypoint"]') as HTMLElement;
+      const coinElement = container.querySelector(
+        '[data-testid="minimized-coin-test-waypoint"]'
+      ) as HTMLElement;
       expect(coinElement).toHaveAttribute('aria-label');
       expect(coinElement).toHaveAttribute('role', 'button');
       expect(coinElement).toHaveAttribute('tabindex', '0');
@@ -599,15 +635,17 @@ describe('Touch Gesture Integration', () => {
         }
       });
 
-      const coinElement = container.querySelector('[data-testid="minimized-coin-test-waypoint"]') as HTMLElement;
-      
+      const coinElement = container.querySelector(
+        '[data-testid="minimized-coin-test-waypoint"]'
+      ) as HTMLElement;
+
       // Focus the element
       coinElement.focus();
       expect(document.activeElement).toBe(coinElement);
 
       // Simulate Enter key press
       await fireEvent.keyDown(coinElement, { key: 'Enter' });
-      
+
       // Element should handle keyboard interaction
       expect(coinElement).toBeInTheDocument();
     });
@@ -647,25 +685,29 @@ describe('Touch Gesture Integration', () => {
       // Simulate rapid touch events
       for (let i = 0; i < 10; i++) {
         const touchStart = new TouchEvent('touchstart', {
-          touches: [new Touch({
-            identifier: i,
-            target: mapContainer,
-            clientX: 100 + i * 10,
-            clientY: 100 + i * 10
-          })]
+          touches: [
+            new Touch({
+              identifier: i,
+              target: mapContainer,
+              clientX: 100 + i * 10,
+              clientY: 100 + i * 10
+            })
+          ]
         });
 
         const touchEnd = new TouchEvent('touchend', {
-          changedTouches: [new Touch({
-            identifier: i,
-            target: mapContainer,
-            clientX: 100 + i * 10,
-            clientY: 100 + i * 10
-          })]
+          changedTouches: [
+            new Touch({
+              identifier: i,
+              target: mapContainer,
+              clientX: 100 + i * 10,
+              clientY: 100 + i * 10
+            })
+          ]
         });
 
         fireEvent(mapContainer, touchStart);
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
         fireEvent(mapContainer, touchEnd);
       }
 

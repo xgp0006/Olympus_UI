@@ -72,7 +72,7 @@ describe('CliView Component', () => {
 
   test('initializes terminal with correct configuration', async () => {
     const { Terminal } = await import('@xterm/xterm');
-    
+
     render(CliView);
 
     await waitFor(() => {
@@ -106,7 +106,9 @@ describe('CliView Component', () => {
     render(CliView);
 
     await waitFor(() => {
-      expect(mockTerminal.writeln).toHaveBeenCalledWith('Welcome to Aerospace C2 Command Line Interface');
+      expect(mockTerminal.writeln).toHaveBeenCalledWith(
+        'Welcome to Aerospace C2 Command Line Interface'
+      );
       expect(mockTerminal.writeln).toHaveBeenCalledWith('Type "help" for available commands');
     });
   });
@@ -272,7 +274,7 @@ describe('CliView Component', () => {
   test('handles event listener setup failure gracefully', async () => {
     const { listen } = await import('@tauri-apps/api/event');
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    
+
     vi.mocked(listen).mockRejectedValue(new Error('Failed to setup listener'));
 
     render(CliView);
@@ -315,7 +317,7 @@ describe('CliView Component', () => {
   test('handles terminal initialization error', async () => {
     const { Terminal } = await import('@xterm/xterm');
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    
+
     vi.mocked(Terminal).mockImplementation(() => {
       throw new Error('Terminal initialization failed');
     });
@@ -332,7 +334,7 @@ describe('CliView Component', () => {
   test('handles fit addon initialization error', async () => {
     const { FitAddon } = await import('@xterm/addon-fit');
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    
+
     vi.mocked(FitAddon).mockImplementation(() => {
       throw new Error('FitAddon initialization failed');
     });
@@ -367,7 +369,8 @@ describe('CliView Component', () => {
     });
 
     const mockLine = {
-      translateToString: vi.fn()
+      translateToString: vi
+        .fn()
         .mockReturnValueOnce('command1')
         .mockReturnValueOnce('command2')
         .mockReturnValueOnce('command3')

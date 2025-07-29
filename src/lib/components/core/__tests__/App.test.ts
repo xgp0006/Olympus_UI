@@ -77,7 +77,9 @@ describe('App Component', () => {
 
     // Should show loading state initially
     expect(screen.getByText('Modular C2 Frontend')).toBeInTheDocument();
-    expect(screen.getByText('Initializing aerospace command & control interface...')).toBeInTheDocument();
+    expect(
+      screen.getByText('Initializing aerospace command & control interface...')
+    ).toBeInTheDocument();
     expect(document.querySelector('.loading-spinner')).toBeInTheDocument();
   });
 
@@ -257,7 +259,7 @@ describe('App Component', () => {
     await waitFor(() => {
       // Should include CLI panel (always present)
       expect(document.querySelector('.cli-container')).toBeInTheDocument();
-      
+
       // Should include notification center
       // Note: This would need proper test IDs in the actual components
       expect(document.querySelector('.app-container')).toBeInTheDocument();

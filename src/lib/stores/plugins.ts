@@ -56,8 +56,11 @@ export const pluginError = derived(pluginState, ($state) => $state.error);
  */
 let pluginEventUnlisten: (() => void) | null = null;
 
+// Import Tauri context utilities
+import { TauriApi } from '../utils/tauri-context';
+
 /**
- * Safely invoke Tauri command with error handling
+ * Safely invoke Tauri command with error handling and browser context detection
  * @param command - Tauri command name
  * @param args - Command arguments
  * @returns Promise resolving to command result or null on error
@@ -68,19 +71,36 @@ async function safeInvoke<T>(command: string, args?: Record<string, unknown>): P
     return null;
   }
 
+  // Check if Tauri API is available before attempting to invoke
+  if (!TauriApi.isAvailable()) {
+    console.warn(
+      `Tauri command '${command}' called in browser context without Tauri runtime, returning null`
+    );
+    return null;
+  }
+
   try {
-    const { invoke } = await import('@tauri-apps/api/tauri');
-    const result = await invoke<T>(command, args);
+    const result = await TauriApi.invoke<T>(command, args);
+    if (result === undefined) {
+      throw new Error('Command returned undefined');
+    }
     return result;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`Tauri command '${command}' failed:`, errorMessage);
 
-    showNotification({
-      type: 'error',
-      message: `Command failed: ${command}`,
-      details: errorMessage
-    });
+    // Only log errors and show notifications if we're in a Tauri context
+    // In browser-only context, silently fail to avoid noise
+    if ('__TAURI__' in window) {
+      console.error(`Tauri command '${command}' failed:`, errorMessage);
+
+      showNotification({
+        type: 'error',
+        message: `Command failed: ${command}`,
+        details: errorMessage
+      });
+    } else {
+      console.debug(`Tauri command '${command}' not available in browser context`);
+    }
 
     return null;
   }
@@ -280,11 +300,15 @@ export async function setupPluginEventListeners(): Promise<(() => void) | null> 
   try {
     console.log('Setting up plugin event listeners...');
 
-    const { listen } = await import('@tauri-apps/api/event');
+    // Check if Tauri is available
+    if (!TauriApi.isAvailable()) {
+      console.log('Tauri not available, skipping plugin event listeners');
+      return null;
+    }
 
     // Listen for plugin changes from backend
-    pluginEventUnlisten = await listen<string[]>('plugins-changed', (event) => {
-      console.log('Plugins changed event received:', event.payload);
+    pluginEventUnlisten = await TauriApi.listen<string[]>('plugins-changed', (payload) => {
+      console.log('Plugins changed event received:', payload);
 
       // Reload plugins when backend notifies of changes
       loadPlugins().catch((error) => {

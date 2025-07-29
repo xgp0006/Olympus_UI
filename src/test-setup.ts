@@ -138,7 +138,7 @@ Object.defineProperty(window, 'cancelAnimationFrame', {
 const originalGetComputedStyle = window.getComputedStyle;
 window.getComputedStyle = vi.fn((element) => {
   const style = originalGetComputedStyle(element);
-  
+
   // Add mock CSS custom properties
   const mockStyle = {
     ...style,
@@ -159,7 +159,7 @@ window.getComputedStyle = vi.fn((element) => {
       return style.getPropertyValue(property);
     })
   };
-  
+
   return mockStyle;
 });
 
@@ -204,13 +204,28 @@ Object.defineProperty(URL, 'revokeObjectURL', {
 Object.defineProperty(window, 'Blob', {
   writable: true,
   value: class MockBlob {
-    constructor(public parts: any[], public options: any = {}) {}
-    get size() { return 0; }
-    get type() { return this.options.type || ''; }
-    slice() { return new MockBlob([], {}); }
-    stream() { return new ReadableStream(); }
-    text() { return Promise.resolve(''); }
-    arrayBuffer() { return Promise.resolve(new ArrayBuffer(0)); }
+    constructor(
+      public parts: any[],
+      public options: any = {}
+    ) {}
+    get size() {
+      return 0;
+    }
+    get type() {
+      return this.options.type || '';
+    }
+    slice() {
+      return new MockBlob([], {});
+    }
+    stream() {
+      return new ReadableStream();
+    }
+    text() {
+      return Promise.resolve('');
+    }
+    arrayBuffer() {
+      return Promise.resolve(new ArrayBuffer(0));
+    }
   }
 });
 
@@ -218,11 +233,19 @@ Object.defineProperty(window, 'Blob', {
 Object.defineProperty(window, 'File', {
   writable: true,
   value: class MockFile extends (window as any).Blob {
-    constructor(public parts: any[], public name: string, public options: unknown = {}) {
+    constructor(
+      public parts: any[],
+      public name: string,
+      public options: unknown = {}
+    ) {
       super(parts, options);
     }
-    get lastModified() { return Date.now(); }
-    get webkitRelativePath() { return ''; }
+    get lastModified() {
+      return Date.now();
+    }
+    get webkitRelativePath() {
+      return '';
+    }
   }
 });
 
@@ -238,7 +261,7 @@ Object.defineProperty(window, 'DataTransfer', {
     };
     files = [];
     types = [];
-    
+
     setData = vi.fn();
     getData = vi.fn();
     clearData = vi.fn();
@@ -263,11 +286,11 @@ Object.defineProperty(globalThis, 'console', {
 beforeEach(() => {
   // Clear all mocks before each test
   vi.clearAllMocks();
-  
+
   // Reset DOM
   document.body.innerHTML = '';
   document.head.innerHTML = '';
-  
+
   // Reset timers
   vi.clearAllTimers();
   vi.useFakeTimers();
@@ -278,7 +301,7 @@ afterEach(() => {
   vi.clearAllMocks();
   vi.clearAllTimers();
   vi.useRealTimers();
-  
+
   // Clean up DOM
   document.body.innerHTML = '';
   document.head.innerHTML = '';

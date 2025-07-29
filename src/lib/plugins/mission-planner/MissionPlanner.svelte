@@ -13,7 +13,8 @@
     missionItems,
     selectedMissionItem,
     loadMissionData,
-    selectMissionItem
+    selectMissionItem,
+    addMissionItem
   } from '$lib/stores/mission';
   import type { MapClickEvent, WaypointParams } from './types';
 
@@ -73,6 +74,42 @@
   }
 
   /**
+   * Handle add waypoint request
+   */
+  async function handleAddWaypoint(): Promise<void> {
+    try {
+      // Create a new waypoint at the center of the current map view
+      // In a real implementation, this would open a dialog or use the current map center
+      const mapCenter = { lat: 37.7749, lng: -122.4194 }; // Default to San Francisco
+      const newWaypoint = {
+        id: `waypoint-${Date.now()}`,
+        type: 'waypoint' as const,
+        name: `Waypoint ${$missionItems.length + 1}`,
+        params: {
+          lat: mapCenter.lat,
+          lng: mapCenter.lng,
+          alt: 100,
+          speed: 10
+        },
+        position: {
+          lat: mapCenter.lat,
+          lng: mapCenter.lng,
+          alt: 100
+        }
+      };
+      
+      // Add the waypoint to the mission store
+      await addMissionItem(newWaypoint);
+      
+      // Select the new waypoint
+      selectMissionItem(newWaypoint.id);
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to add waypoint';
+      console.error('Failed to add waypoint:', err);
+    }
+  }
+
+  /**
    * Handle map ready event
    */
   function handleMapReady(): void {
@@ -94,12 +131,12 @@
     try {
       // Load mission data from backend
       await loadMissionData();
-      
+
       // Auto-collapse accordion on mobile
       if (isMobileDevice) {
         accordionCollapsed = true;
       }
-      
+
       console.log('Mission Planner initialized');
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to initialize Mission Planner';
@@ -126,8 +163,8 @@
 </script>
 
 <!-- ===== TEMPLATE ===== -->
-<div 
-  class="mission-planner" 
+<div
+  class="mission-planner"
   class:mobile={isMobileDevice}
   class:tablet={isTabletDevice}
   class:accordion-collapsed={accordionCollapsed}
@@ -158,7 +195,7 @@
         on:ready={handleMapReady}
         on:error={handleMapError}
       />
-      
+
       {#if isMobileDevice}
         <button
           class="accordion-toggle"
@@ -167,7 +204,7 @@
           data-testid="accordion-toggle"
         >
           <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
           </svg>
           Mission Items
         </button>
@@ -181,6 +218,7 @@
         on:select={handleAccordionSelect}
         on:minimize={handleAccordionMinimize}
         on:update={handleAccordionUpdate}
+        on:addWaypoint={handleAddWaypoint}
         on:error={handleAccordionError}
       />
     </div>

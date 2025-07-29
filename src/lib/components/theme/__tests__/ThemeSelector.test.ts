@@ -28,12 +28,7 @@ describe('ThemeSelector Component', () => {
     name: 'Super AMOLED Black'
   });
 
-  const availableThemes = [
-    'super_amoled_black',
-    'aerospace_blue',
-    'high_contrast',
-    'classic_dark'
-  ];
+  const availableThemes = ['super_amoled_black', 'aerospace_blue', 'high_contrast', 'classic_dark'];
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -68,7 +63,7 @@ describe('ThemeSelector Component', () => {
     });
 
     const select = screen.getByTestId('theme-select-input') as HTMLSelectElement;
-    const options = Array.from(select.options).map(option => option.value);
+    const options = Array.from(select.options).map((option) => option.value);
 
     expect(options).toEqual(availableThemes);
   });
@@ -79,7 +74,7 @@ describe('ThemeSelector Component', () => {
     });
 
     const select = screen.getByTestId('theme-select-input') as HTMLSelectElement;
-    const optionTexts = Array.from(select.options).map(option => option.text);
+    const optionTexts = Array.from(select.options).map((option) => option.text);
 
     expect(optionTexts).toContain('Super Amoled Black');
     expect(optionTexts).toContain('Aerospace Blue');
@@ -147,7 +142,7 @@ describe('ThemeSelector Component', () => {
     });
 
     const select = screen.getByTestId('theme-select-input');
-    
+
     // Try to select the same theme
     await fireEvent.change(select, { target: { value: 'super_amoled_black' } });
 
@@ -218,18 +213,14 @@ describe('ThemeSelector Component', () => {
   });
 
   test('handles theme names with spaces and special characters', () => {
-    const specialThemes = [
-      'super_amoled_black',
-      'high_contrast_mode',
-      'custom_theme_v2'
-    ];
+    const specialThemes = ['super_amoled_black', 'high_contrast_mode', 'custom_theme_v2'];
 
     render(ThemeSelector, {
       props: { availableThemes: specialThemes }
     });
 
     const select = screen.getByTestId('theme-select-input') as HTMLSelectElement;
-    const optionTexts = Array.from(select.options).map(option => option.text);
+    const optionTexts = Array.from(select.options).map((option) => option.text);
 
     expect(optionTexts).toContain('Super Amoled Black');
     expect(optionTexts).toContain('High Contrast Mode');
@@ -308,7 +299,7 @@ describe('ThemeSelector Component', () => {
 
   test('handles theme name normalization correctly', () => {
     const themeWithSpaces = createMockTheme({ name: 'Super AMOLED Black Theme' });
-    
+
     vi.mocked(theme.subscribe).mockImplementation((callback) => {
       callback(themeWithSpaces);
       return () => {};

@@ -5,11 +5,11 @@
 
 // ===== BREAKPOINTS =====
 export const BREAKPOINTS = {
-  xs: 320,   // Extra small devices (phones)
-  sm: 640,   // Small devices (large phones)
-  md: 768,   // Medium devices (tablets)
-  lg: 1024,  // Large devices (laptops)
-  xl: 1280,  // Extra large devices (desktops)
+  xs: 320, // Extra small devices (phones)
+  sm: 640, // Small devices (large phones)
+  md: 768, // Medium devices (tablets)
+  lg: 1024, // Large devices (laptops)
+  xl: 1280, // Extra large devices (desktops)
   '2xl': 1536 // 2X large devices (large desktops)
 } as const;
 
@@ -23,25 +23,25 @@ export const MEDIA_QUERIES = {
   lg: `(min-width: ${BREAKPOINTS.lg}px)`,
   xl: `(min-width: ${BREAKPOINTS.xl}px)`,
   '2xl': `(min-width: ${BREAKPOINTS['2xl']}px)`,
-  
+
   // Max-width queries for mobile-first approach
   'max-xs': `(max-width: ${BREAKPOINTS.xs - 1}px)`,
   'max-sm': `(max-width: ${BREAKPOINTS.sm - 1}px)`,
   'max-md': `(max-width: ${BREAKPOINTS.md - 1}px)`,
   'max-lg': `(max-width: ${BREAKPOINTS.lg - 1}px)`,
   'max-xl': `(max-width: ${BREAKPOINTS.xl - 1}px)`,
-  
+
   // Orientation queries
   portrait: '(orientation: portrait)',
   landscape: '(orientation: landscape)',
-  
+
   // Touch device detection
   touch: '(hover: none) and (pointer: coarse)',
   'no-touch': '(hover: hover) and (pointer: fine)',
-  
+
   // High DPI displays
   retina: '(-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi)',
-  
+
   // Reduced motion preference
   'reduced-motion': '(prefers-reduced-motion: reduce)',
   'no-reduced-motion': '(prefers-reduced-motion: no-preference)'
@@ -56,7 +56,7 @@ export function getViewportDimensions(): { width: number; height: number } {
   if (typeof window === 'undefined') {
     return { width: 1024, height: 768 }; // Default for SSR
   }
-  
+
   return {
     width: window.innerWidth,
     height: window.innerHeight
@@ -68,7 +68,7 @@ export function getViewportDimensions(): { width: number; height: number } {
  */
 export function matchesBreakpoint(breakpoint: Breakpoint): boolean {
   if (typeof window === 'undefined') return false;
-  
+
   return window.innerWidth >= BREAKPOINTS[breakpoint];
 }
 
@@ -77,7 +77,7 @@ export function matchesBreakpoint(breakpoint: Breakpoint): boolean {
  */
 export function getCurrentBreakpoint(): Breakpoint {
   const { width } = getViewportDimensions();
-  
+
   if (width >= BREAKPOINTS['2xl']) return '2xl';
   if (width >= BREAKPOINTS.xl) return 'xl';
   if (width >= BREAKPOINTS.lg) return 'lg';
@@ -91,7 +91,7 @@ export function getCurrentBreakpoint(): Breakpoint {
  */
 export function isMobileDevice(): boolean {
   if (typeof window === 'undefined') return false;
-  
+
   return window.matchMedia(MEDIA_QUERIES.touch).matches;
 }
 
@@ -100,7 +100,7 @@ export function isMobileDevice(): boolean {
  */
 export function isPortraitOrientation(): boolean {
   if (typeof window === 'undefined') return false;
-  
+
   return window.matchMedia(MEDIA_QUERIES.portrait).matches;
 }
 
@@ -109,7 +109,7 @@ export function isPortraitOrientation(): boolean {
  */
 export function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined') return false;
-  
+
   return window.matchMedia(MEDIA_QUERIES['reduced-motion']).matches;
 }
 
@@ -188,11 +188,17 @@ export const responsiveStore = createResponsiveStore();
 // ===== DERIVED STORES =====
 
 export const isMobile = derived(responsiveStore, ($responsive) => $responsive.isMobile);
-export const isTablet = derived(responsiveStore, ($responsive) => 
-  $responsive.breakpoint === 'md' || ($responsive.breakpoint === 'lg' && $responsive.isMobile)
+export const isTablet = derived(
+  responsiveStore,
+  ($responsive) =>
+    $responsive.breakpoint === 'md' || ($responsive.breakpoint === 'lg' && $responsive.isMobile)
 );
-export const isDesktop = derived(responsiveStore, ($responsive) => 
-  $responsive.breakpoint === 'lg' || $responsive.breakpoint === 'xl' || $responsive.breakpoint === '2xl'
+export const isDesktop = derived(
+  responsiveStore,
+  ($responsive) =>
+    $responsive.breakpoint === 'lg' ||
+    $responsive.breakpoint === 'xl' ||
+    $responsive.breakpoint === '2xl'
 );
 export const currentBreakpoint = derived(responsiveStore, ($responsive) => $responsive.breakpoint);
 
@@ -233,7 +239,7 @@ export function detectSwipe(
   if (distance < minDistance) return null;
 
   const velocity = distance / duration;
-  
+
   let direction: SwipeGesture['direction'];
   if (Math.abs(deltaX) > Math.abs(deltaY)) {
     direction = deltaX > 0 ? 'right' : 'left';
@@ -269,13 +275,12 @@ export function addTouchClick(
   function handleTouchEnd(event: TouchEvent) {
     const touchEndTime = Date.now();
     const duration = touchEndTime - touchStartTime;
-    
+
     if (duration > 500) return; // Too long for a tap
 
     const touch = event.changedTouches[0];
     const distance = Math.sqrt(
-      Math.pow(touch.clientX - touchStartPos.x, 2) +
-      Math.pow(touch.clientY - touchStartPos.y, 2)
+      Math.pow(touch.clientX - touchStartPos.x, 2) + Math.pow(touch.clientY - touchStartPos.y, 2)
     );
 
     if (distance > 10) return; // Moved too much

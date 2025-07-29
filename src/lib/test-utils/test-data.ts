@@ -187,7 +187,8 @@ export const TEST_THEME: Theme = {
     sdr: {
       spectrum_line_color: '#0066ff',
       spectrum_fill_color: '#003366',
-      waterfall_color_gradient: 'linear-gradient(to right, #000000, #0066ff, #00ffff, #ffff00, #ff0000)',
+      waterfall_color_gradient:
+        'linear-gradient(to right, #000000, #0066ff, #00ffff, #ffff00, #ff0000)',
       grid_line_color: '#333333',
       axis_label_color: '#cccccc'
     }

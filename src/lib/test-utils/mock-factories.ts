@@ -128,7 +128,8 @@ export function createMockTheme(overrides: Partial<Theme> = {}): Theme {
       sdr: {
         spectrum_line_color: '#00bfff',
         spectrum_fill_color: 'rgba(0, 191, 255, 0.3)',
-        waterfall_color_gradient: 'linear-gradient(to right, #000080, #0000ff, #00ffff, #ffff00, #ff0000)',
+        waterfall_color_gradient:
+          'linear-gradient(to right, #000080, #0000ff, #00ffff, #ffff00, #ff0000)',
         grid_line_color: '#333333',
         axis_label_color: '#cccccc'
       }
@@ -193,7 +194,9 @@ export function createMockMissionItem(
 /**
  * Waypoint parameters mock factory
  */
-export function createMockWaypointParams(overrides: Partial<{ lat: number; lng: number; alt: number; speed?: number }> = {}): { lat: number; lng: number; alt: number; speed?: number } {
+export function createMockWaypointParams(
+  overrides: Partial<{ lat: number; lng: number; alt: number; speed?: number }> = {}
+): { lat: number; lng: number; alt: number; speed?: number } {
   return {
     lat: 37.7749,
     lng: -122.4194,
@@ -248,7 +251,7 @@ export function createMockSdrDevice(overrides: Partial<SdrDevice> = {}): SdrDevi
  * FFT data mock factory
  */
 export function createMockFFTData(overrides: Partial<FFTData> = {}): FFTData {
-  const frequencies = Array.from({ length: 1024 }, (_, i) => 100000000 + (i * 2000));
+  const frequencies = Array.from({ length: 1024 }, (_, i) => 100000000 + i * 2000);
   const magnitudes = Array.from({ length: 1024 }, () => Math.random() * -80 - 20);
 
   return {
@@ -333,12 +336,12 @@ export function createMockMap() {
  */
 export function createMockHTMLElement(tagName = 'div'): HTMLElement {
   const element = document.createElement(tagName);
-  
+
   // Add common methods that might be called in tests
   vi.spyOn(element, 'addEventListener');
   vi.spyOn(element, 'removeEventListener');
   vi.spyOn(element, 'dispatchEvent');
-  
+
   return element;
 }
 

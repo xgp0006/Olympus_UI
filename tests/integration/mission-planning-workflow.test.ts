@@ -32,7 +32,10 @@ import {
 } from '../../src/lib/stores/mission';
 
 // Import test utilities
-import { createMockMissionItem, createMockWaypointParams } from '../../src/lib/test-utils/mock-factories';
+import {
+  createMockMissionItem,
+  createMockWaypointParams
+} from '../../src/lib/test-utils/mock-factories';
 import { waitForComponentReady } from '../../src/lib/test-utils/component-helpers';
 
 // Mock Tauri API
@@ -83,7 +86,7 @@ vi.mock('maplibre-gl', () => ({
 describe('Mission Planning Workflow Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Reset mission store
     missionState.set({
       items: [],
@@ -93,7 +96,7 @@ describe('Mission Planning Workflow Integration Tests', () => {
       lastUpdated: 0
     });
     selectMissionItem(null);
-    
+
     // Setup default mock responses
     mockInvoke.mockImplementation((command: string, args?: unknown) => {
       switch (command) {
@@ -127,12 +130,12 @@ describe('Mission Planning Workflow Integration Tests', () => {
   describe('Mission Data Loading and Display', () => {
     test('loads mission data successfully', async () => {
       const items = await loadMissionData();
-      
+
       expect(mockInvoke).toHaveBeenCalledWith('get_mission_data');
       expect(items).toHaveLength(4);
       expect(items[0].type).toBe('takeoff');
       expect(items[3].type).toBe('land');
-      
+
       // Verify store is updated
       const storeItems = get(missionItems);
       expect(storeItems).toHaveLength(4);
@@ -147,7 +150,7 @@ describe('Mission Planning Workflow Integration Tests', () => {
       });
 
       await expect(loadMissionData()).rejects.toThrow('Backend connection failed');
-      
+
       // Verify error state
       const error = get(missionError);
       expect(error).toBe('Backend connection failed');
@@ -155,13 +158,13 @@ describe('Mission Planning Workflow Integration Tests', () => {
 
     test('mission planner component displays loaded mission items', async () => {
       await loadMissionData();
-      
+
       const { getByTestId } = render(MissionPlanner);
-      
+
       await waitFor(() => {
         const accordion = getByTestId('mission-accordion');
         expect(accordion).toBeInTheDocument();
-        
+
         // Should display all mission items
         const items = accordion.querySelectorAll('[data-testid="waypoint-item"]');
         expect(items).toHaveLength(4);
@@ -173,7 +176,7 @@ describe('Mission Planning Workflow Integration Tests', () => {
     test('creates new mission item with correct defaults', () => {
       const position = { lat: 37.7749, lng: -122.4194, alt: 100 };
       const item = createMissionItem('waypoint', position, 'Test Waypoint');
-      
+
       expect(item.type).toBe('waypoint');
       expect(item.name).toBe('Test Waypoint');
       expect(item.position).toEqual(position);
@@ -185,9 +188,9 @@ describe('Mission Planning Workflow Integration Tests', () => {
 
     test('adds mission item to store', () => {
       const item = createMissionItem('waypoint', { lat: 37.7749, lng: -122.4194, alt: 100 });
-      
+
       addMissionItem(item);
-      
+
       const items = get(missionItems);
       expect(items).toHaveLength(1);
       expect(items[0]).toEqual(item);
@@ -197,31 +200,31 @@ describe('Mission Planning Workflow Integration Tests', () => {
       await loadMissionData();
       const items = get(missionItems);
       const itemToRemove = items[1]; // Second item
-      
+
       removeMissionItem(itemToRemove.id);
-      
+
       const updatedItems = get(missionItems);
       expect(updatedItems).toHaveLength(3);
-      expect(updatedItems.find(item => item.id === itemToRemove.id)).toBeUndefined();
+      expect(updatedItems.find((item) => item.id === itemToRemove.id)).toBeUndefined();
     });
 
     test('updates waypoint parameters and syncs with backend', async () => {
       await loadMissionData();
       const items = get(missionItems);
       const waypointId = items[1].id;
-      
+
       const newParams = createMockWaypointParams({ lat: 38.0, lng: -123.0, alt: 150, speed: 15 });
-      
+
       await updateWaypointParams(waypointId, newParams);
-      
+
       expect(mockInvoke).toHaveBeenCalledWith('update_waypoint_params', {
         waypoint_id: waypointId,
         params: newParams
       });
-      
+
       // Verify local store is updated
       const updatedItems = get(missionItems);
-      const updatedItem = updatedItems.find(item => item.id === waypointId);
+      const updatedItem = updatedItems.find((item) => item.id === waypointId);
       expect(updatedItem?.params.lat).toBe(38.0);
       expect(updatedItem?.params.lng).toBe(-123.0);
       expect(updatedItem?.params.alt).toBe(150);
@@ -232,7 +235,7 @@ describe('Mission Planning Workflow Integration Tests', () => {
       await loadMissionData();
       const items = get(missionItems);
       const waypointId = items[1].id;
-      
+
       mockInvoke.mockImplementation((command: string) => {
         if (command === 'update_waypoint_params') {
           return Promise.reject(new Error('Invalid parameters'));
@@ -241,9 +244,11 @@ describe('Mission Planning Workflow Integration Tests', () => {
       });
 
       const newParams = createMockWaypointParams({ lat: 38.0, lng: -123.0, alt: 150 });
-      
-      await expect(updateWaypointParams(waypointId, newParams)).rejects.toThrow('Invalid parameters');
-      
+
+      await expect(updateWaypointParams(waypointId, newParams)).rejects.toThrow(
+        'Invalid parameters'
+      );
+
       // Verify error state
       const error = get(missionError);
       expect(error).toBe('Invalid parameters');
@@ -255,9 +260,9 @@ describe('Mission Planning Workflow Integration Tests', () => {
       await loadMissionData();
       const items = get(missionItems);
       const itemId = items[1].id;
-      
+
       selectMissionItem(itemId);
-      
+
       const selectedItem = get(selectedMissionItem);
       expect(selectedItem?.id).toBe(itemId);
     });
@@ -265,26 +270,26 @@ describe('Mission Planning Workflow Integration Tests', () => {
     test('deselects mission item', async () => {
       await loadMissionData();
       const items = get(missionItems);
-      
+
       selectMissionItem(items[0].id);
       expect(get(selectedMissionItem)).toBeTruthy();
-      
+
       selectMissionItem(null);
       expect(get(selectedMissionItem)).toBeNull();
     });
 
     test('map pans to selected waypoint', async () => {
       await loadMissionData();
-      
+
       const { getByTestId } = render(MissionPlanner);
-      
+
       await waitFor(() => {
         expect(getByTestId('map-viewer')).toBeInTheDocument();
       });
 
       const items = get(missionItems);
       selectMissionItem(items[1].id);
-      
+
       // In a real implementation, this would verify the map.flyTo call
       // For now, we verify the selection worked
       expect(get(selectedMissionItem)?.id).toBe(items[1].id);
@@ -297,14 +302,14 @@ describe('Mission Planning Workflow Integration Tests', () => {
       const items = get(missionItems);
       const itemToMove = items[1];
       const newIndex = 2;
-      
+
       await reorderMissionItem(itemToMove.id, newIndex);
-      
+
       expect(mockInvoke).toHaveBeenCalledWith('reorder_mission_item', {
         item_id: itemToMove.id,
         new_index: newIndex
       });
-      
+
       // Verify local reordering
       const reorderedItems = get(missionItems);
       expect(reorderedItems[newIndex].id).toBe(itemToMove.id);
@@ -313,7 +318,7 @@ describe('Mission Planning Workflow Integration Tests', () => {
     test('handles reorder failure', async () => {
       await loadMissionData();
       const items = get(missionItems);
-      
+
       mockInvoke.mockImplementation((command: string) => {
         if (command === 'reorder_mission_item') {
           return Promise.reject(new Error('Reorder failed'));
@@ -322,16 +327,16 @@ describe('Mission Planning Workflow Integration Tests', () => {
       });
 
       await expect(reorderMissionItem(items[1].id, 2)).rejects.toThrow('Reorder failed');
-      
+
       const error = get(missionError);
       expect(error).toBe('Reorder failed');
     });
 
     test('drag and drop reordering in accordion', async () => {
       await loadMissionData();
-      
+
       const { getByTestId } = render(MissionPlanner);
-      
+
       await waitFor(() => {
         expect(getByTestId('mission-accordion')).toBeInTheDocument();
       });
@@ -348,9 +353,9 @@ describe('Mission Planning Workflow Integration Tests', () => {
     test('validates correct mission sequence', async () => {
       await loadMissionData();
       const items = get(missionItems);
-      
+
       const validation = validateMissionSequence(items);
-      
+
       expect(validation.valid).toBe(true);
       expect(validation.errors).toHaveLength(0);
     });
@@ -360,9 +365,9 @@ describe('Mission Planning Workflow Integration Tests', () => {
         createMissionItem('waypoint', { lat: 37.7749, lng: -122.4194, alt: 100 }),
         createMissionItem('land', { lat: 37.7849, lng: -122.4094, alt: 0 })
       ];
-      
+
       const validation = validateMissionSequence(items);
-      
+
       expect(validation.valid).toBe(false);
       expect(validation.errors).toContain('Mission must start with a takeoff item');
     });
@@ -372,9 +377,9 @@ describe('Mission Planning Workflow Integration Tests', () => {
         createMissionItem('takeoff', { lat: 37.7749, lng: -122.4194, alt: 50 }),
         createMissionItem('waypoint', { lat: 37.7849, lng: -122.4094, alt: 100 })
       ];
-      
+
       const validation = validateMissionSequence(items);
-      
+
       expect(validation.valid).toBe(true);
       expect(validation.warnings).toContain('Mission should end with a landing item');
     });
@@ -384,12 +389,12 @@ describe('Mission Planning Workflow Integration Tests', () => {
         createMissionItem('takeoff', { lat: 91, lng: -122.4194, alt: 50 }), // Invalid latitude
         createMissionItem('waypoint', { lat: 37.7849, lng: 181, alt: 100 }) // Invalid longitude
       ];
-      
+
       const validation = validateMissionSequence(items);
-      
+
       expect(validation.valid).toBe(false);
-      expect(validation.errors.some(error => error.includes('invalid latitude'))).toBe(true);
-      expect(validation.errors.some(error => error.includes('invalid longitude'))).toBe(true);
+      expect(validation.errors.some((error) => error.includes('invalid latitude'))).toBe(true);
+      expect(validation.errors.some((error) => error.includes('invalid longitude'))).toBe(true);
     });
 
     test('warns about large altitude changes', () => {
@@ -397,31 +402,33 @@ describe('Mission Planning Workflow Integration Tests', () => {
         createMissionItem('takeoff', { lat: 37.7749, lng: -122.4194, alt: 50 }),
         createMissionItem('waypoint', { lat: 37.7849, lng: -122.4094, alt: 300 }) // Large altitude jump
       ];
-      
+
       const validation = validateMissionSequence(items);
-      
+
       expect(validation.valid).toBe(true);
-      expect(validation.warnings.some(warning => warning.includes('Large altitude change'))).toBe(true);
+      expect(validation.warnings.some((warning) => warning.includes('Large altitude change'))).toBe(
+        true
+      );
     });
   });
 
   describe('Mission Save and Load', () => {
     test('saves mission successfully', async () => {
       await loadMissionData();
-      
+
       const missionId = await saveMission('Test Mission');
-      
+
       expect(mockInvoke).toHaveBeenCalledWith('save_mission', {
         name: 'Test Mission',
         items: get(missionItems)
       });
-      
+
       expect(missionId).toBe('mission-123');
     });
 
     test('handles mission save failure', async () => {
       await loadMissionData();
-      
+
       mockInvoke.mockImplementation((command: string) => {
         if (command === 'save_mission') {
           return Promise.reject(new Error('Save failed'));
@@ -430,21 +437,21 @@ describe('Mission Planning Workflow Integration Tests', () => {
       });
 
       await expect(saveMission('Test Mission')).rejects.toThrow('Save failed');
-      
+
       const error = get(missionError);
       expect(error).toBe('Save failed');
     });
 
     test('loads mission by ID successfully', async () => {
       const items = await loadMissionById('mission-123');
-      
+
       expect(mockInvoke).toHaveBeenCalledWith('load_mission_by_id', {
         mission_id: 'mission-123'
       });
-      
+
       expect(items).toHaveLength(1);
       expect(items[0].type).toBe('takeoff');
-      
+
       // Verify store is updated
       const storeItems = get(missionItems);
       expect(storeItems).toHaveLength(1);
@@ -459,7 +466,7 @@ describe('Mission Planning Workflow Integration Tests', () => {
       });
 
       await expect(loadMissionById('nonexistent')).rejects.toThrow('Mission not found');
-      
+
       const error = get(missionError);
       expect(error).toBe('Mission not found');
     });
@@ -468,9 +475,9 @@ describe('Mission Planning Workflow Integration Tests', () => {
   describe('Map Integration', () => {
     test('map displays waypoint markers', async () => {
       await loadMissionData();
-      
+
       const { getByTestId } = render(MissionPlanner);
-      
+
       await waitFor(() => {
         expect(getByTestId('map-viewer')).toBeInTheDocument();
       });
@@ -482,13 +489,13 @@ describe('Mission Planning Workflow Integration Tests', () => {
 
     test('map click adds new waypoint', async () => {
       const { getByTestId } = render(MissionPlanner);
-      
+
       await waitFor(() => {
         expect(getByTestId('map-viewer')).toBeInTheDocument();
       });
 
       const mapElement = getByTestId('map-viewer');
-      
+
       // Simulate map click event
       await fireEvent.click(mapElement, {
         detail: {
@@ -503,9 +510,9 @@ describe('Mission Planning Workflow Integration Tests', () => {
 
     test('selected waypoint is highlighted on map', async () => {
       await loadMissionData();
-      
+
       const { getByTestId } = render(MissionPlanner);
-      
+
       await waitFor(() => {
         expect(getByTestId('map-viewer')).toBeInTheDocument();
       });
@@ -522,9 +529,9 @@ describe('Mission Planning Workflow Integration Tests', () => {
   describe('Minimized Coin Functionality', () => {
     test('waypoint can be minimized to coin', async () => {
       await loadMissionData();
-      
+
       const { getByTestId } = render(MissionPlanner);
-      
+
       await waitFor(() => {
         expect(getByTestId('mission-accordion')).toBeInTheDocument();
       });
@@ -564,7 +571,7 @@ describe('Mission Planning Workflow Integration Tests', () => {
       selectMissionItem(items[1].id);
       expect(get(selectedMissionItem)?.id).toBe(items[1].id);
 
-      const newParams = createMockWaypointParams({ lat: 37.7850, lng: -122.4095, alt: 105 });
+      const newParams = createMockWaypointParams({ lat: 37.785, lng: -122.4095, alt: 105 });
       await updateWaypointParams(items[1].id, newParams);
 
       // 4. Reorder mission items
@@ -614,11 +621,11 @@ describe('Mission Planning Workflow Integration Tests', () => {
   describe('Performance and Optimization', () => {
     test('handles large missions efficiently', async () => {
       // Create a large mission
-      const largeMission = Array.from({ length: 100 }, (_, i) => 
-        createMissionItem('waypoint', { 
-          lat: 37.7749 + (i * 0.001), 
-          lng: -122.4194 + (i * 0.001), 
-          alt: 100 + i 
+      const largeMission = Array.from({ length: 100 }, (_, i) =>
+        createMissionItem('waypoint', {
+          lat: 37.7749 + i * 0.001,
+          lng: -122.4194 + i * 0.001,
+          alt: 100 + i
         })
       );
 
@@ -638,11 +645,11 @@ describe('Mission Planning Workflow Integration Tests', () => {
     });
 
     test('mission validation is performant for large missions', () => {
-      const largeMission = Array.from({ length: 1000 }, (_, i) => 
-        createMissionItem('waypoint', { 
-          lat: 37.7749 + (i * 0.0001), 
-          lng: -122.4194 + (i * 0.0001), 
-          alt: 100 + (i * 0.1) 
+      const largeMission = Array.from({ length: 1000 }, (_, i) =>
+        createMissionItem('waypoint', {
+          lat: 37.7749 + i * 0.0001,
+          lng: -122.4194 + i * 0.0001,
+          alt: 100 + i * 0.1
         })
       );
 

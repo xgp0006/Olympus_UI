@@ -215,14 +215,24 @@ describe('Responsive Utilities', () => {
     it('should add event listeners correctly', () => {
       const cleanup = addTouchClick(mockElement, mockCallback);
 
-      expect(mockElement.addEventListener).toHaveBeenCalledWith('touchstart', expect.any(Function), { passive: true });
+      expect(mockElement.addEventListener).toHaveBeenCalledWith(
+        'touchstart',
+        expect.any(Function),
+        { passive: true }
+      );
       expect(mockElement.addEventListener).toHaveBeenCalledWith('touchend', expect.any(Function));
       expect(mockElement.addEventListener).toHaveBeenCalledWith('click', expect.any(Function));
 
       cleanup();
 
-      expect(mockElement.removeEventListener).toHaveBeenCalledWith('touchstart', expect.any(Function));
-      expect(mockElement.removeEventListener).toHaveBeenCalledWith('touchend', expect.any(Function));
+      expect(mockElement.removeEventListener).toHaveBeenCalledWith(
+        'touchstart',
+        expect.any(Function)
+      );
+      expect(mockElement.removeEventListener).toHaveBeenCalledWith(
+        'touchend',
+        expect.any(Function)
+      );
       expect(mockElement.removeEventListener).toHaveBeenCalledWith('click', expect.any(Function));
     });
   });
@@ -230,7 +240,7 @@ describe('Responsive Utilities', () => {
   describe('generateResponsiveCSS', () => {
     it('should generate responsive CSS correctly', () => {
       const css = generateResponsiveCSS(16, { sm: 1.2, lg: 1.5 });
-      
+
       expect(css).toContain('--responsive-value: 12px;');
       expect(css).toContain('@media (min-width: 640px)');
       expect(css).toContain('--responsive-value: 19.2px;');
@@ -242,7 +252,7 @@ describe('Responsive Utilities', () => {
   describe('createResponsiveSpacing', () => {
     it('should create responsive spacing values', () => {
       const spacing = createResponsiveSpacing(8);
-      
+
       expect(spacing).toEqual({
         'spacing-xs': '4px',
         'spacing-sm': '6px',
@@ -257,7 +267,7 @@ describe('Responsive Utilities', () => {
   describe('createResponsiveFontSizes', () => {
     it('should create responsive font sizes', () => {
       const fontSizes = createResponsiveFontSizes(14);
-      
+
       expect(fontSizes).toEqual({
         'font-xs': '10.5px',
         'font-sm': '12.25px',

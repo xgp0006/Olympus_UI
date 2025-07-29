@@ -82,7 +82,9 @@ describe('PluginDashboard Component', () => {
 
     expect(getByTestId('plugin-dashboard')).toBeInTheDocument();
     expect(screen.getByText('Plugin Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Manage and access your aerospace command & control plugins')).toBeInTheDocument();
+    expect(
+      screen.getByText('Manage and access your aerospace command & control plugins')
+    ).toBeInTheDocument();
   });
 
   test('displays correct plugin statistics', () => {
@@ -237,7 +239,9 @@ describe('PluginDashboard Component', () => {
     render(PluginDashboard);
 
     // Find and click a plugin card
-    const missionPlannerCard = screen.getByText('Mission Planner').closest('[data-testid="plugin-card"]');
+    const missionPlannerCard = screen
+      .getByText('Mission Planner')
+      .closest('[data-testid="plugin-card"]');
     expect(missionPlannerCard).toBeInTheDocument();
 
     await fireEvent.click(missionPlannerCard!);
@@ -417,7 +421,9 @@ describe('PluginDashboard Component', () => {
 
     expect(getByTestId('empty-state')).toBeInTheDocument();
     expect(screen.getByText('No Matching Plugins')).toBeInTheDocument();
-    expect(screen.getByText('Try adjusting your search criteria or filters to find plugins.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Try adjusting your search criteria or filters to find plugins.')
+    ).toBeInTheDocument();
   });
 
   test('shows empty state when no plugins available', () => {
@@ -430,7 +436,11 @@ describe('PluginDashboard Component', () => {
 
     expect(getByTestId('empty-state')).toBeInTheDocument();
     expect(screen.getByText('No Plugins Available')).toBeInTheDocument();
-    expect(screen.getByText('No plugins are currently available. Check your plugin directory or refresh the list.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'No plugins are currently available. Check your plugin directory or refresh the list.'
+      )
+    ).toBeInTheDocument();
   });
 
   test('handles keyboard shortcuts', async () => {

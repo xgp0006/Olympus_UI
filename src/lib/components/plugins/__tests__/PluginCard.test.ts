@@ -206,9 +206,21 @@ describe('PluginCard Component', () => {
 
   test('displays correct icon based on plugin category', () => {
     const categories = [
-      { category: 'mission', expectedPath: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' },
-      { category: 'communication', expectedPath: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z' },
-      { category: 'navigation', expectedPath: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z' }
+      {
+        category: 'mission',
+        expectedPath:
+          'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'
+      },
+      {
+        category: 'communication',
+        expectedPath:
+          'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'
+      },
+      {
+        category: 'navigation',
+        expectedPath:
+          'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'
+      }
     ];
 
     categories.forEach(({ category, expectedPath }) => {
@@ -225,7 +237,10 @@ describe('PluginCard Component', () => {
     render(PluginCard, { props: { plugin: testPlugin } });
 
     const iconPath = document.querySelector('.plugin-icon svg path');
-    expect(iconPath).toHaveAttribute('d', 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z');
+    expect(iconPath).toHaveAttribute(
+      'd',
+      'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'
+    );
   });
 
   test('formats category name correctly', () => {
@@ -313,7 +328,8 @@ describe('PluginCard Component', () => {
   test('truncates long descriptions properly', () => {
     const longDescriptionPlugin = {
       ...mockPlugin,
-      description: 'This is a very long description that should be truncated when it exceeds the maximum number of lines allowed in the plugin card description area. It should use CSS line-clamp to handle this gracefully.'
+      description:
+        'This is a very long description that should be truncated when it exceeds the maximum number of lines allowed in the plugin card description area. It should use CSS line-clamp to handle this gracefully.'
     };
 
     render(PluginCard, { props: { plugin: longDescriptionPlugin } });
@@ -330,8 +346,16 @@ describe('PluginCard Component', () => {
 
   test('handles plugin ID-based icon selection', () => {
     const pluginIds = [
-      { id: 'mission-planner', expectedPath: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' },
-      { id: 'sdr-suite', expectedPath: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z' }
+      {
+        id: 'mission-planner',
+        expectedPath:
+          'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'
+      },
+      {
+        id: 'sdr-suite',
+        expectedPath:
+          'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'
+      }
     ];
 
     pluginIds.forEach(({ id, expectedPath }) => {

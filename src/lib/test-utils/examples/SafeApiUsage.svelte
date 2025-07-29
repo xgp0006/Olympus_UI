@@ -33,12 +33,12 @@
       error = null;
 
       const result = await safeTauriInvoke(command, args);
-      
+
       if (result !== null) {
         data = result;
         dispatch('loaded', { data: result });
         dispatch('success', { result });
-        
+
         showNotification({
           type: 'success',
           message: `Command ${command} executed successfully`
@@ -50,7 +50,7 @@
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       error = errorMessage;
       dispatch('error', { error: errorMessage });
-      
+
       showNotification({
         type: 'error',
         message: `Command ${command} failed: ${errorMessage}`
@@ -128,18 +128,18 @@
   </div>
 
   <div class="actions">
-    <button 
-      class="action-button secondary" 
-      on:click={handleClear} 
+    <button
+      class="action-button secondary"
+      on:click={handleClear}
       disabled={loading}
       data-testid="clear-button"
     >
       Clear
     </button>
-    
-    <button 
-      class="action-button primary" 
-      on:click={executeCommand} 
+
+    <button
+      class="action-button primary"
+      on:click={executeCommand}
       disabled={loading || !command}
       data-testid="execute-button-main"
     >
@@ -214,8 +214,12 @@
   }
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 
   .error-state {

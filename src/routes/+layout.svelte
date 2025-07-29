@@ -12,7 +12,10 @@
     name="description"
     content="Modular Command & Control Frontend - Aerospace Operations Interface"
   />
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover"
+  />
 </svelte:head>
 
 <div class="app-layout" data-testid="app-layout">

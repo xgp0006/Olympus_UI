@@ -147,14 +147,14 @@ describe('Touch Gesture Integration - Simplified', () => {
 
       const cleanup = addTouchGestures(mockElement, mockCallbacks);
       expect(cleanup).toBeTypeOf('function');
-      
+
       // Cleanup should not throw
       expect(() => cleanup()).not.toThrow();
     });
 
     it('should enhance button with touch feedback', () => {
       const mockButton = document.createElement('button');
-      
+
       const cleanup = enhanceButtonTouch(mockButton, {
         hapticFeedback: true,
         visualFeedback: true
@@ -191,15 +191,17 @@ describe('Touch Gesture Integration - Simplified', () => {
       });
 
       const mapContainer = container.querySelector('[data-testid="map-container"]') as HTMLElement;
-      
+
       // Create a simple touch event
       const touchEvent = new TouchEvent('touchstart', {
-        touches: [new MockTouch({
-          identifier: 0,
-          target: mapContainer,
-          clientX: 100,
-          clientY: 100
-        })]
+        touches: [
+          new MockTouch({
+            identifier: 0,
+            target: mapContainer,
+            clientX: 100,
+            clientY: 100
+          })
+        ]
       });
 
       // Should not throw when firing touch event
@@ -251,15 +253,19 @@ describe('Touch Gesture Integration - Simplified', () => {
         }
       });
 
-      const coinElement = container.querySelector('[data-testid="minimized-coin-test-waypoint-1"]') as HTMLElement;
-      
+      const coinElement = container.querySelector(
+        '[data-testid="minimized-coin-test-waypoint-1"]'
+      ) as HTMLElement;
+
       const touchEvent = new TouchEvent('touchstart', {
-        touches: [new MockTouch({
-          identifier: 0,
-          target: coinElement,
-          clientX: 100,
-          clientY: 100
-        })]
+        touches: [
+          new MockTouch({
+            identifier: 0,
+            target: coinElement,
+            clientX: 100,
+            clientY: 100
+          })
+        ]
       });
 
       expect(() => fireEvent(coinElement, touchEvent)).not.toThrow();
@@ -300,15 +306,17 @@ describe('Touch Gesture Integration - Simplified', () => {
 
       const itemSelector = container.querySelector('.item-selector');
       expect(itemSelector).toBeInTheDocument();
-      
+
       // Check that the element exists and can receive touch events
       const touchEvent = new TouchEvent('touchstart', {
-        touches: [new MockTouch({
-          identifier: 0,
-          target: itemSelector as EventTarget,
-          clientX: 100,
-          clientY: 100
-        })]
+        touches: [
+          new MockTouch({
+            identifier: 0,
+            target: itemSelector as EventTarget,
+            clientX: 100,
+            clientY: 100
+          })
+        ]
       });
 
       expect(() => fireEvent(itemSelector as Element, touchEvent)).not.toThrow();
@@ -333,8 +341,10 @@ describe('Touch Gesture Integration - Simplified', () => {
         }
       });
 
-      const coinElement = container.querySelector('[data-testid="minimized-coin-test-waypoint"]') as HTMLElement;
-      
+      const coinElement = container.querySelector(
+        '[data-testid="minimized-coin-test-waypoint"]'
+      ) as HTMLElement;
+
       // Should be focusable
       coinElement.focus();
       expect(document.activeElement).toBe(coinElement);
@@ -404,12 +414,14 @@ describe('Touch Gesture Integration - Simplified', () => {
       // Fire multiple touch events rapidly
       for (let i = 0; i < 5; i++) {
         const touchEvent = new TouchEvent('touchstart', {
-          touches: [new MockTouch({
-            identifier: i,
-            target: mapContainer,
-            clientX: 100 + i * 10,
-            clientY: 100 + i * 10
-          })]
+          touches: [
+            new MockTouch({
+              identifier: i,
+              target: mapContainer,
+              clientX: 100 + i * 10,
+              clientY: 100 + i * 10
+            })
+          ]
         });
 
         expect(() => fireEvent(mapContainer, touchEvent)).not.toThrow();
@@ -435,8 +447,10 @@ describe('Touch Gesture Integration - Simplified', () => {
         }
       });
 
-      const coinElement = container.querySelector('[data-testid="minimized-coin-test-waypoint"]') as HTMLElement;
-      
+      const coinElement = container.querySelector(
+        '[data-testid="minimized-coin-test-waypoint"]'
+      ) as HTMLElement;
+
       // Should handle both touch and mouse events
       expect(() => fireEvent.mouseDown(coinElement)).not.toThrow();
       expect(() => fireEvent.click(coinElement)).not.toThrow();
@@ -462,7 +476,9 @@ describe('Touch Gesture Integration - Simplified', () => {
 
       // Should render all expected elements
       expect(container.querySelector('[data-testid="mission-accordion"]')).toBeInTheDocument();
-      expect(container.querySelector('[data-testid="accordion-item-waypoint-1"]')).toBeInTheDocument();
+      expect(
+        container.querySelector('[data-testid="accordion-item-waypoint-1"]')
+      ).toBeInTheDocument();
       expect(container.querySelector('.item-selector')).toBeInTheDocument();
       expect(container.querySelector('.minimize-button')).toBeInTheDocument();
     });
