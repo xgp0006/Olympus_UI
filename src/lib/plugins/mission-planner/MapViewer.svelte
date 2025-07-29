@@ -63,37 +63,66 @@
   // ===== FUNCTIONS =====
 
   /**
+   * Create map style configuration
+   * NASA JPL Rule 4: Function under 60 lines
+   */
+  function createMapStyle() {
+    return {
+      version: 8 as const,
+      sources: {
+        'raster-tiles': {
+          type: 'raster' as const,
+          tiles: [
+            'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
+          ],
+          tileSize: 256,
+          attribution: '© OpenStreetMap contributors',
+          maxzoom: 19
+        }
+      },
+      layers: [
+        {
+          id: 'simple-tiles',
+          type: 'raster' as const,
+          source: 'raster-tiles',
+          minzoom: 0,
+          maxzoom: 19
+        }
+      ],
+      // Use public glyphs server for text rendering
+      glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf'
+    };
+  }
+
+  /**
+   * Configure map controls and event handlers
+   * NASA JPL Rule 4: Function under 60 lines
+   */
+  function configureMapControls(mapInstance: Map): void {
+    // Add navigation controls (hide on mobile to save space)
+    if (!$isMobile) {
+      mapInstance.addControl(new NavigationControl(), 'top-right');
+    }
+    mapInstance.addControl(new ScaleControl(), 'bottom-left');
+
+    // Set up event listeners
+    mapInstance.on('load', handleMapLoad);
+    mapInstance.on('click', handleMapClick);
+    mapInstance.on('touchstart', handleMapTouchStart);
+    mapInstance.on('error', handleMapError);
+  }
+
+  /**
    * Initialize the MapLibre GL JS map
+   * NASA JPL Rule 4: Function under 60 lines (now 35 lines)
    */
   function initializeMap(): void {
     try {
       map = new Map({
         container: mapContainer,
-        style: {
-          version: 8,
-          sources: {
-            'raster-tiles': {
-              type: 'raster',
-              tiles: [
-                'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
-              ],
-              tileSize: 256,
-              attribution: '© OpenStreetMap contributors',
-              maxzoom: 19
-            }
-          },
-          layers: [
-            {
-              id: 'simple-tiles',
-              type: 'raster',
-              source: 'raster-tiles',
-              minzoom: 0,
-              maxzoom: 19
-            }
-          ]
-        },
+        style: createMapStyle(),
         center: center as LngLatLike,
         zoom: zoom,
         attributionControl: false,
@@ -106,18 +135,7 @@
         keyboard: !$isMobile
       });
 
-      // Add navigation controls (hide on mobile to save space)
-      if (!$isMobile) {
-        map.addControl(new NavigationControl(), 'top-right');
-      }
-      map.addControl(new ScaleControl(), 'bottom-left');
-
-      // Set up event listeners
-      map.on('load', handleMapLoad);
-      map.on('click', handleMapClick);
-      map.on('touchstart', handleMapTouchStart);
-      map.on('error', handleMapError);
-
+      configureMapControls(map);
       console.log('MapLibre GL JS map initialized');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to initialize map';
@@ -174,6 +192,48 @@
   }
 
   /**
+   * Categorize error type for appropriate handling
+   */
+  function categorizeError(
+    errorUrl: string,
+    errorMessage: string
+  ): 'resource' | 'critical' | 'warning' {
+    if (
+      errorUrl.includes('tile.openstreetmap.org') ||
+      errorUrl.includes('fonts.openmaptiles.org')
+    ) {
+      return 'resource';
+    }
+    if (
+      errorMessage.includes('WebGL') ||
+      errorMessage.includes('initialize') ||
+      errorMessage.includes('container')
+    ) {
+      return 'critical';
+    }
+    return 'warning';
+  }
+
+  /**
+   * Handle resource loading errors gracefully
+   */
+  function handleResourceError(
+    errorUrl: string,
+    errorStatus?: number,
+    tileCoord?: { z: number; x: number; y: number }
+  ): void {
+    console.warn(`Resource loading failed (${errorStatus}): ${errorUrl}`);
+
+    if (errorUrl.includes('fonts.openmaptiles.org')) {
+      console.warn('Font loading failed, using system fallbacks');
+    }
+
+    if (errorUrl.includes('tile.openstreetmap.org') && tileCoord) {
+      console.warn(`Tile loading failed for z${tileCoord.z}/${tileCoord.x}/${tileCoord.y}`);
+    }
+  }
+
+  /**
    * Handle map errors with categorization and recovery strategies
    */
   function handleMapError(e: {
@@ -186,41 +246,123 @@
     const errorUrl = error_obj?.url || 'unknown';
     const errorStatus = error_obj?.status;
 
-    // Categorize error types for appropriate handling
-    if (
-      errorUrl.includes('tile.openstreetmap.org') ||
-      errorUrl.includes('fonts.openmaptiles.org')
-    ) {
-      // Tile or font loading errors - these are expected and handled gracefully
-      console.warn(`Resource loading failed (${errorStatus}): ${errorUrl}`);
+    const errorType = categorizeError(errorUrl, errorMessage);
 
-      // Don't set error state for tile loading failures - map should continue working
-      if (errorUrl.includes('fonts.openmaptiles.org')) {
-        console.warn('Font loading failed, using system fallbacks');
-      }
+    switch (errorType) {
+      case 'resource':
+        handleResourceError(errorUrl, errorStatus, e.tile?.coord);
+        return; // Don't propagate resource errors to UI
 
-      if (errorUrl.includes('tile.openstreetmap.org') && e.tile) {
-        const coord = e.tile.coord;
-        console.warn(`Tile loading failed for z${coord?.z}/${coord?.x}/${coord?.y}`);
-      }
+      case 'critical':
+        error = `Critical map error: ${errorMessage}`;
+        dispatch('error', errorMessage);
+        console.error('Critical map error:', e);
+        break;
 
-      return; // Don't propagate tile/font errors to UI
+      case 'warning':
+        console.warn('Non-critical map warning:', errorMessage, e);
+        break;
+    }
+  }
+
+  /**
+   * Handle tap gesture on map
+   */
+  function handleTapGesture(gesture: TapGesture): void {
+    if (!map) return;
+
+    const lngLat = map.unproject([gesture.point.x, gesture.point.y]);
+    dispatch('tap', gesture);
+    dispatch('mapclick', {
+      lngLat: [lngLat.lng, lngLat.lat],
+      point: [gesture.point.x, gesture.point.y]
+    });
+  }
+
+  /**
+   * Handle double tap gesture for zoom
+   */
+  function handleDoubleTapGesture(gesture: TapGesture): void {
+    if (!map) return;
+
+    const lngLat = map.unproject([gesture.point.x, gesture.point.y]);
+    map.flyTo({
+      center: [lngLat.lng, lngLat.lat],
+      zoom: map.getZoom() + 1,
+      duration: 300
+    });
+  }
+
+  /**
+   * Handle swipe gesture for panning
+   */
+  function handleSwipeGesture(gesture: SwipeGesture): void {
+    dispatch('swipe', gesture);
+    if (!map) return;
+
+    const currentCenter = map.getCenter();
+    const panDistance = Math.min(gesture.velocity * 100, 0.01); // Limit max pan
+    let newCenter: [number, number] = [currentCenter.lng, currentCenter.lat];
+
+    switch (gesture.direction) {
+      case 'up':
+        newCenter[1] += panDistance;
+        break;
+      case 'down':
+        newCenter[1] -= panDistance;
+        break;
+      case 'left':
+        newCenter[0] += panDistance;
+        break;
+      case 'right':
+        newCenter[0] -= panDistance;
+        break;
     }
 
-    // Only set error state for critical map initialization failures
-    if (
-      errorMessage.includes('WebGL') ||
-      errorMessage.includes('initialize') ||
-      errorMessage.includes('container') ||
-      errorMessage.includes('style')
-    ) {
-      error = `Critical map error: ${errorMessage}`;
-      dispatch('error', errorMessage);
-      console.error('Critical map error:', e);
-    } else {
-      // Log other errors but don't break the map
-      console.warn('Non-critical map warning:', errorMessage, e);
+    map.flyTo({
+      center: newCenter,
+      zoom: map.getZoom(),
+      duration: 300
+    });
+  }
+
+  /**
+   * Handle pinch gesture for zoom
+   */
+  function handlePinchGesture(gesture: PinchGesture): void {
+    dispatch('pinch', gesture);
+    if (!map) return;
+
+    const currentZoom = map.getZoom();
+    const zoomDelta = Math.log2(gesture.scale);
+    const newZoom = Math.max(0, Math.min(22, currentZoom + zoomDelta));
+    const lngLat = map.unproject([gesture.center.x, gesture.center.y]);
+
+    map.flyTo({
+      center: [lngLat.lng, lngLat.lat],
+      zoom: newZoom,
+      duration: 100
+    });
+  }
+
+  /**
+   * Handle long press for waypoint creation
+   */
+  function handleLongPressGesture(gesture: any): void {
+    if (!map) return;
+
+    const lngLat = map.unproject([gesture.point.x, gesture.point.y]);
+
+    // Haptic feedback if supported
+    if ('vibrate' in navigator) {
+      navigator.vibrate(50);
     }
+
+    dispatch('mapclick', {
+      lngLat: [lngLat.lng, lngLat.lat],
+      point: [gesture.point.x, gesture.point.y],
+      isLongPress: true
+    } as MapClickEvent & { isLongPress: boolean });
   }
 
   /**
@@ -233,111 +375,137 @@
       onGestureStart: () => {
         isGestureActive = true;
       },
-
       onGestureEnd: () => {
         isGestureActive = false;
       },
-
-      onTap: (gesture) => {
-        // Convert screen coordinates to map coordinates
-        if (map) {
-          const lngLat = map.unproject([gesture.point.x, gesture.point.y]);
-          dispatch('tap', gesture);
-          dispatch('mapclick', {
-            lngLat: [lngLat.lng, lngLat.lat],
-            point: [gesture.point.x, gesture.point.y]
-          });
-        }
-      },
-
-      onDoubleTap: (gesture) => {
-        // Zoom in on double tap
-        if (map) {
-          const lngLat = map.unproject([gesture.point.x, gesture.point.y]);
-          map.flyTo({
-            center: [lngLat.lng, lngLat.lat],
-            zoom: map.getZoom() + 1,
-            duration: 300
-          });
-        }
-      },
-
-      onSwipe: (gesture) => {
-        dispatch('swipe', gesture);
-
-        // Handle swipe gestures for map navigation
-        if (map) {
-          const currentCenter = map.getCenter();
-          const currentZoom = map.getZoom();
-
-          // Calculate pan distance based on swipe velocity and direction
-          const panDistance = Math.min(gesture.velocity * 100, 0.01); // Limit max pan
-
-          let newCenter: [number, number] = [currentCenter.lng, currentCenter.lat];
-          switch (gesture.direction) {
-            case 'up':
-              newCenter = [currentCenter.lng, currentCenter.lat + panDistance];
-              break;
-            case 'down':
-              newCenter = [currentCenter.lng, currentCenter.lat - panDistance];
-              break;
-            case 'left':
-              newCenter = [currentCenter.lng + panDistance, currentCenter.lat];
-              break;
-            case 'right':
-              newCenter = [currentCenter.lng - panDistance, currentCenter.lat];
-              break;
-          }
-
-          map.flyTo({
-            center: newCenter,
-            zoom: currentZoom,
-            duration: 300
-          });
-        }
-      },
-
-      onPinch: (gesture) => {
-        dispatch('pinch', gesture);
-
-        // Handle pinch-to-zoom
-        if (map) {
-          const currentZoom = map.getZoom();
-          const zoomDelta = Math.log2(gesture.scale);
-          const newZoom = Math.max(0, Math.min(22, currentZoom + zoomDelta));
-
-          // Convert screen center to map coordinates
-          const lngLat = map.unproject([gesture.center.x, gesture.center.y]);
-
-          map.flyTo({
-            center: [lngLat.lng, lngLat.lat],
-            zoom: newZoom,
-            duration: 100
-          });
-        }
-      },
-
-      onLongPress: (gesture) => {
-        // Show context menu or waypoint creation on long press
-        if (map) {
-          const lngLat = map.unproject([gesture.point.x, gesture.point.y]);
-
-          // Haptic feedback if supported
-          if ('vibrate' in navigator) {
-            navigator.vibrate(50);
-          }
-
-          // Dispatch as a special map click for waypoint creation
-          dispatch('mapclick', {
-            lngLat: [lngLat.lng, lngLat.lat],
-            point: [gesture.point.x, gesture.point.y],
-            isLongPress: true
-          } as MapClickEvent & { isLongPress: boolean });
-        }
-      }
+      onTap: handleTapGesture,
+      onDoubleTap: handleDoubleTapGesture,
+      onSwipe: handleSwipeGesture,
+      onPinch: handlePinchGesture,
+      onLongPress: handleLongPressGesture
     });
 
     console.log('Touch gestures set up for map');
+  }
+
+  /**
+   * Add a GeoJSON source safely
+   */
+  function addGeoJsonSource(id: string): boolean {
+    if (!map || map.getSource(id)) return true;
+
+    try {
+      map.addSource(id, {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: []
+        }
+      });
+      return true;
+    } catch (error) {
+      console.error(`Failed to add ${id} source:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Add waypoint layers with styling
+   */
+  function addWaypointLayers(): void {
+    if (!map) return;
+
+    // Add waypoint circles
+    if (!map.getLayer('waypoints')) {
+      try {
+        map.addLayer({
+          id: 'waypoints',
+          type: 'circle',
+          source: 'mission-items',
+          paint: {
+            'circle-radius': 8,
+            'circle-color': $theme?.components.map.waypoint_color_default || '#00bfff',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff'
+          }
+        });
+      } catch (error) {
+        console.error('Failed to add waypoints layer:', error);
+      }
+    }
+
+    // Add selected waypoint layer
+    if (!map.getLayer('waypoints-selected')) {
+      try {
+        map.addLayer({
+          id: 'waypoints-selected',
+          type: 'circle',
+          source: 'mission-items',
+          filter: ['==', ['get', 'selected'], true],
+          paint: {
+            'circle-radius': 12,
+            'circle-color': $theme?.components.map.waypoint_color_selected || '#ffd700',
+            'circle-stroke-width': 3,
+            'circle-stroke-color': '#ffffff'
+          }
+        });
+      } catch (error) {
+        console.error('Failed to add waypoints-selected layer:', error);
+      }
+    }
+  }
+
+  /**
+   * Add path and label layers
+   */
+  function addPathAndLabelLayers(): void {
+    if (!map) return;
+
+    // Add mission path layer
+    if (!map.getLayer('mission-path')) {
+      try {
+        map.addLayer({
+          id: 'mission-path',
+          type: 'line',
+          source: 'mission-path',
+          paint: {
+            'line-color': $theme?.components.map.path_color || '#00ff88',
+            'line-width': 3,
+            'line-opacity': 0.8
+          }
+        });
+      } catch (error) {
+        console.error('Failed to add mission-path layer:', error);
+      }
+    }
+
+    // Add waypoint labels
+    if (!map.getLayer('waypoint-labels')) {
+      try {
+        map.addLayer({
+          id: 'waypoint-labels',
+          type: 'symbol',
+          source: 'mission-items',
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
+            'text-offset': [0, 1.5],
+            'text-anchor': 'top',
+            'text-size': 12,
+            'text-allow-overlap': false,
+            'text-ignore-placement': false
+          },
+          paint: {
+            'text-color': $theme?.colors.text_primary || '#ffffff',
+            'text-halo-color': $theme?.colors.background_primary || '#000000',
+            'text-halo-width': 2,
+            'text-halo-blur': 1
+          }
+        });
+      } catch (error) {
+        console.warn('Failed to add waypoint-labels layer:', error);
+      }
+    }
   }
 
   /**
@@ -346,201 +514,182 @@
   function addMissionLayers(): void {
     if (!map || !mapLoaded) return;
 
-    try {
-      // Add mission items source with error boundary
-      if (!map.getSource('mission-items')) {
-        try {
-          map.addSource('mission-items', {
-            type: 'geojson',
-            data: {
-              type: 'FeatureCollection',
-              features: []
-            }
-          });
-        } catch (sourceError) {
-          console.error('Failed to add mission-items source:', sourceError);
-          return; // Exit early if source creation fails
-        }
-      }
+    // Add sources first
+    const itemsSourceAdded = addGeoJsonSource('mission-items');
+    const pathSourceAdded = addGeoJsonSource('mission-path');
 
-      // Add mission path source with error boundary
-      if (!map.getSource('mission-path')) {
-        try {
-          map.addSource('mission-path', {
-            type: 'geojson',
-            data: {
-              type: 'FeatureCollection',
-              features: []
-            }
-          });
-        } catch (sourceError) {
-          console.error('Failed to add mission-path source:', sourceError);
-          return; // Exit early if source creation fails
-        }
-      }
+    if (!itemsSourceAdded || !pathSourceAdded) {
+      console.error('Failed to add required sources, aborting layer creation');
+      return;
+    }
 
-      // Add waypoint circles layer with error handling
-      if (!map.getLayer('waypoints')) {
-        try {
-          map.addLayer({
-            id: 'waypoints',
-            type: 'circle',
-            source: 'mission-items',
-            paint: {
-              'circle-radius': 8,
-              'circle-color': $theme?.components.map.waypoint_color_default || '#00bfff',
-              'circle-stroke-width': 2,
-              'circle-stroke-color': '#ffffff'
-            }
-          });
-        } catch (layerError) {
-          console.error('Failed to add waypoints layer:', layerError);
-        }
-      }
+    // Add layers
+    addWaypointLayers();
+    addPathAndLabelLayers();
 
-      // Add selected waypoint layer with error handling
-      if (!map.getLayer('waypoints-selected')) {
-        try {
-          map.addLayer({
-            id: 'waypoints-selected',
-            type: 'circle',
-            source: 'mission-items',
-            filter: ['==', ['get', 'selected'], true],
-            paint: {
-              'circle-radius': 12,
-              'circle-color': $theme?.components.map.waypoint_color_selected || '#ffd700',
-              'circle-stroke-width': 3,
-              'circle-stroke-color': '#ffffff'
-            }
-          });
-        } catch (layerError) {
-          console.error('Failed to add waypoints-selected layer:', layerError);
-        }
-      }
+    console.log('Mission layers added to map');
+  }
 
-      // Add mission path layer with error handling
-      if (!map.getLayer('mission-path')) {
-        try {
-          map.addLayer({
-            id: 'mission-path',
-            type: 'line',
-            source: 'mission-path',
-            paint: {
-              'line-color': $theme?.components.map.path_color || '#00ff88',
-              'line-width': 3,
-              'line-opacity': 0.8
-            }
-          });
-        } catch (layerError) {
-          console.error('Failed to add mission-path layer:', layerError);
-        }
-      }
+  /**
+   * Update waypoint layer colors
+   * NASA JPL Rule 4: Function under 60 lines
+   */
+  function updateWaypointColors(): void {
+    if (!map || !$theme) return;
 
-      // Add waypoint labels layer with system font fallbacks and error handling
-      if (!map.getLayer('waypoint-labels')) {
-        try {
-          map.addLayer({
-            id: 'waypoint-labels',
-            type: 'symbol',
-            source: 'mission-items',
-            layout: {
-              'text-field': ['get', 'name'],
-              'text-font': ['Open Sans Regular', 'Arial Regular', 'sans-serif'],
-              'text-offset': [0, 1.5],
-              'text-anchor': 'top',
-              'text-size': 12,
-              'text-allow-overlap': false,
-              'text-ignore-placement': false
-            },
-            paint: {
-              'text-color': $theme?.colors.text_primary || '#ffffff',
-              'text-halo-color': $theme?.colors.background_primary || '#000000',
-              'text-halo-width': 2,
-              'text-halo-blur': 1
-            }
-          });
-        } catch (layerError) {
-          console.warn(
-            'Failed to add waypoint-labels layer (continuing without labels):',
-            layerError
-          );
-          // Labels are non-critical, continue without them
-        }
+    // Update default waypoint color
+    if (map.getLayer('waypoints')) {
+      try {
+        map.setPaintProperty(
+          'waypoints',
+          'circle-color',
+          $theme.components?.map?.waypoint_color_default || '#00bfff'
+        );
+      } catch (paintError) {
+        console.warn('Failed to update waypoints color:', paintError);
       }
+    }
 
-      console.log('Mission layers added to map');
-    } catch (err) {
-      console.error('Failed to add mission layers:', err);
+    // Update selected waypoint color
+    if (map.getLayer('waypoints-selected')) {
+      try {
+        map.setPaintProperty(
+          'waypoints-selected',
+          'circle-color',
+          $theme.components?.map?.waypoint_color_selected || '#ffd700'
+        );
+      } catch (paintError) {
+        console.warn('Failed to update waypoints-selected color:', paintError);
+      }
     }
   }
 
   /**
-   * Update map styling based on current theme with robust error handling
+   * Update path and label colors
+   * NASA JPL Rule 4: Function under 60 lines
+   */
+  function updatePathAndLabelColors(): void {
+    if (!map || !$theme) return;
+
+    // Update path color
+    if (map.getLayer('mission-path')) {
+      try {
+        map.setPaintProperty(
+          'mission-path',
+          'line-color',
+          $theme.components?.map?.path_color || '#00ff88'
+        );
+      } catch (paintError) {
+        console.warn('Failed to update mission-path color:', paintError);
+      }
+    }
+
+    // Update label colors
+    if (map.getLayer('waypoint-labels')) {
+      try {
+        map.setPaintProperty(
+          'waypoint-labels',
+          'text-color',
+          $theme.colors?.text_primary || '#ffffff'
+        );
+        map.setPaintProperty(
+          'waypoint-labels',
+          'text-halo-color',
+          $theme.colors?.background_primary || '#000000'
+        );
+      } catch (paintError) {
+        console.warn('Failed to update waypoint-labels colors:', paintError);
+      }
+    }
+  }
+
+  /**
+   * Update map styling based on current theme
+   * NASA JPL Rule 4: Function under 60 lines (now 15 lines)
    */
   function updateMapTheme(): void {
     if (!map || !mapLoaded || !$theme) return;
 
     try {
-      // Update waypoint colors with individual error handling
-      if (map.getLayer('waypoints')) {
-        try {
-          map.setPaintProperty(
-            'waypoints',
-            'circle-color',
-            $theme.components?.map?.waypoint_color_default || '#00bfff'
-          );
-        } catch (paintError) {
-          console.warn('Failed to update waypoints color:', paintError);
-        }
-      }
-
-      if (map.getLayer('waypoints-selected')) {
-        try {
-          map.setPaintProperty(
-            'waypoints-selected',
-            'circle-color',
-            $theme.components?.map?.waypoint_color_selected || '#ffd700'
-          );
-        } catch (paintError) {
-          console.warn('Failed to update waypoints-selected color:', paintError);
-        }
-      }
-
-      // Update path color with error handling
-      if (map.getLayer('mission-path')) {
-        try {
-          map.setPaintProperty(
-            'mission-path',
-            'line-color',
-            $theme.components?.map?.path_color || '#00ff88'
-          );
-        } catch (paintError) {
-          console.warn('Failed to update mission-path color:', paintError);
-        }
-      }
-
-      // Update label colors with error handling
-      if (map.getLayer('waypoint-labels')) {
-        try {
-          map.setPaintProperty(
-            'waypoint-labels',
-            'text-color',
-            $theme.colors?.text_primary || '#ffffff'
-          );
-          map.setPaintProperty(
-            'waypoint-labels',
-            'text-halo-color',
-            $theme.colors?.background_primary || '#000000'
-          );
-        } catch (paintError) {
-          console.warn('Failed to update waypoint-labels colors:', paintError);
-        }
-      }
-
+      updateWaypointColors();
+      updatePathAndLabelColors();
       console.log('Map theme updated successfully');
     } catch (err) {
       console.error('Failed to update map theme:', err);
     }
+  }
+
+  /**
+   * Validate mission item position
+   */
+  function isValidPosition(position: any): position is { lng: number; lat: number } {
+    return (
+      position &&
+      typeof position.lng === 'number' &&
+      typeof position.lat === 'number' &&
+      !isNaN(position.lng) &&
+      !isNaN(position.lat) &&
+      position.lng >= -180 &&
+      position.lng <= 180 &&
+      position.lat >= -90 &&
+      position.lat <= 90
+    );
+  }
+
+  /**
+   * Convert mission items to GeoJSON features
+   */
+  function missionItemsToFeatures() {
+    return missionItems
+      .filter((item) => isValidPosition(item.position))
+      .map((item) => ({
+        type: 'Feature' as const,
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [item.position!.lng, item.position!.lat]
+        },
+        properties: {
+          id: item.id || 'unknown',
+          name: item.name || 'Unnamed',
+          type: item.type || 'waypoint',
+          selected: item.id === selectedItemId
+        }
+      }));
+  }
+
+  /**
+   * Update GeoJSON source data
+   */
+  function updateGeoJsonSource(sourceId: string, data: any): boolean {
+    if (!map) return false;
+
+    try {
+      const source = map.getSource(sourceId);
+      if (source && source.type === 'geojson') {
+        (source as any).setData(data);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error(`Failed to update ${sourceId} source:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Create mission path from features
+   */
+  function createMissionPath(features: any[]) {
+    if (features.length < 2) return null;
+
+    return {
+      type: 'Feature' as const,
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: features.map((f) => f.geometry.coordinates)
+      },
+      properties: {}
+    };
   }
 
   /**
@@ -550,90 +699,28 @@
     if (!map || !mapLoaded) return;
 
     try {
-      // Convert mission items to GeoJSON features with validation
-      const features = missionItems
-        .filter((item) => {
-          // Validate item has position and coordinates are valid numbers
-          return (
-            item.position &&
-            typeof item.position.lng === 'number' &&
-            typeof item.position.lat === 'number' &&
-            !isNaN(item.position.lng) &&
-            !isNaN(item.position.lat) &&
-            item.position.lng >= -180 &&
-            item.position.lng <= 180 &&
-            item.position.lat >= -90 &&
-            item.position.lat <= 90
-          );
-        })
-        .map((item) => ({
-          type: 'Feature' as const,
-          geometry: {
-            type: 'Point' as const,
-            coordinates: [item.position!.lng, item.position!.lat]
-          },
-          properties: {
-            id: item.id || 'unknown',
-            name: item.name || 'Unnamed',
-            type: item.type || 'waypoint',
-            selected: item.id === selectedItemId
-          }
-        }));
+      // Convert and validate features
+      const features = missionItemsToFeatures();
 
-      // Update mission items source with error handling
-      try {
-        const source = map.getSource('mission-items');
-        if (source && source.type === 'geojson') {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (source as any).setData({
-            type: 'FeatureCollection',
-            features
-          });
-        }
-      } catch (sourceError) {
-        console.error('Failed to update mission-items source:', sourceError);
-        return; // Don't continue if source update fails
+      // Update mission items source
+      const itemsUpdated = updateGeoJsonSource('mission-items', {
+        type: 'FeatureCollection',
+        features
+      });
+
+      if (!itemsUpdated) {
+        console.error('Failed to update mission items, aborting');
+        return;
       }
 
-      // Create path line if we have multiple valid waypoints
-      if (features.length > 1) {
-        try {
-          const pathFeature = {
-            type: 'Feature' as const,
-            geometry: {
-              type: 'LineString' as const,
-              coordinates: features.map((f) => f.geometry.coordinates)
-            },
-            properties: {}
-          };
+      // Update mission path
+      const pathFeature = createMissionPath(features);
+      const pathData = {
+        type: 'FeatureCollection',
+        features: pathFeature ? [pathFeature] : []
+      };
 
-          const pathSource = map.getSource('mission-path');
-          if (pathSource && pathSource.type === 'geojson') {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (pathSource as any).setData({
-              type: 'FeatureCollection',
-              features: [pathFeature]
-            });
-          }
-        } catch (pathError) {
-          console.warn('Failed to update mission path (continuing without path):', pathError);
-          // Path is non-critical, continue without it
-        }
-      } else {
-        // Clear path if we have fewer than 2 waypoints
-        try {
-          const pathSource = map.getSource('mission-path');
-          if (pathSource && pathSource.type === 'geojson') {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (pathSource as any).setData({
-              type: 'FeatureCollection',
-              features: []
-            });
-          }
-        } catch (clearError) {
-          console.warn('Failed to clear mission path:', clearError);
-        }
-      }
+      updateGeoJsonSource('mission-path', pathData);
 
       console.log(`Successfully updated ${features.length} mission items on map`);
     } catch (err) {
@@ -669,18 +756,39 @@
   }
 
   /**
-   * Cleanup map resources
+   * Cleanup map resources - NASA JPL Rule 2: Bounded memory
    */
   function cleanup(): void {
+    // Remove all event listeners first
+    if (map) {
+      map.off('load', handleMapLoad);
+      map.off('click', handleMapClick);
+      map.off('touchstart', handleMapTouchStart);
+      map.off('error', handleMapError);
+    }
+
+    // Cleanup touch gestures
     if (touchGestureCleanup) {
       touchGestureCleanup();
       touchGestureCleanup = null;
     }
 
+    // Clear mission data to free memory
+    missionItems.length = 0;
+
+    // Remove map instance
     if (map) {
       map.remove();
       map = null;
       mapLoaded = false;
+    }
+
+    // Clear any error state
+    error = null;
+    
+    // Force garbage collection hint
+    if (typeof window !== 'undefined' && 'gc' in window) {
+      (window as any).gc();
     }
   }
 

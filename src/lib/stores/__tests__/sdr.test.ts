@@ -40,7 +40,7 @@ describe('SDR Store', () => {
   });
 
   test('initializes with default state', () => {
-    const state = get(sdrStore);
+    const state = get(sdrStore) as any;
 
     expect(state.state.connected).toBe(false);
     expect(state.state.recording).toBe(false);
@@ -167,7 +167,7 @@ describe('SDR Store', () => {
     };
 
     // Simulate adding data to history
-    sdrStore.subscribe((state) => {
+    sdrStore.subscribe((state: any) => {
       if (state.dataHistory.length === 0) {
         // Add mock data
         state.dataHistory.push(mockFFTData);
@@ -176,14 +176,14 @@ describe('SDR Store', () => {
 
     sdrStore.clearHistory();
 
-    const state = get(sdrStore);
+    const state = get(sdrStore) as any;
     expect(state.dataHistory).toEqual([]);
   });
 
   test('clears error', () => {
     sdrStore.clearError();
 
-    const state = get(sdrStore);
+    const state = get(sdrStore) as any;
     expect(state.lastError).toBeNull();
   });
 
@@ -207,7 +207,7 @@ describe('SDR Store', () => {
 
     await sdrStore.start();
 
-    const state = get(sdrStore);
+    const state = get(sdrStore) as any;
     expect(state.lastError).toContain('Start failed');
   });
 

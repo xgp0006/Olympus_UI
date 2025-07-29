@@ -4,41 +4,67 @@
  */
 
 import type { Theme } from '../types/theme';
+import { BoundedArray } from './bounded-array';
 
 /**
- * Generates CSS custom properties string from theme data
- * @param theme - Theme object
- * @returns CSS custom properties string
+ * NASA JPL Rule 4: Functions must be ≤60 lines
+ * Helper to add CSS properties with bounds checking
  */
-export function generateCSSProperties(theme: Theme): string {
-  const properties: string[] = [];
+function addCSSProperty(properties: BoundedArray<string>, property: string): boolean {
+  if (properties.isFull()) {
+    console.warn(`CSS property limit reached. Property not added: ${property}`);
+    return false;
+  }
+  properties.push(property);
+  return true;
+}
 
-  // Add color properties
+/**
+ * NASA JPL Rule 4: Split function - Add color properties
+ */
+function addColorProperties(theme: Theme, properties: BoundedArray<string>): void {
   Object.entries(theme.colors).forEach(([key, value]) => {
-    properties.push(`--color-${key}: ${value};`);
+    addCSSProperty(properties, `--color-${key}: ${value};`);
   });
+}
 
-  // Add typography properties
+/**
+ * NASA JPL Rule 4: Split function - Add typography properties
+ */
+function addTypographyProperties(theme: Theme, properties: BoundedArray<string>): void {
   Object.entries(theme.typography).forEach(([key, value]) => {
-    properties.push(`--typography-${key}: ${value};`);
+    addCSSProperty(properties, `--typography-${key}: ${value};`);
   });
+}
 
-  // Add layout properties
+/**
+ * NASA JPL Rule 4: Split function - Add layout properties
+ */
+function addLayoutProperties(theme: Theme, properties: BoundedArray<string>): void {
   Object.entries(theme.layout).forEach(([key, value]) => {
-    properties.push(`--layout-${key}: ${value};`);
+    addCSSProperty(properties, `--layout-${key}: ${value};`);
   });
+}
 
-  // Add component properties
+/**
+ * NASA JPL Rule 4: Split function - Add component properties
+ */
+function addComponentProperties(theme: Theme, properties: BoundedArray<string>): void {
   Object.entries(theme.components).forEach(([component, componentProps]) => {
     Object.entries(componentProps).forEach(([key, value]) => {
-      properties.push(`--component-${component}-${key}: ${value};`);
+      addCSSProperty(properties, `--component-${component}-${key}: ${value};`);
     });
   });
+}
 
+/**
+ * NASA JPL Rule 4: Split function - Add optional properties
+ */
+function addOptionalProperties(theme: Theme, properties: BoundedArray<string>): void {
   // Add animation properties if present
   if (theme.animations) {
     Object.entries(theme.animations).forEach(([key, value]) => {
-      properties.push(`--animation-${key}: ${value};`);
+      addCSSProperty(properties, `--animation-${key}: ${value};`);
     });
   }
 
@@ -48,7 +74,7 @@ export function generateCSSProperties(theme: Theme): string {
       if (breakpointProps && typeof breakpointProps === 'object') {
         Object.entries(breakpointProps).forEach(([key, value]) => {
           if (typeof value === 'string') {
-            properties.push(`--responsive-${breakpoint}-${key}: ${value};`);
+            addCSSProperty(properties, `--responsive-${breakpoint}-${key}: ${value};`);
           }
         });
       }
@@ -59,12 +85,31 @@ export function generateCSSProperties(theme: Theme): string {
   if (theme.touch) {
     Object.entries(theme.touch).forEach(([key, value]) => {
       if (typeof value === 'string') {
-        properties.push(`--touch-${key}: ${value};`);
+        addCSSProperty(properties, `--touch-${key}: ${value};`);
       }
     });
   }
+}
 
-  return properties.join('\n  ');
+/**
+ * Generates CSS custom properties string from theme data
+ * NASA JPL Rule 2: Bounded memory - uses BoundedArray
+ * NASA JPL Rule 4: Function split to be ≤60 lines
+ * @param theme - Theme object
+ * @returns CSS custom properties string
+ */
+export function generateCSSProperties(theme: Theme): string {
+  const MAX_PROPERTIES = 1000; // Reasonable limit for CSS custom properties
+  const properties = new BoundedArray<string>(MAX_PROPERTIES);
+
+  // Add all property types
+  addColorProperties(theme, properties);
+  addTypographyProperties(theme, properties);
+  addLayoutProperties(theme, properties);
+  addComponentProperties(theme, properties);
+  addOptionalProperties(theme, properties);
+
+  return properties.getAll().join('\n  ');
 }
 
 /**

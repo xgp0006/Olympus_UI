@@ -7,6 +7,7 @@
 import { writable, derived, type Writable } from 'svelte/store';
 import { browser } from '$app/environment';
 import { invokeTauriCommand, safeTauriInvoke } from '../utils/tauri';
+import { BoundedArray } from '../utils/bounded-array';
 import type { MissionItem, WaypointParams } from '../plugins/mission-planner/types';
 
 /**
@@ -121,73 +122,71 @@ const MOCK_MISSION_DATA: MissionItem[] = [
 ];
 
 /**
- * Load mission data from backend
- * @returns Promise resolving to mission items
+ * NASA JPL Rule 4: Split function - Update mission state with data
  */
-export async function loadMissionData(): Promise<MissionItem[]> {
+function updateMissionState(items: MissionItem[], loading: boolean, error: string | null = null): void {
   missionState.update((state) => ({
     ...state,
-    loading: true,
-    error: null
+    items,
+    loading,
+    error,
+    lastUpdated: Date.now()
   }));
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Load mission data from Tauri backend
+ */
+async function loadFromTauriBackend(): Promise<MissionItem[] | null> {
+  if (!browser || !('__TAURI__' in window)) {
+    return null;
+  }
 
   try {
-    // Check if we're in browser context without Tauri
-    if (!browser || !('__TAURI__' in window)) {
-      console.log('Loading mock mission data for browser context');
-
-      missionState.update((state) => ({
-        ...state,
-        items: MOCK_MISSION_DATA,
-        loading: false,
-        lastUpdated: Date.now()
-      }));
-
-      return MOCK_MISSION_DATA;
-    }
-
-    // Try to load from Tauri backend
     const items = await safeTauriInvoke<MissionItem[]>('get_mission_data', undefined, {
       showNotification: false,
       suppressConsoleError: true
     });
 
     if (items && items.length > 0) {
-      missionState.update((state) => ({
-        ...state,
-        items: items,
-        loading: false,
-        lastUpdated: Date.now()
-      }));
-
       console.log(`Loaded ${items.length} mission items from backend`);
       return items;
-    } else {
-      // Fallback to mock data if backend is not available or returns empty
-      console.log('Backend not available or no mission data returned, using mock data');
-
-      missionState.update((state) => ({
-        ...state,
-        items: MOCK_MISSION_DATA,
-        loading: false,
-        lastUpdated: Date.now()
-      }));
-
-      return MOCK_MISSION_DATA;
     }
+  } catch (error) {
+    console.warn('Failed to load from Tauri backend:', error);
+  }
+
+  return null;
+}
+
+/**
+ * Load mission data from backend
+ * NASA JPL Rule 4: Function refactored to be ≤60 lines
+ * @returns Promise resolving to mission items
+ */
+export async function loadMissionData(): Promise<MissionItem[]> {
+  // Set loading state
+  updateMissionState([], true);
+
+  try {
+    // Try to load from Tauri backend
+    const backendItems = await loadFromTauriBackend();
+    
+    if (backendItems) {
+      updateMissionState(backendItems, false);
+      return backendItems;
+    }
+
+    // Fall back to mock data
+    console.log('Using mock mission data');
+    updateMissionState(MOCK_MISSION_DATA, false);
+    return MOCK_MISSION_DATA;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to load mission data';
     console.warn('Mission data loading failed, falling back to mock data:', errorMessage);
 
-    // Fallback to mock data on error
-    missionState.update((state) => ({
-      ...state,
-      items: MOCK_MISSION_DATA,
-      loading: false,
-      error: null, // Don't set error when we have fallback data
-      lastUpdated: Date.now()
-    }));
-
+    // Fallback to mock data on error (don't set error when we have fallback)
+    updateMissionState(MOCK_MISSION_DATA, false, null);
     return MOCK_MISSION_DATA;
   }
 }
@@ -507,20 +506,21 @@ export function createMissionItem(
 
 /**
  * Validate mission sequence for MAVLINK compatibility
+ * NASA JPL Rule 2: Bounded memory - limit validation arrays
  * @param items - Mission items to validate
  * @returns Validation result with errors if any
  */
-export function validateMissionSequence(items: MissionItem[]): {
-  valid: boolean;
-  errors: string[];
-  warnings: string[];
-} {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-
+/**
+ * NASA JPL Rule 4: Split function - Validate mission endpoints
+ */
+function validateMissionEndpoints(
+  items: MissionItem[],
+  errors: BoundedArray<string>,
+  warnings: BoundedArray<string>
+): void {
   if (items.length === 0) {
     warnings.push('Mission is empty');
-    return { valid: true, errors, warnings };
+    return;
   }
 
   // Check for required takeoff at start
@@ -532,29 +532,41 @@ export function validateMissionSequence(items: MissionItem[]): {
   if (items[items.length - 1].type !== 'land') {
     warnings.push('Mission should end with a landing item');
   }
+}
 
-  // Validate coordinates and altitude for all items
-  items.forEach((item, index) => {
-    // Check altitude
-    if (item.params.alt !== undefined && item.params.alt < 0) {
-      errors.push(`Item ${index + 1} (${item.name}) has negative altitude`);
-    }
+/**
+ * NASA JPL Rule 4: Split function - Validate item coordinates
+ */
+function validateItemCoordinates(
+  item: MissionItem,
+  index: number,
+  errors: BoundedArray<string>
+): void {
+  // Check altitude
+  if (item.params.alt !== undefined && item.params.alt < 0) {
+    errors.push(`Item ${index + 1} (${item.name}) has negative altitude`);
+  }
 
-    // Check coordinates
-    if (item.params.lat !== undefined && Math.abs(item.params.lat) > 90) {
-      errors.push(`Item ${index + 1} (${item.name}) has invalid latitude: ${item.params.lat}`);
-    }
-    if (item.params.lng !== undefined && Math.abs(item.params.lng) > 180) {
-      errors.push(`Item ${index + 1} (${item.name}) has invalid longitude: ${item.params.lng}`);
-    }
-  });
+  // Check coordinates
+  if (item.params.lat !== undefined && Math.abs(item.params.lat) > 90) {
+    errors.push(`Item ${index + 1} (${item.name}) has invalid latitude: ${item.params.lat}`);
+  }
+  if (item.params.lng !== undefined && Math.abs(item.params.lng) > 180) {
+    errors.push(`Item ${index + 1} (${item.name}) has invalid longitude: ${item.params.lng}`);
+  }
+}
 
-  // Validate altitude progression between items
+/**
+ * NASA JPL Rule 4: Split function - Validate altitude progression
+ */
+function validateAltitudeProgression(
+  items: MissionItem[],
+  warnings: BoundedArray<string>
+): void {
   for (let i = 1; i < items.length; i++) {
     const current = items[i];
     const previous = items[i - 1];
 
-    // Check for reasonable altitude changes
     if (current.params.alt !== undefined && previous.params.alt !== undefined) {
       const altitudeDiff = Math.abs(current.params.alt - previous.params.alt);
       if (altitudeDiff > 200) {
@@ -562,11 +574,34 @@ export function validateMissionSequence(items: MissionItem[]): {
       }
     }
   }
+}
+
+export function validateMissionSequence(items: MissionItem[]): {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+} {
+  const MAX_ERRORS = 100; // NASA JPL Rule 2: Bounded memory
+  const MAX_WARNINGS = 50; // NASA JPL Rule 2: Bounded memory
+  
+  const errors = new BoundedArray<string>(MAX_ERRORS);
+  const warnings = new BoundedArray<string>(MAX_WARNINGS);
+
+  // Validate mission endpoints
+  validateMissionEndpoints(items, errors, warnings);
+
+  // Validate each item's coordinates
+  items.forEach((item, index) => {
+    validateItemCoordinates(item, index, errors);
+  });
+
+  // Validate altitude progression
+  validateAltitudeProgression(items, warnings);
 
   return {
     valid: errors.length === 0,
-    errors,
-    warnings
+    errors: errors.getAll(),
+    warnings: warnings.getAll()
   };
 }
 

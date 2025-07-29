@@ -4,6 +4,7 @@
  */
 
 import { expect } from 'vitest';
+import { BoundedArray } from '../utils/bounded-array';
 
 interface MatcherResult {
   pass: boolean;
@@ -36,7 +37,8 @@ function toHaveThemeVariable(
  * Check if element is accessible (has proper ARIA attributes)
  */
 function toBeAccessible(received: HTMLElement): MatcherResult {
-  const issues: string[] = [];
+  // NASA JPL Rule 2: Bounded memory for accessibility issues
+  const issues = new BoundedArray<string>(50);
 
   // Check for basic accessibility requirements
   if (
@@ -70,7 +72,7 @@ function toBeAccessible(received: HTMLElement): MatcherResult {
     message: () =>
       pass
         ? 'Expected element not to be accessible'
-        : `Expected element to be accessible, but found issues: ${issues.join(', ')}`
+        : `Expected element to be accessible, but found issues: ${issues.getAll().join(', ')}`
   };
 }
 
@@ -161,7 +163,8 @@ function toHandleErrorState(received: HTMLElement): MatcherResult {
  * Check if element has proper keyboard navigation
  */
 function toSupportKeyboardNavigation(received: HTMLElement): MatcherResult {
-  const issues: string[] = [];
+  // NASA JPL Rule 2: Bounded memory for keyboard navigation issues
+  const issues = new BoundedArray<string>(50);
 
   // Check if interactive elements are focusable
   const interactiveElements = received.querySelectorAll(
@@ -196,7 +199,7 @@ function toSupportKeyboardNavigation(received: HTMLElement): MatcherResult {
     message: () =>
       pass
         ? 'Expected element not to support keyboard navigation'
-        : `Expected element to support keyboard navigation, but found issues: ${issues.join(', ')}`
+        : `Expected element to support keyboard navigation, but found issues: ${issues.getAll().join(', ')}`
   };
 }
 

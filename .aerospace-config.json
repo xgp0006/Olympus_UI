@@ -1,0 +1,92 @@
+{
+  "nasaJplRules": {
+    "rule1": {
+      "name": "Restrict to simple control flow constructs",
+      "maxCyclomaticComplexity": 10,
+      "enabled": true
+    },
+    "rule2": {
+      "name": "Give all loops a fixed upper-bound",
+      "requireBoundedLoops": true,
+      "maxIterations": 1000000,
+      "enabled": true
+    },
+    "rule3": {
+      "name": "Do not use dynamic memory allocation after initialization",
+      "forbidDynamicAllocation": true,
+      "allowedPatterns": ["BoundedVec", "LinearMap", "StaticVec"],
+      "enabled": true
+    },
+    "rule4": {
+      "name": "No function should be longer than 60 lines",
+      "maxFunctionLength": 60,
+      "maxFileLength": 500,
+      "enabled": true
+    },
+    "rule5": {
+      "name": "Use a minimum of two runtime assertions per function",
+      "minAssertions": 2,
+      "requireInputValidation": true,
+      "enabled": true
+    },
+    "rule6": {
+      "name": "Restrict the scope of data to the smallest possible scope",
+      "requireMinimalScope": true,
+      "preferConst": true,
+      "enabled": true
+    },
+    "rule7": {
+      "name": "Check the return value of all non-void functions",
+      "requireReturnChecks": true,
+      "forbidUncheckedCalls": true,
+      "enabled": true
+    },
+    "rule8": {
+      "name": "Limit the use of the preprocessor to file inclusion and simple macros",
+      "forbidComplexMacros": true,
+      "maxMacroComplexity": 3,
+      "enabled": true
+    },
+    "rule9": {
+      "name": "Limit pointer use to a single dereference",
+      "maxPointerDereference": 1,
+      "preferReferences": true,
+      "enabled": true
+    },
+    "rule10": {
+      "name": "Compile with all possible warnings active",
+      "requireZeroWarnings": true,
+      "treatWarningsAsErrors": true,
+      "enabled": true
+    }
+  },
+  "qualityGates": {
+    "gate1": {
+      "name": "Pre-commit",
+      "checks": ["format", "lint", "typecheck", "no-console", "no-todos"],
+      "mandatory": true
+    },
+    "gate2": {
+      "name": "Pre-push",
+      "checks": ["typecheck", "lint", "test", "build", "security", "memory-patterns"],
+      "mandatory": true
+    },
+    "gate3": {
+      "name": "CI/CD",
+      "checks": ["audit", "license", "coverage", "full-compliance"],
+      "mandatory": true
+    },
+    "gate4": {
+      "name": "Release",
+      "checks": ["safety-critical-build", "memory-leak", "performance"],
+      "mandatory": true
+    }
+  },
+  "enforcement": {
+    "noBypass": true,
+    "noSoftening": true,
+    "noExceptions": true,
+    "noNegotiation": true,
+    "immediateStop": true
+  }
+}

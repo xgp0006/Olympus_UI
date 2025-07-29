@@ -5,6 +5,7 @@
  */
 
 import { writable, type Writable } from 'svelte/store';
+import { BoundedArray } from '../utils/bounded-array';
 
 /**
  * Notification interface
@@ -151,7 +152,8 @@ export function dismissAllNotifications(): void {
  * @param type - Notification type to dismiss
  */
 export function dismissNotificationsByType(type: Notification['type']): void {
-  const dismissedIds: string[] = [];
+  // NASA JPL Rule 2: Bounded memory for dismissed IDs
+  const dismissedIds = new BoundedArray<string>(100);
 
   notifications.update((current) => {
     const remaining = current.filter((notification) => {

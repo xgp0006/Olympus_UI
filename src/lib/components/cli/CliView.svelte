@@ -9,6 +9,7 @@
   import { TauriApi, type UnlistenFn } from '$lib/utils/tauri-context';
   import { theme } from '$lib/stores/theme';
   import type { Theme } from '$lib/types/theme';
+  import { BoundedArray } from '$lib/utils/bounded-array';
 
   // Browser-only imports
   let Terminal: any;
@@ -29,10 +30,10 @@
   let cliOutputUnlisten: UnlistenFn | null = null;
   let cliTerminatedUnlisten: UnlistenFn | null = null;
 
-  // State
+  // State with bounded memory (NASA JPL Rule 2)
   let isInitialized = false;
   let currentCommand = '';
-  let commandHistory: string[] = [];
+  const commandHistory = new BoundedArray<string>(100); // Max 100 commands
   let historyIndex = -1;
 
   /**
@@ -67,15 +68,18 @@
     }
 
     try {
-      // Create terminal instance
+      // Create terminal instance with Nerd Font support
       terminal = new Terminal({
         fontFamily:
-          currentTheme?.typography?.font_family_mono || 'Consolas, "Courier New", monospace',
+          currentTheme?.typography?.font_family_mono ||
+          'FiraCode Nerd Font, JetBrainsMono Nerd Font, JetBrains Mono, Fira Code, Consolas, monospace',
         fontSize: parseInt(currentTheme?.typography?.font_size_sm || '14'),
         cursorBlink: true,
         cursorStyle: 'bar',
         scrollback: 1000,
-        theme: createTerminalTheme(currentTheme)
+        theme: createTerminalTheme(currentTheme),
+        // Enable ligatures for better code display
+        fontLigatures: true
       });
 
       // Create and load addons
@@ -91,10 +95,10 @@
       // Fit terminal to container
       fitAddon.fit();
 
-      // Write welcome message (Requirement 2.5)
-      terminal.writeln('\x1b[36mWelcome to Aerospace C2 Command Line Interface\x1b[0m');
-      terminal.writeln('\x1b[90mType "help" for available commands\x1b[0m');
-      terminal.write('\r\n$ ');
+      // Write welcome message with icons (Requirement 2.5)
+      terminal.writeln('\x1b[36m 🚀 Welcome to Aerospace C2 Command Line Interface\x1b[0m');
+      terminal.writeln('\x1b[90m💡 Type "help" for available commands\x1b[0m');
+      terminal.write('\r\n\x1b[32m❯\x1b[0m ');
 
       // Set up input handling
       setupInputHandling();
@@ -159,22 +163,30 @@
     terminal.write('\r\n');
 
     if (currentCommand.trim()) {
-      // Add to history
+      // Add to history with bounded storage (NASA JPL Rule 2)
       commandHistory.push(currentCommand.trim());
       historyIndex = commandHistory.length;
 
       // Execute command via Tauri (Requirement 6.6)
       try {
-        const result = await TauriApi.invoke('run_cli_command', { command: currentCommand.trim() });
-        if (result === undefined && TauriApi.isAvailable()) {
-          throw new Error('Command execution failed');
+        if (!TauriApi.isAvailable()) {
+          terminal.writeln('\x1b[33mWarning: Running in browser mode - commands simulated\x1b[0m');
+          terminal.write('\x1b[32m❯\x1b[0m ');
+        } else {
+          const result = await TauriApi.invoke('run_cli_command', {
+            command: currentCommand.trim()
+          });
+          if (result === undefined) {
+            throw new Error('Command execution failed - no response from backend');
+          }
         }
       } catch (error) {
-        terminal.writeln(`\x1b[31mError: ${error}\x1b[0m`);
-        terminal.write('$ ');
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        terminal.writeln(`\x1b[31mError: ${errorMessage}\x1b[0m`);
+        terminal.write('\x1b[32m❯\x1b[0m ');
       }
     } else {
-      terminal.write('$ ');
+      terminal.write('\x1b[32m❯\x1b[0m ');
     }
 
     // Reset command
@@ -212,7 +224,7 @@
   function handleCtrlC() {
     if (!terminal) return;
 
-    terminal.write('^C\r\n$ ');
+    terminal.write('^C\r\n\x1b[32m❯\x1b[0m ');
     currentCommand = '';
   }
 
@@ -223,7 +235,7 @@
     if (!terminal) return;
 
     terminal.clear();
-    terminal.write('$ ' + currentCommand);
+    terminal.write('\x1b[32m❯\x1b[0m ' + currentCommand);
   }
 
   /**
@@ -246,17 +258,17 @@
 
     if (newIndex >= 0 && newIndex < commandHistory.length) {
       // Clear current line
-      terminal.write('\r\x1b[K$ ');
+      terminal.write('\r\x1b[K\x1b[32m❯\x1b[0m ');
 
       // Update history index and command
       historyIndex = newIndex;
-      currentCommand = commandHistory[historyIndex];
+      currentCommand = commandHistory.at(historyIndex) || '';
 
       // Write historical command
       terminal.write(currentCommand);
     } else if (newIndex === commandHistory.length) {
       // Clear to empty command
-      terminal.write('\r\x1b[K$ ');
+      terminal.write('\r\x1b[K\x1b[32m❯\x1b[0m ');
       historyIndex = commandHistory.length;
       currentCommand = '';
     }
@@ -277,15 +289,22 @@
       cliOutputUnlisten = await TauriApi.listen<{ line: string; stream: 'stdout' | 'stderr' }>(
         'cli-output',
         (payload) => {
-          const { line, stream } = payload;
+          try {
+            const { line, stream } = payload;
 
-          if (!terminal) return;
+            if (!terminal) return;
 
-          // Visually distinguish between stdout and stderr (Requirement 2.7)
-          if (stream === 'stderr') {
-            terminal.writeln(`\x1b[31m${line}\x1b[0m`); // Red text for stderr
-          } else {
-            terminal.writeln(line); // Normal text for stdout
+            // Sanitize output to prevent terminal escape sequence injection
+            const sanitizedLine = line.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+
+            // Visually distinguish between stdout and stderr (Requirement 2.7)
+            if (stream === 'stderr') {
+              terminal.writeln(`\x1b[31m${sanitizedLine}\x1b[0m`); // Red text for stderr
+            } else {
+              terminal.writeln(sanitizedLine); // Normal text for stdout
+            }
+          } catch (error) {
+            console.error('Error handling CLI output:', error);
           }
         }
       );
@@ -304,7 +323,7 @@
             terminal.writeln(`\x1b[31mProcess exited with code ${code}\x1b[0m`);
           }
 
-          terminal.write('$ ');
+          terminal.write('\x1b[32m❯\x1b[0m ');
         }
       );
     } catch (error) {
@@ -387,18 +406,37 @@
   });
 
   onDestroy(() => {
-    // Clean up event listeners
+    // Clean up event listeners (NASA JPL Rule 2: Bounded memory)
     if (cliOutputUnlisten) {
       cliOutputUnlisten();
+      cliOutputUnlisten = null;
     }
     if (cliTerminatedUnlisten) {
       cliTerminatedUnlisten();
+      cliTerminatedUnlisten = null;
+    }
+
+    // Dispose addons first
+    if (fitAddon) {
+      fitAddon.dispose();
+      fitAddon = null;
+    }
+    if (webLinksAddon) {
+      webLinksAddon.dispose();
+      webLinksAddon = null;
     }
 
     // Dispose terminal
     if (terminal) {
       terminal.dispose();
+      terminal = null;
     }
+
+    // Clear command history
+    commandHistory.clear();
+    currentCommand = '';
+    historyIndex = -1;
+    isInitialized = false;
   });
 </script>
 

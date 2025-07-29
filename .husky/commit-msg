@@ -1,0 +1,41 @@
+#!/bin/bash
+# AEROSPACE COMMIT MESSAGE VALIDATOR
+# Enforces standardized commit message format for traceability
+
+commit_regex='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .{1,100}$'
+commit_msg=$(cat "$1")
+
+echo "🚀 Validating commit message format..."
+
+if ! echo "$commit_msg" | grep -qE "$commit_regex"; then
+    echo "❌ INVALID COMMIT MESSAGE FORMAT"
+    echo ""
+    echo "Commit message must follow the pattern:"
+    echo "  <type>(<scope>): <subject>"
+    echo ""
+    echo "Types:"
+    echo "  feat:     New feature"
+    echo "  fix:      Bug fix"
+    echo "  docs:     Documentation only"
+    echo "  style:    Code style (formatting, semicolons, etc)"
+    echo "  refactor: Code change that neither fixes a bug nor adds a feature"
+    echo "  perf:     Performance improvement"
+    echo "  test:     Adding or updating tests"
+    echo "  build:    Build system or dependencies"
+    echo "  ci:       CI configuration files and scripts"
+    echo "  chore:    Other changes that don't modify src or test files"
+    echo "  revert:   Reverts a previous commit"
+    echo ""
+    echo "Example: feat(mission-planner): add waypoint validation"
+    echo ""
+    echo "Your message: $commit_msg"
+    exit 1
+fi
+
+# Check message length
+if [ ${#commit_msg} -gt 100 ]; then
+    echo "⚠️  WARNING: Commit message exceeds 100 characters"
+    echo "   Consider making it more concise"
+fi
+
+echo "✅ Commit message format validated"

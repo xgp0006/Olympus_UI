@@ -53,7 +53,80 @@ export function createMockPlugin(
 }
 
 /**
+ * NASA JPL Rule 4: Split function - Create default theme colors
+ */
+function createDefaultThemeColors(): Theme['colors'] {
+  return {
+    background_primary: '#000000',
+    background_secondary: '#111111',
+    background_tertiary: '#222222',
+    text_primary: '#ffffff',
+    text_secondary: '#cccccc',
+    text_disabled: '#666666',
+    accent_yellow: '#ffff00',
+    accent_blue: '#00bfff',
+    accent_red: '#ff4444',
+    accent_green: '#44ff44'
+  };
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Create default theme components
+ */
+function createDefaultThemeComponents(): Theme['components'] {
+  return {
+    cli: {
+      background: '#000000',
+      text_color: '#ffffff',
+      cursor_color: '#00bfff',
+      cursor_shape: 'block'
+    },
+    map: {
+      waypoint_color_default: '#00bfff',
+      waypoint_color_selected: '#ffff00',
+      path_color: '#44ff44',
+      geofence_color: '#ff4444'
+    },
+    button: {
+      background_default: '#222222',
+      text_color_default: '#ffffff',
+      background_hover: '#333333',
+      background_accent: '#00bfff',
+      text_color_accent: '#ffffff'
+    },
+    plugin_card: {
+      background: '#111111',
+      background_hover: '#222222',
+      icon_color: '#00bfff',
+      text_color: '#ffffff',
+      border_radius: '8px'
+    },
+    accordion: {
+      background: '#111111',
+      border_color: '#333333',
+      header_text_color: '#ffffff'
+    },
+    hex_coin: {
+      background: '#222222',
+      icon_color: '#00bfff',
+      border_color_default: '#666666',
+      border_color_pinned: '#00bfff',
+      snap_point_color: '#ffff00'
+    },
+    sdr: {
+      spectrum_line_color: '#00bfff',
+      spectrum_fill_color: 'rgba(0, 191, 255, 0.3)',
+      waterfall_color_gradient:
+        'linear-gradient(to right, #000080, #0000ff, #00ffff, #ffff00, #ff0000)',
+      grid_line_color: '#333333',
+      axis_label_color: '#cccccc'
+    }
+  };
+}
+
+/**
  * Theme mock factory
+ * NASA JPL Rule 4: Function refactored to be ≤60 lines
  */
 export function createMockTheme(overrides: Partial<Theme> = {}): Theme {
   return {
@@ -62,18 +135,7 @@ export function createMockTheme(overrides: Partial<Theme> = {}): Theme {
       author: 'Test Author',
       version: '1.0.0'
     },
-    colors: {
-      background_primary: '#000000',
-      background_secondary: '#111111',
-      background_tertiary: '#222222',
-      text_primary: '#ffffff',
-      text_secondary: '#cccccc',
-      text_disabled: '#666666',
-      accent_yellow: '#ffff00',
-      accent_blue: '#00bfff',
-      accent_red: '#ff4444',
-      accent_green: '#44ff44'
-    },
+    colors: createDefaultThemeColors(),
     typography: {
       font_family_sans: 'Inter, sans-serif',
       font_family_mono: 'JetBrains Mono, monospace',
@@ -86,54 +148,7 @@ export function createMockTheme(overrides: Partial<Theme> = {}): Theme {
       border_width: '1px',
       spacing_unit: '8px'
     },
-    components: {
-      cli: {
-        background: '#000000',
-        text_color: '#ffffff',
-        cursor_color: '#00bfff',
-        cursor_shape: 'block'
-      },
-      map: {
-        waypoint_color_default: '#00bfff',
-        waypoint_color_selected: '#ffff00',
-        path_color: '#44ff44',
-        geofence_color: '#ff4444'
-      },
-      button: {
-        background_default: '#222222',
-        text_color_default: '#ffffff',
-        background_hover: '#333333',
-        background_accent: '#00bfff',
-        text_color_accent: '#ffffff'
-      },
-      plugin_card: {
-        background: '#111111',
-        background_hover: '#222222',
-        icon_color: '#00bfff',
-        text_color: '#ffffff',
-        border_radius: '8px'
-      },
-      accordion: {
-        background: '#111111',
-        border_color: '#333333',
-        header_text_color: '#ffffff'
-      },
-      hex_coin: {
-        background: '#222222',
-        icon_color: '#00bfff',
-        border_color_default: '#666666',
-        border_color_pinned: '#00bfff',
-        snap_point_color: '#ffff00'
-      },
-      sdr: {
-        spectrum_line_color: '#00bfff',
-        spectrum_fill_color: 'rgba(0, 191, 255, 0.3)',
-        waterfall_color_gradient:
-          'linear-gradient(to right, #000080, #0000ff, #00ffff, #ffff00, #ff0000)',
-        grid_line_color: '#333333',
-        axis_label_color: '#cccccc'
-      }
-    },
+    components: createDefaultThemeComponents(),
     animations: {
       transition_duration: '200ms',
       easing_function: 'cubic-bezier(0.4, 0, 0.2, 1)',

@@ -38,35 +38,20 @@ export const themeLoading = derived(themeState, ($state) => $state.loading);
 export const themeError = derived(themeState, ($state) => $state.error);
 
 /**
- * Validates theme object structure
- * @param themeData - Theme data to validate
- * @returns boolean indicating if theme is valid
+ * NASA JPL Rule 4: Split function - Validate theme metadata
  */
-function validateTheme(themeData: unknown): themeData is Theme {
-  if (!themeData || typeof themeData !== 'object') {
-    return false;
-  }
-
-  const data = themeData as Record<string, unknown>;
-
-  // Check required top-level properties
-  const requiredProps = ['name', 'metadata', 'colors', 'typography', 'layout', 'components'];
-  for (const prop of requiredProps) {
-    if (!(prop in data)) {
-      console.error(`Theme validation failed: missing property '${prop}'`);
-      return false;
-    }
-  }
-
-  // Check metadata structure
-  const metadata = data.metadata as Record<string, unknown>;
+function validateThemeMetadata(metadata: Record<string, unknown>): boolean {
   if (!metadata || typeof metadata !== 'object' || !metadata.author || !metadata.version) {
     console.error('Theme validation failed: invalid metadata structure');
     return false;
   }
+  return true;
+}
 
-  // Check colors structure
-  const colors = data.colors as Record<string, unknown>;
+/**
+ * NASA JPL Rule 4: Split function - Validate theme colors
+ */
+function validateThemeColors(colors: Record<string, unknown>): boolean {
   if (!colors || typeof colors !== 'object') {
     console.error('Theme validation failed: invalid colors structure');
     return false;
@@ -89,9 +74,13 @@ function validateTheme(themeData: unknown): themeData is Theme {
       return false;
     }
   }
+  return true;
+}
 
-  // Check typography structure
-  const typography = data.typography as Record<string, unknown>;
+/**
+ * NASA JPL Rule 4: Split function - Validate theme typography
+ */
+function validateThemeTypography(typography: Record<string, unknown>): boolean {
   if (!typography || typeof typography !== 'object') {
     console.error('Theme validation failed: invalid typography structure');
     return false;
@@ -100,7 +89,7 @@ function validateTheme(themeData: unknown): themeData is Theme {
     'font_family_sans',
     'font_family_mono',
     'font_size_base',
-    'font_size_lg',
+    'font_size_lg', 
     'font_size_sm'
   ];
   for (const typo of requiredTypography) {
@@ -109,9 +98,13 @@ function validateTheme(themeData: unknown): themeData is Theme {
       return false;
     }
   }
+  return true;
+}
 
-  // Check layout structure
-  const layout = data.layout as Record<string, unknown>;
+/**
+ * NASA JPL Rule 4: Split function - Validate theme layout
+ */
+function validateThemeLayout(layout: Record<string, unknown>): boolean {
   if (!layout || typeof layout !== 'object') {
     console.error('Theme validation failed: invalid layout structure');
     return false;
@@ -123,14 +116,18 @@ function validateTheme(themeData: unknown): themeData is Theme {
       return false;
     }
   }
+  return true;
+}
 
-  // Check components structure
-  const components = data.components as Record<string, unknown>;
+/**
+ * NASA JPL Rule 4: Split function - Validate theme components
+ */
+function validateThemeComponents(components: Record<string, unknown>): boolean {
   if (!components || typeof components !== 'object') {
     console.error('Theme validation failed: invalid components structure');
     return false;
   }
-  // Check required components - 'sdr' and 'dashboard' are optional for basic themes
+  
   const requiredComponents = ['cli', 'map', 'button', 'plugin_card', 'accordion', 'hex_coin'];
   const optionalComponents = ['sdr', 'dashboard'];
 
@@ -141,7 +138,6 @@ function validateTheme(themeData: unknown): themeData is Theme {
     }
   }
 
-  // Validate optional components if present
   for (const component of optionalComponents) {
     if (component in components) {
       const componentData = components[component] as Record<string, unknown>;
@@ -151,8 +147,38 @@ function validateTheme(themeData: unknown): themeData is Theme {
       }
     }
   }
-
+  
   return true;
+}
+
+/**
+ * Validates theme object structure
+ * NASA JPL Rule 4: Function refactored to be ≤60 lines (111 → 30 lines)
+ * @param themeData - Theme data to validate
+ * @returns boolean indicating if theme is valid
+ */
+function validateTheme(themeData: unknown): themeData is Theme {
+  if (!themeData || typeof themeData !== 'object') {
+    return false;
+  }
+
+  const data = themeData as Record<string, unknown>;
+
+  // Check required top-level properties
+  const requiredProps = ['name', 'metadata', 'colors', 'typography', 'layout', 'components'];
+  for (const prop of requiredProps) {
+    if (!(prop in data)) {
+      console.error(`Theme validation failed: missing property '${prop}'`);
+      return false;
+    }
+  }
+
+  // Validate each section using helper functions
+  return validateThemeMetadata(data.metadata as Record<string, unknown>) &&
+         validateThemeColors(data.colors as Record<string, unknown>) &&
+         validateThemeTypography(data.typography as Record<string, unknown>) &&
+         validateThemeLayout(data.layout as Record<string, unknown>) &&
+         validateThemeComponents(data.components as Record<string, unknown>);
 }
 
 /**
@@ -219,7 +245,79 @@ function applyThemeToRoot(themeData: Theme): void {
 }
 
 /**
+ * NASA JPL Rule 4: Split function - Create default theme colors
+ */
+function createDefaultColors(): Theme['colors'] {
+  return {
+    background_primary: '#000000',
+    background_secondary: '#1a1a1a',
+    background_tertiary: '#2a2a2a',
+    text_primary: '#ffffff',
+    text_secondary: '#b0b0b0',
+    text_disabled: '#666666',
+    accent_yellow: '#ffd700',
+    accent_blue: '#00bfff',
+    accent_red: '#ff4444',
+    accent_green: '#00ff00'
+  };
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Create default theme components
+ */
+function createDefaultComponents(): Theme['components'] {
+  return {
+    cli: {
+      background: '#0a0a0a',
+      text_color: '#00ff00',
+      cursor_color: '#00ff00',
+      cursor_shape: 'block'
+    },
+    map: {
+      waypoint_color_default: '#ffd700',
+      waypoint_color_selected: '#00ff00',
+      path_color: '#00bfff',
+      geofence_color: '#ff4444'
+    },
+    button: {
+      background_default: '#333333',
+      text_color_default: '#ffffff',
+      background_hover: '#444444',
+      background_accent: '#00bfff',
+      text_color_accent: '#000000'
+    },
+    plugin_card: {
+      background: '#1a1a1a',
+      background_hover: '#2a2a2a',
+      icon_color: '#00bfff',
+      text_color: '#ffffff',
+      border_radius: '6px'
+    },
+    accordion: {
+      background: '#1a1a1a',
+      border_color: '#333333',
+      header_text_color: '#ffffff'
+    },
+    hex_coin: {
+      background: '#ffd700',
+      icon_color: '#000000',
+      border_color_default: '#ffed4e',
+      border_color_pinned: '#00ff00',
+      snap_point_color: '#00bfff'
+    },
+    sdr: {
+      spectrum_line_color: '#00ff00',
+      spectrum_fill_color: 'rgba(0, 255, 0, 0.2)',
+      waterfall_color_gradient: 'viridis',
+      grid_line_color: '#003366',
+      axis_label_color: '#00bfff'
+    }
+  };
+}
+
+/**
  * Loads a hardcoded default theme as last resort
+ * NASA JPL Rule 4: Function refactored to be ≤60 lines
  * @returns Promise resolving to default theme
  */
 async function loadDefaultTheme(): Promise<Theme> {
@@ -232,18 +330,7 @@ async function loadDefaultTheme(): Promise<Theme> {
       version: '1.0.0',
       description: 'Emergency fallback theme'
     },
-    colors: {
-      background_primary: '#000000',
-      background_secondary: '#1a1a1a',
-      background_tertiary: '#2a2a2a',
-      text_primary: '#ffffff',
-      text_secondary: '#b0b0b0',
-      text_disabled: '#666666',
-      accent_yellow: '#ffd700',
-      accent_blue: '#00bfff',
-      accent_red: '#ff4444',
-      accent_green: '#00ff00'
-    },
+    colors: createDefaultColors(),
     typography: {
       font_family_sans: "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
       font_family_mono: "'JetBrains Mono', 'Consolas', 'Monaco', monospace",
@@ -256,53 +343,7 @@ async function loadDefaultTheme(): Promise<Theme> {
       border_width: '1px',
       spacing_unit: '8px'
     },
-    components: {
-      cli: {
-        background: '#0a0a0a',
-        text_color: '#00ff00',
-        cursor_color: '#00ff00',
-        cursor_shape: 'block'
-      },
-      map: {
-        waypoint_color_default: '#ffd700',
-        waypoint_color_selected: '#00ff00',
-        path_color: '#00bfff',
-        geofence_color: '#ff4444'
-      },
-      button: {
-        background_default: '#333333',
-        text_color_default: '#ffffff',
-        background_hover: '#444444',
-        background_accent: '#00bfff',
-        text_color_accent: '#000000'
-      },
-      plugin_card: {
-        background: '#1a1a1a',
-        background_hover: '#2a2a2a',
-        icon_color: '#00bfff',
-        text_color: '#ffffff',
-        border_radius: '6px'
-      },
-      accordion: {
-        background: '#1a1a1a',
-        border_color: '#333333',
-        header_text_color: '#ffffff'
-      },
-      hex_coin: {
-        background: '#ffd700',
-        icon_color: '#000000',
-        border_color_default: '#ffed4e',
-        border_color_pinned: '#00ff00',
-        snap_point_color: '#00bfff'
-      },
-      sdr: {
-        spectrum_line_color: '#00ff00',
-        spectrum_fill_color: 'rgba(0, 255, 0, 0.2)',
-        waterfall_color_gradient: 'viridis',
-        grid_line_color: '#003366',
-        axis_label_color: '#00bfff'
-      }
-    },
+    components: createDefaultComponents(),
     animations: {
       transition_duration: '200ms',
       easing_function: 'ease-in-out',
@@ -315,7 +356,110 @@ async function loadDefaultTheme(): Promise<Theme> {
 }
 
 /**
+ * NASA JPL Rule 4: Split function - Load theme from Tauri context
+ */
+async function loadThemeFromTauri(themePath: string): Promise<string | null> {
+  if (!('__TAURI__' in window)) return null;
+
+  try {
+    const tauriModule = await import('@tauri-apps/api/tauri');
+    if (!tauriModule?.convertFileSrc) {
+      throw new Error('Tauri convertFileSrc not available');
+    }
+
+    const assetUrl = tauriModule.convertFileSrc(themePath);
+    const response = await fetch(assetUrl);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch theme via asset protocol: ${response.statusText}`);
+    }
+    
+    return await response.text();
+  } catch (error) {
+    console.warn('Tauri asset protocol failed:', error);
+    return null;
+  }
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Generate theme fallback paths
+ */
+function generateThemePaths(themeName: string): string[] {
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+  const basePath = currentPath.endsWith('/') ? currentPath.slice(0, -1) : currentPath;
+
+  return [
+    `/static/themes/${themeName}.json`,
+    `/themes/${themeName}.json`,
+    `./themes/${themeName}.json`,
+    `themes/${themeName}.json`,
+    `${basePath}/themes/${themeName}.json`
+  ].filter(Boolean);
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Try loading theme from fallback paths
+ */
+async function tryFallbackPaths(fallbackPaths: string[]): Promise<string | null> {
+  let lastError: Error | null = null;
+
+  for (let i = 0; i < fallbackPaths.length; i++) {
+    const fallbackPath = fallbackPaths[i];
+    try {
+      const response = await fetch(fallbackPath, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        mode: 'cors',
+        credentials: 'same-origin'
+      });
+
+      if (response.ok) {
+        console.log(`Theme loaded successfully from: ${fallbackPath}`);
+        return await response.text();
+      }
+      
+      lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+    } catch (fetchError) {
+      lastError = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
+      if (i === fallbackPaths.length - 1) {
+        console.debug(`All theme fetch attempts failed. Last error: ${lastError.message}`);
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Build error details for debugging
+ */
+function buildErrorDetails(themeName: string, fallbackPaths: string[], lastError: Error | null): string {
+  const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'unknown';
+  const windowHref = typeof window !== 'undefined' ? window.location.href : 'unknown';
+  const protocol = typeof window !== 'undefined' ? window.location.protocol : 'unknown';
+
+  return [
+    '[loadThemeFromFile] All fetch attempts failed',
+    `Theme name: ${themeName}`,
+    `Development mode: ${isDev}`,
+    `Paths tried: ${fallbackPaths.join(', ')}`,
+    `Last error: ${lastError?.message || 'Unknown error'}`,
+    `Window location: ${windowHref}`,
+    `Origin: ${currentOrigin}`,
+    `Protocol: ${protocol}`,
+    isDev ? 'Dev server context - ensure static/themes/ directory exists and is accessible' : ''
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+/**
  * Loads theme from file system
+ * NASA JPL Rule 4: Function refactored to be ≤60 lines
  * @param themeName - Name of the theme to load
  * @returns Promise resolving to the loaded theme
  */
@@ -325,18 +469,12 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
   try {
     console.log(`Loading theme from: ${themePath}`);
     console.log(`Browser environment: ${browser}`);
-    console.log(
-      `Window.__TAURI__ exists: ${'__TAURI__' in (typeof window !== 'undefined' ? window : {})}`
-    );
 
-    let themeContent: string | undefined;
-
-    // Only load themes in browser context
     if (!browser) {
       throw new Error('Theme loading is only supported in browser context');
     }
 
-    // Add a small delay on first load to ensure dev server is ready
+    // Add initial delay for dev server readiness
     const win = window as any;
     if (typeof window !== 'undefined' && !win.__theme_init_delay__) {
       win.__theme_init_delay__ = true;
@@ -344,103 +482,23 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
-    const isBrowser = browser && typeof window !== 'undefined';
+    let themeContent: string | undefined;
 
-    if (isBrowser) {
-      // Check if we're in a Tauri context
-      if ('__TAURI__' in window) {
-        try {
-          // Use Tauri's asset protocol for secure file access
-          const tauriModule = await import('@tauri-apps/api/tauri');
-          if (tauriModule?.convertFileSrc) {
-            const assetUrl = tauriModule.convertFileSrc(themePath);
+    // Try Tauri context first
+    themeContent = await loadThemeFromTauri(themePath) || undefined;
 
-            // Fetch the theme file using the asset protocol
-            const response = await fetch(assetUrl);
-            if (!response.ok) {
-              throw new Error(`Failed to fetch theme via asset protocol: ${response.statusText}`);
-            }
-            themeContent = await response.text();
-          } else {
-            throw new Error('Tauri convertFileSrc not available');
-          }
-        } catch (tauriError) {
-          console.warn('Tauri asset protocol failed, falling back to regular fetch:', tauriError);
-          // Fall through to regular browser fetch logic
-        }
+    // Fall back to browser fetch if Tauri failed
+    if (!themeContent && browser && typeof window !== 'undefined') {
+      const fallbackPaths = generateThemePaths(themeName);
+      const fetchResult = await tryFallbackPaths(fallbackPaths);
+      
+      if (!fetchResult) {
+        const errorDetails = buildErrorDetails(themeName, fallbackPaths, null);
+        console.error(errorDetails);
+        throw new Error('Failed to fetch theme');
       }
-
-      if (!themeContent) {
-        // In regular browser, use multiple fallback paths with better URL construction
-        const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-        const basePath = currentPath.endsWith('/') ? currentPath.slice(0, -1) : currentPath;
-
-        const fallbackPaths = [
-          `/static/themes/${themeName}.json`, // Full static path (primary for dev)
-          `/themes/${themeName}.json`, // Primary path from root
-          `./themes/${themeName}.json`, // Relative path
-          `themes/${themeName}.json`, // Without leading slash
-          `${basePath}/themes/${themeName}.json` // Current path + themes
-        ].filter(Boolean); // Remove any empty paths
-
-        let lastError: Error | null = null;
-        let fetchSuccess = false;
-
-        // Try each path with reduced logging noise
-        for (let i = 0; i < fallbackPaths.length; i++) {
-          const fallbackPath = fallbackPaths[i];
-          try {
-            const response = await fetch(fallbackPath, {
-              method: 'GET',
-              headers: {
-                Accept: 'application/json',
-                'Cache-Control': 'no-cache'
-              },
-              mode: 'cors',
-              credentials: 'same-origin'
-            });
-
-            if (response.ok) {
-              themeContent = await response.text();
-              fetchSuccess = true;
-              console.log(`Theme loaded successfully from: ${fallbackPath}`);
-              break;
-            } else {
-              lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-          } catch (fetchError) {
-            lastError = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
-            // Only log the last failed attempt to reduce noise
-            if (i === fallbackPaths.length - 1) {
-              console.debug(`All theme fetch attempts failed. Last error: ${lastError.message}`);
-            }
-          }
-        }
-
-        if (!fetchSuccess || !themeContent) {
-          // Provide detailed error information
-          const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-          const errorDetails = [
-            '[loadThemeFromFile] All fetch attempts failed',
-            `Theme name: ${themeName}`,
-            `Development mode: ${isDev}`,
-            `Paths tried: ${fallbackPaths.join(', ')}`,
-            `Last error: ${lastError?.message || 'Unknown error'}`,
-            `Window location: ${(typeof window !== 'undefined' && window.location?.href) || 'unknown'}`,
-            `Origin: ${currentOrigin || 'unknown'}`,
-            `Protocol: ${(typeof window !== 'undefined' && window.location?.protocol) || 'unknown'}`,
-            isDev
-              ? 'Dev server context - ensure static/themes/ directory exists and is accessible'
-              : ''
-          ]
-            .filter(Boolean)
-            .join('\n');
-
-          console.error(errorDetails);
-          throw new Error(`Failed to fetch`);
-        }
-      }
+      
+      themeContent = fetchResult;
     }
 
     if (!themeContent) {
@@ -461,7 +519,74 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
 }
 
 /**
+ * NASA JPL Rule 4: Split function - Attempt to load theme with fallbacks
+ */
+async function attemptThemeLoad(
+  themeName: string,
+  fallbackTheme: string
+): Promise<Theme> {
+  try {
+    // Try to load the requested theme
+    console.log(`[loadTheme] Attempting to load primary theme: ${themeName}`);
+    return await loadThemeFromFile(themeName);
+  } catch (primaryError) {
+    console.log(`Loading fallback theme '${fallbackTheme}'`);
+
+    if (themeName !== fallbackTheme) {
+      try {
+        return await loadThemeFromFile(fallbackTheme);
+      } catch (fallbackError) {
+        const errorMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+        console.log('Loading hardcoded default theme...');
+        try {
+          return await loadDefaultTheme();
+        } catch (defaultError) {
+          throw new Error(
+            `Failed to load both primary theme '${themeName}' and fallback theme '${fallbackTheme}': ${errorMsg}`
+          );
+        }
+      }
+    } else {
+      // If primary and fallback are the same, try the hardcoded default
+      console.log('Loading hardcoded default theme...');
+      try {
+        return await loadDefaultTheme();
+      } catch (defaultError) {
+        throw new Error(
+          `Failed to load theme '${themeName}': ${primaryError instanceof Error ? primaryError.message : String(primaryError)}`
+        );
+      }
+    }
+  }
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Update theme state on success
+ */
+function updateThemeStateSuccess(themeData: Theme): void {
+  themeState.update((state) => ({
+    ...state,
+    current: themeData,
+    loading: false,
+    error: null,
+    lastLoaded: Date.now()
+  }));
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Update theme state on error
+ */
+function updateThemeStateError(errorMessage: string): void {
+  themeState.update((state) => ({
+    ...state,
+    loading: false,
+    error: errorMessage
+  }));
+}
+
+/**
  * Main theme loading function
+ * NASA JPL Rule 4: Function refactored to be ≤60 lines
  * @param options - Theme loading options
  * @returns Promise resolving to the loaded theme
  */
@@ -483,74 +608,29 @@ export async function loadTheme(options: ThemeLoadOptions = {}): Promise<Theme> 
   }));
 
   try {
-    let themeData: Theme;
-
-    try {
-      // Try to load the requested theme
-      console.log(`[loadTheme] Attempting to load primary theme: ${themeName}`);
-      themeData = await loadThemeFromFile(themeName);
-    } catch (primaryError) {
-      console.log(`Loading fallback theme '${fallbackTheme}'`);
-
-      if (themeName !== fallbackTheme) {
-        try {
-          themeData = await loadThemeFromFile(fallbackTheme);
-        } catch (fallbackError) {
-          const errorMsg =
-            fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-          // Try loading a hardcoded default theme as last resort
-          console.log('Loading hardcoded default theme...');
-          try {
-            themeData = await loadDefaultTheme();
-          } catch (defaultError) {
-            throw new Error(
-              `Failed to load both primary theme '${themeName}' and fallback theme '${fallbackTheme}': ${errorMsg}`
-            );
-          }
-        }
-      } else {
-        // If primary and fallback are the same, try the hardcoded default
-        console.log('Loading hardcoded default theme...');
-        try {
-          themeData = await loadDefaultTheme();
-        } catch (defaultError) {
-          throw new Error(
-            `Failed to load theme '${themeName}': ${primaryError instanceof Error ? primaryError.message : String(primaryError)}`
-          );
-        }
-      }
-    }
+    // Attempt to load theme with fallback logic
+    const themeData = await attemptThemeLoad(themeName, fallbackTheme);
 
     // Additional validation if requested
     if (shouldValidate && !validateTheme(themeData)) {
       throw new Error(
-        `Theme validation failed for '${(themeData as { name?: string })?.name || 'unknown'}'`
+        `Theme validation failed for '${(themeData as any)?.name || 'unknown'}'`
       );
     }
 
     // Apply theme to DOM
     applyThemeToRoot(themeData);
 
-    // Update store state
-    themeState.update((state) => ({
-      ...state,
-      current: themeData,
-      loading: false,
-      error: null,
-      lastLoaded: Date.now()
-    }));
+    // Update store state on success
+    updateThemeStateSuccess(themeData);
 
     console.log(`Successfully loaded theme: ${themeData.name}`);
     return themeData;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown theme loading error';
-
+    
     // Update error state
-    themeState.update((state) => ({
-      ...state,
-      loading: false,
-      error: errorMessage
-    }));
+    updateThemeStateError(errorMessage);
 
     console.error('Theme loading failed:', errorMessage);
     throw error;

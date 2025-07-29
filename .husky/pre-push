@@ -1,0 +1,109 @@
+#!/bin/bash
+# AEROSPACE GATE 2: Pre-push Validation - ENFORCED, NO BYPASS
+# NASA JPL Rule 10 Compliant: ZERO tolerance for failures
+set -e  # Exit on ANY failure - MANDATORY
+
+echo "🚀 AEROSPACE GATE 2: Pre-push Validation"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "⚠️  CRITICAL: All checks MUST pass - NO EXCEPTIONS"
+echo ""
+
+# Stage 1: Type checking - MANDATORY
+echo "▶ STAGE 1: Type Checking..."
+npm run check || {
+    echo "❌ GATE FAILED: Type errors detected"
+    echo "   ALL TypeScript errors MUST be fixed before push"
+    exit 1
+}
+echo "✅ Type check PASSED"
+echo ""
+
+# Stage 2: Linting - ZERO WARNINGS
+echo "▶ STAGE 2: Linting..."
+npm run lint || {
+    echo "❌ GATE FAILED: Linting errors detected"
+    echo "   NASA JPL Rule 10: ZERO warnings allowed"
+    exit 1
+}
+echo "✅ Lint check PASSED"
+echo ""
+
+# Stage 3: Unit Tests - 100% MUST PASS
+echo "▶ STAGE 3: Unit Tests..."
+npm run test || {
+    echo "❌ GATE FAILED: Test failures detected"
+    echo "   ALL tests MUST pass - NO EXCEPTIONS"
+    exit 1
+}
+echo "✅ Unit tests PASSED"
+echo ""
+
+# Stage 4: Build Validation - MUST SUCCEED
+echo "▶ STAGE 4: Build Validation..."
+npm run build || {
+    echo "❌ GATE FAILED: Build errors detected"
+    echo "   Build MUST succeed cleanly"
+    exit 1
+}
+echo "✅ Build validation PASSED"
+echo ""
+
+# Stage 5: Security Audit (if npm audit available)
+echo "▶ STAGE 5: Security Audit..."
+if command -v npm audit &> /dev/null; then
+    npm audit --production --audit-level=high || {
+        echo "⚠️  WARNING: High severity vulnerabilities detected"
+        echo "   Consider fixing security issues"
+    }
+else
+    echo "⚠️  npm audit not available"
+fi
+echo ""
+
+# Stage 6: Bundle Size Check
+echo "▶ STAGE 6: Bundle Size Analysis..."
+if [ -d "build" ]; then
+    total_size=$(find build -name "*.js" -o -name "*.css" | xargs du -ch | grep total | awk '{print $1}')
+    echo "   Bundle size: $total_size"
+    
+    # Extract numeric value for comparison (handle M/K suffixes)
+    numeric_size=$(echo $total_size | sed 's/[^0-9.]//g')
+    unit=$(echo $total_size | sed 's/[0-9.]//g')
+    
+    # Convert to KB for comparison
+    if [[ $unit == "M" ]]; then
+        size_kb=$(echo "$numeric_size * 1024" | bc)
+    else
+        size_kb=$numeric_size
+    fi
+    
+    # Check if bundle is too large (>5MB warning)
+    if (( $(echo "$size_kb > 5120" | bc -l) )); then
+        echo "⚠️  WARNING: Bundle size exceeds 5MB"
+        echo "   Consider code splitting or lazy loading"
+    fi
+fi
+echo ""
+
+# Stage 7: Memory Pattern Validation
+echo "▶ STAGE 7: Memory Pattern Validation..."
+# Check for unbounded allocations
+if grep -r "Vec<" src --include="*.rs" | grep -v "BoundedVec\|// NASA JPL"; then
+    echo "⚠️  WARNING: Unbounded Vec allocations detected"
+    echo "   Consider using BoundedVec for aerospace compliance"
+fi
+
+# Check for unwrap() in non-test code
+if grep -r "\.unwrap()" src --include="*.ts" --include="*.svelte" | grep -v test | grep -v "\.test\.\|\.spec\."; then
+    echo "❌ GATE FAILED: unwrap() detected in production code"
+    echo "   NASA JPL Rule 7: All returns must be checked"
+    exit 1
+fi
+echo "✅ Memory pattern check PASSED"
+echo ""
+
+# Final Gate Status
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "✅ AEROSPACE GATE 2 PASSED - Push allowed"
+echo "🚀 Code meets aerospace-grade quality standards"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

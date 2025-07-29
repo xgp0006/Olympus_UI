@@ -1,0 +1,54 @@
+#!/bin/bash
+# AEROSPACE GATE 1: Pre-commit Validation - ENFORCED, NO EXCEPTIONS
+# NASA JPL Rule 10 Compliant: ZERO warnings tolerance
+set -e  # Exit on ANY failure - NO EXCEPTIONS
+
+echo "🚀 AEROSPACE GATE 1: Pre-commit Validation"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Format check - MANDATORY
+echo "▶ Checking code formatting..."
+npm run format -- --check || {
+    echo "❌ GATE FAILED: Format violations detected"
+    echo "   Run 'npm run format' to fix formatting issues"
+    exit 1
+}
+echo "✅ Format check PASSED"
+
+# Lint check - ZERO WARNINGS
+echo "▶ Running linting checks..."
+npm run lint || {
+    echo "❌ GATE FAILED: Linting errors detected"
+    echo "   Fix all linting issues before committing"
+    exit 1
+}
+echo "✅ Lint check PASSED"
+
+# Type checking - MANDATORY
+echo "▶ Running type checks..."
+npm run check || {
+    echo "❌ GATE FAILED: Type errors detected"
+    echo "   Fix all TypeScript errors before committing"
+    exit 1
+}
+echo "✅ Type check PASSED"
+
+# Check for console.log statements in production code
+echo "▶ Checking for console.log statements..."
+if grep -r "console\.log" src --include="*.ts" --include="*.svelte" --include="*.js" | grep -v test | grep -v "test\."; then
+    echo "❌ GATE FAILED: console.log detected in production code"
+    echo "   Remove all console.log statements from production code"
+    exit 1
+fi
+echo "✅ Console.log check PASSED"
+
+# Check for TODO comments
+echo "▶ Checking for TODO comments..."
+if grep -r "TODO\|FIXME\|XXX\|HACK" src --include="*.ts" --include="*.svelte" --include="*.js" | grep -v test; then
+    echo "⚠️  WARNING: TODO/FIXME/XXX/HACK comments found"
+    echo "   Consider addressing these before committing"
+fi
+
+echo ""
+echo "✅ AEROSPACE GATE 1 PASSED - Commit allowed"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

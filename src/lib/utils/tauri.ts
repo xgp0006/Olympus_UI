@@ -374,7 +374,110 @@ const eventErrorTracking = new Map<
 >();
 
 /**
+ * NASA JPL Rule 4: Split function - Check if handler should be disabled
+ */
+function checkHandlerDisabled(
+  tracking: { errorCount: number; lastErrorTime: number; disabled: boolean },
+  opts: Required<EventListenerOptions>,
+  eventName: string
+): boolean {
+  if (!tracking.disabled) return false;
+
+  const timeSinceLastError = Date.now() - tracking.lastErrorTime;
+  if (timeSinceLastError < opts.errorCooldownMs) {
+    if (opts.enableLogging) {
+      console.warn(`Event handler for '${eventName}' is disabled due to errors`);
+    }
+    return true;
+  }
+
+  // Re-enable after cooldown
+  tracking.disabled = false;
+  tracking.errorCount = 0;
+  if (opts.enableLogging) {
+    console.log(`Event handler for '${eventName}' re-enabled after cooldown`);
+  }
+  return false;
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Handle event handler errors
+ */
+function handleEventError(
+  error: unknown,
+  tracking: { errorCount: number; lastErrorTime: number; disabled: boolean },
+  opts: Required<EventListenerOptions>,
+  eventName: string
+): void {
+  tracking.errorCount++;
+  tracking.lastErrorTime = Date.now();
+
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+  if (opts.enableLogging) {
+    console.error(
+      `Event handler error for '${eventName}' (${tracking.errorCount}/${opts.maxErrorsBeforeDisable}):`,
+      error
+    );
+  }
+
+  // Show notification for first few errors
+  if (opts.showErrorNotifications && tracking.errorCount <= 3) {
+    showError(opts.errorNotificationTitle, `Error in ${eventName} handler: ${errorMessage}`);
+  }
+
+  // Disable handler if too many errors
+  if (tracking.errorCount >= opts.maxErrorsBeforeDisable) {
+    tracking.disabled = true;
+
+    if (opts.enableLogging) {
+      console.error(`Event handler for '${eventName}' disabled after ${tracking.errorCount} errors`);
+    }
+
+    if (opts.showErrorNotifications) {
+      showError(
+        'Event Handler Disabled',
+        `Handler for '${eventName}' disabled due to repeated errors. Will retry after cooldown.`
+      );
+    }
+  }
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Create event handler wrapper
+ */
+function createEventHandlerWrapper<T>(
+  eventName: string,
+  handler: (payload: T) => void,
+  opts: Required<EventListenerOptions>
+): (payload: T) => void {
+  return (payload: T) => {
+    const tracking = eventErrorTracking.get(eventName)!;
+
+    // Check if handler is disabled
+    if (checkHandlerDisabled(tracking, opts, eventName)) {
+      return;
+    }
+
+    try {
+      handler(payload);
+
+      // Reset error count on successful handling
+      if (tracking.errorCount > 0) {
+        tracking.errorCount = 0;
+        if (opts.enableLogging) {
+          console.log(`Event handler for '${eventName}' recovered from errors`);
+        }
+      }
+    } catch (error) {
+      handleEventError(error, tracking, opts, eventName);
+    }
+  };
+}
+
+/**
  * Enhanced event listener setup with comprehensive error handling
+ * NASA JPL Rule 4: Function refactored to be ≤60 lines
  * @param eventName - The event name to listen for
  * @param handler - Event handler function
  * @param options - Event listener options
@@ -405,74 +508,8 @@ export async function setupEventListener<T>(
   }
 
   try {
-    const unlisten = await TauriApi.listen<T>(eventName, (payload) => {
-      const tracking = eventErrorTracking.get(eventName)!;
-
-      // Check if event handler is disabled due to too many errors
-      if (tracking.disabled) {
-        const timeSinceLastError = Date.now() - tracking.lastErrorTime;
-        if (timeSinceLastError < opts.errorCooldownMs) {
-          if (opts.enableLogging) {
-            console.warn(`Event handler for '${eventName}' is disabled due to errors`);
-          }
-          return;
-        } else {
-          // Re-enable after cooldown
-          tracking.disabled = false;
-          tracking.errorCount = 0;
-          if (opts.enableLogging) {
-            console.log(`Event handler for '${eventName}' re-enabled after cooldown`);
-          }
-        }
-      }
-
-      try {
-        handler(payload);
-
-        // Reset error count on successful handling
-        if (tracking.errorCount > 0) {
-          tracking.errorCount = 0;
-          if (opts.enableLogging) {
-            console.log(`Event handler for '${eventName}' recovered from errors`);
-          }
-        }
-      } catch (error) {
-        tracking.errorCount++;
-        tracking.lastErrorTime = Date.now();
-
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-        if (opts.enableLogging) {
-          console.error(
-            `Event handler error for '${eventName}' (${tracking.errorCount}/${opts.maxErrorsBeforeDisable}):`,
-            error
-          );
-        }
-
-        // Show notification for first few errors
-        if (opts.showErrorNotifications && tracking.errorCount <= 3) {
-          showError(opts.errorNotificationTitle, `Error in ${eventName} handler: ${errorMessage}`);
-        }
-
-        // Disable handler if too many errors
-        if (tracking.errorCount >= opts.maxErrorsBeforeDisable) {
-          tracking.disabled = true;
-
-          if (opts.enableLogging) {
-            console.error(
-              `Event handler for '${eventName}' disabled after ${tracking.errorCount} errors`
-            );
-          }
-
-          if (opts.showErrorNotifications) {
-            showError(
-              'Event Handler Disabled',
-              `Handler for '${eventName}' disabled due to repeated errors. Will retry after cooldown.`
-            );
-          }
-        }
-      }
-    });
+    const wrappedHandler = createEventHandlerWrapper(eventName, handler, opts);
+    const unlisten = await TauriApi.listen<T>(eventName, wrappedHandler);
 
     if (opts.enableLogging) {
       console.log(`Event listener setup for '${eventName}'`);

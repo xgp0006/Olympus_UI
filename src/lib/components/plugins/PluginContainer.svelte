@@ -53,7 +53,82 @@
   const RETRY_DELAY_MS = 1000;
 
   /**
+   * NASA JPL Rule 4: Split function - Validate plugin for loading
+   */
+  function validatePlugin(id: string): Plugin {
+    const plugin = getPluginById(id);
+    if (!plugin) {
+      throw new Error(`Plugin not found: ${id}`);
+    }
+
+    if (!plugin.enabled) {
+      throw new Error(`Plugin is disabled: ${plugin.name}`);
+    }
+
+    const PluginComponent = PLUGIN_COMPONENTS[id];
+    if (!PluginComponent) {
+      throw new Error(`Plugin component not registered: ${id}`);
+    }
+
+    return plugin;
+  }
+
+  /**
+   * NASA JPL Rule 4: Split function - Handle successful plugin load
+   */
+  function handleLoadSuccess(id: string, plugin: Plugin): void {
+    const PluginComponent = PLUGIN_COMPONENTS[id];
+    
+    state = {
+      ...state,
+      loading: false,
+      loaded: true,
+      error: null,
+      plugin,
+      component: PluginComponent,
+      retryCount: 0
+    };
+
+    console.log(`Plugin loaded successfully: ${plugin.name}`);
+    dispatch('load', { pluginId: id });
+
+    showNotification({
+      type: 'success',
+      message: 'Plugin Loaded',
+      details: `${plugin.name} is now active`
+    });
+  }
+
+  /**
+   * NASA JPL Rule 4: Split function - Handle plugin load error
+   */
+  function handleLoadError(id: string, error: unknown): Error {
+    const pluginError = error instanceof Error ? error : new Error('Unknown plugin loading error');
+
+    console.error(`Failed to load plugin ${id}:`, pluginError);
+
+    state = {
+      ...state,
+      loading: false,
+      loaded: false,
+      error: pluginError,
+      component: null
+    };
+
+    dispatch('error', { pluginId: id, error: pluginError });
+
+    showNotification({
+      type: 'error',
+      message: 'Plugin Load Failed',
+      details: `Failed to load ${id}: ${pluginError.message}`
+    });
+
+    return pluginError;
+  }
+
+  /**
    * Load plugin component based on plugin ID
+   * NASA JPL Rule 4: Function refactored to be ≤60 lines
    * @param id - Plugin ID to load
    */
   async function loadPlugin(id: string): Promise<void> {
@@ -69,73 +144,17 @@
     };
 
     try {
-      // Get plugin metadata
-      const plugin = getPluginById(id);
-      if (!plugin) {
-        throw new Error(`Plugin not found: ${id}`);
-      }
-
-      if (!plugin.enabled) {
-        throw new Error(`Plugin is disabled: ${plugin.name}`);
-      }
-
-      // Get plugin component
-      const PluginComponent = PLUGIN_COMPONENTS[id];
-      if (!PluginComponent) {
-        throw new Error(`Plugin component not registered: ${id}`);
-      }
+      // Validate plugin can be loaded
+      const plugin = validatePlugin(id);
 
       // Simulate async loading delay for better UX
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Update state with loaded plugin
-      state = {
-        ...state,
-        loading: false,
-        loaded: true,
-        error: null,
-        plugin,
-        component: PluginComponent,
-        retryCount: 0
-      };
-
-      console.log(`Plugin loaded successfully: ${plugin.name}`);
-
-      // Dispatch load event
-      dispatch('load', { pluginId: id });
-
-      // Show success notification
-      showNotification({
-        type: 'success',
-        message: 'Plugin Loaded',
-        details: `${plugin.name} is now active`
-      });
+      // Handle successful load
+      handleLoadSuccess(id, plugin);
     } catch (error) {
-      const pluginError =
-        error instanceof Error ? error : new Error('Unknown plugin loading error');
-
-      console.error(`Failed to load plugin ${id}:`, pluginError);
-
-      // Update state with error
-      state = {
-        ...state,
-        loading: false,
-        loaded: false,
-        error: pluginError,
-        component: null
-      };
-
-      // Dispatch error event
-      dispatch('error', { pluginId: id, error: pluginError });
-
-      // Show error notification
-      showNotification({
-        type: 'error',
-        message: 'Plugin Load Failed',
-        details: `Failed to load ${id}: ${pluginError.message}`
-      });
-
-      throw pluginError;
+      // Handle error and re-throw
+      throw handleLoadError(id, error);
     }
   }
 

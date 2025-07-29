@@ -21,7 +21,55 @@ export interface TauriContext {
 let cachedContext: TauriContext | null = null;
 
 /**
+ * NASA JPL Rule 4: Split function - Check primary Tauri detection
+ */
+function checkPrimaryTauriDetection(): TauriContext | null {
+  if (
+    typeof window !== 'undefined' &&
+    '__TAURI__' in window &&
+    typeof (window as any).__TAURI__?.invoke === 'function'
+  ) {
+    return {
+      isAvailable: true,
+      isMockMode: false
+    };
+  }
+  return null;
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Check secondary Tauri detection
+ */
+function checkSecondaryTauriDetection(): TauriContext | null {
+  if (
+    typeof window !== 'undefined' &&
+    '__TAURI_IPC__' in window &&
+    typeof (window as any).__TAURI_IPC__ === 'object'
+  ) {
+    return {
+      isAvailable: true,
+      isMockMode: false
+    };
+  }
+  return null;
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Check user agent detection
+ */
+function checkUserAgentDetection(): TauriContext | null {
+  if (typeof navigator !== 'undefined' && navigator.userAgent.includes('Tauri')) {
+    return {
+      isAvailable: true,
+      isMockMode: false
+    };
+  }
+  return null;
+}
+
+/**
  * Detect if running in Tauri context
+ * NASA JPL Rule 4: Function refactored to be ≤60 lines
  * Uses multiple detection methods for reliability
  * @returns Tauri context information
  */
@@ -42,38 +90,22 @@ export function detectTauriContext(): TauriContext {
   }
 
   try {
-    // Primary detection: Check for actual Tauri runtime (not just mock)
-    if (
-      typeof window !== 'undefined' &&
-      '__TAURI__' in window &&
-      typeof (window as any).__TAURI__?.invoke === 'function'
-    ) {
-      cachedContext = {
-        isAvailable: true,
-        isMockMode: false
-      };
+    // Try all detection methods
+    const primaryResult = checkPrimaryTauriDetection();
+    if (primaryResult) {
+      cachedContext = primaryResult;
       return cachedContext;
     }
 
-    // Secondary detection: Check for Tauri-specific window properties with actual functionality
-    if (
-      typeof window !== 'undefined' &&
-      '__TAURI_IPC__' in window &&
-      typeof (window as any).__TAURI_IPC__ === 'object'
-    ) {
-      cachedContext = {
-        isAvailable: true,
-        isMockMode: false
-      };
+    const secondaryResult = checkSecondaryTauriDetection();
+    if (secondaryResult) {
+      cachedContext = secondaryResult;
       return cachedContext;
     }
 
-    // Tertiary detection: Check user agent for Tauri
-    if (typeof navigator !== 'undefined' && navigator.userAgent.includes('Tauri')) {
-      cachedContext = {
-        isAvailable: true,
-        isMockMode: false
-      };
+    const userAgentResult = checkUserAgentDetection();
+    if (userAgentResult) {
+      cachedContext = userAgentResult;
       return cachedContext;
     }
 

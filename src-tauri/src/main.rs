@@ -297,8 +297,8 @@ fn main() {
                         "magnitudes": magnitudes,
                         "timestamp": std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap()
-                            .as_millis() as u64
+                            .map(|d| d.as_millis() as u64)
+                            .unwrap_or(0)
                     });
                     
                     // Emit FFT data
@@ -309,7 +309,10 @@ fn main() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .unwrap_or_else(|e| {
+            eprintln!("Fatal error running Tauri application: {}", e);
+            std::process::exit(1);
+        });
 }
 
 // Mock random number generator for FFT data
@@ -321,8 +324,8 @@ mod rand {
         // Simple pseudo-random for mock data
         let time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
         let value = ((time % 1000) as f64) / 1000.0;
         T::from(value)
     }

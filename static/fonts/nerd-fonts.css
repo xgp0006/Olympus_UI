@@ -1,0 +1,136 @@
+/* 
+ * Nerd Fonts CSS - NASA JPL Compliant
+ * All external resources must be loaded via HTML with SRI hashes
+ * This file contains local font-face declarations and icon mappings
+ */
+
+/* 
+ * NASA JPL Rule: External font resources removed from CSS
+ * These should be loaded via HTML <link> tags with SRI hashes in app.html
+ * 
+ * Add to app.html:
+ * <link rel="preload" 
+ *       href="https://cdn.jsdelivr.net/gh/mshaugh/nerdfont-webfonts@v3.3.0/build/firacode-nerd-font.woff2"
+ *       as="font" type="font/woff2" crossorigin
+ *       integrity="sha384-[SRI-HASH-PLACEHOLDER]">
+ * <link rel="preload" 
+ *       href="https://cdn.jsdelivr.net/gh/mshaugh/nerdfont-webfonts@v3.3.0/build/jetbrainsmono-nerd-font.woff2"
+ *       as="font" type="font/woff2" crossorigin
+ *       integrity="sha384-[SRI-HASH-PLACEHOLDER]">
+ * <link rel="preload" 
+ *       href="https://cdn.jsdelivr.net/gh/mshaugh/nerdfont-webfonts@v3.3.0/build/hack-nerd-font.woff2"
+ *       as="font" type="font/woff2" crossorigin
+ *       integrity="sha384-[SRI-HASH-PLACEHOLDER]">
+ */
+
+/* Font-face declarations reference the preloaded fonts */
+@font-face {
+  font-family: 'FiraCode Nerd Font';
+  src: url('https://cdn.jsdelivr.net/gh/mshaugh/nerdfont-webfonts@v3.3.0/build/firacode-nerd-font.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrainsMono Nerd Font';
+  src: url('https://cdn.jsdelivr.net/gh/mshaugh/nerdfont-webfonts@v3.3.0/build/jetbrainsmono-nerd-font.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Hack Nerd Font';
+  src: url('https://cdn.jsdelivr.net/gh/mshaugh/nerdfont-webfonts@v3.3.0/build/hack-nerd-font.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Font stack definitions with Nerd Fonts */
+:root {
+  --font-nerd-primary: 'FiraCode Nerd Font', 'JetBrainsMono Nerd Font', 'Hack Nerd Font';
+  --font-mono-fallback: 'Fira Code', 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+  --font-icons-fallback: 'Font Awesome 6 Free', 'Material Icons', sans-serif;
+  
+  /* Complete font stacks */
+  --font-stack-terminal: var(--font-nerd-primary), var(--font-mono-fallback);
+  --font-stack-code: var(--font-nerd-primary), var(--font-mono-fallback);
+}
+
+/* Terminal font class */
+.terminal-font {
+  font-family: var(--font-stack-terminal);
+  font-feature-settings: 'liga' 1, 'calt' 1; /* Enable ligatures */
+}
+
+/* Code editor font class */
+.code-font {
+  font-family: var(--font-stack-code);
+  font-feature-settings: 'liga' 1, 'calt' 1;
+}
+
+/* Nerd Font icon classes */
+.nf {
+  font-family: var(--font-nerd-primary), var(--font-icons-fallback);
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Common Nerd Font icons */
+.nf-linux-ubuntu::before { content: '\f31b'; }
+.nf-dev-git::before { content: '\e702'; }
+.nf-dev-github_badge::before { content: '\e727'; }
+.nf-fa-folder::before { content: '\f07b'; }
+.nf-fa-folder_open::before { content: '\f07c'; }
+.nf-custom-folder_npm::before { content: '\e71e'; }
+.nf-dev-nodejs_small::before { content: '\e718'; }
+.nf-dev-react::before { content: '\e7ba'; }
+.nf-seti-typescript::before { content: '\e628'; }
+.nf-seti-javascript::before { content: '\e60c'; }
+.nf-mdi-language_rust::before { content: '\e7a8'; }
+.nf-dev-docker::before { content: '\e650'; }
+.nf-fa-terminal::before { content: '\f120'; }
+.nf-oct-terminal::before { content: '\f489'; }
+.nf-dev-code::before { content: '\e796'; }
+.nf-mdi-rocket::before { content: '\f069b'; }
+.nf-mdi-airplane::before { content: '\f01d9'; }
+.nf-mdi-drone::before { content: '\f01e2'; }
+
+/* File type icons */
+.nf-file-js::before { content: '\e60c'; }
+.nf-file-ts::before { content: '\e628'; }
+.nf-file-json::before { content: '\e60b'; }
+.nf-file-md::before { content: '\e609'; }
+.nf-file-yml::before { content: '\e65b'; }
+.nf-file-toml::before { content: '\e60a'; }
+.nf-file-rs::before { content: '\e7a8'; }
+.nf-file-py::before { content: '\e606'; }
+
+/* Status icons */
+.nf-fa-check::before { content: '\f00c'; }
+.nf-fa-times::before { content: '\f00d'; }
+.nf-fa-warning::before { content: '\f071'; }
+.nf-fa-info_circle::before { content: '\f05a'; }
+.nf-fa-bug::before { content: '\f188'; }
+.nf-oct-issue_opened::before { content: '\f026'; }
+.nf-oct-git_pull_request::before { content: '\f009'; }
+.nf-oct-git_commit::before { content: '\f01f'; }
+
+/* Powerline symbols */
+.nf-pl-right_hard_divider::before { content: '\e0b0'; }
+.nf-pl-right_soft_divider::before { content: '\e0b1'; }
+.nf-pl-left_hard_divider::before { content: '\e0b2'; }
+.nf-pl-left_soft_divider::before { content: '\e0b3'; }
+
+/* Prompt symbols */
+.nf-fa-angle_right::before { content: '\f105'; }
+.nf-fa-chevron_right::before { content: '\f054'; }
+.nf-mdi-chevron_right::before { content: '\f0142'; }
+.nf-oct-chevron_right::before { content: '\f078'; }

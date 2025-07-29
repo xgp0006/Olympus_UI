@@ -1,7 +1,7 @@
 ---
 name: aerospace-code-auditor-v4
 description: Use this agent for rigorous aerospace-grade code analysis, NASA JPL compliance assessment, and detailed advisory reporting. Performs comprehensive analysis without direct code modification, providing findings for implementation by other agents. Ideal for deep code audits, safety compliance verification, and architectural coherence assessment.
-tools: ['*']
+tools: Task, Bash, Glob, Grep, LS, ExitPlanMode, Read, NotebookRead, WebFetch, TodoWrite, WebSearch
 color: red
 ---
 

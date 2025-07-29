@@ -336,7 +336,7 @@
     <div
       class="accordion-header"
       role={!isDocked ? 'button' : undefined}
-      tabindex={!isDocked ? 0 : undefined}
+      tabIndex={!isDocked ? 0 : undefined}
       on:mousedown={!isDocked ? handleComponentDragStart : undefined}
       on:keydown={!isDocked
         ? (e) => {

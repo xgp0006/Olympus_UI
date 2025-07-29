@@ -18,7 +18,55 @@ export const theme = derived(themeState, ($state) => $state.current);
 export const themeLoading = derived(themeState, ($state) => $state.loading);
 export const themeError = derived(themeState, ($state) => $state.error);
 
+/**
+ * NASA JPL Rule 4: Split function - Apply theme to DOM
+ */
+function applyThemeToDOM(themeData: Theme): void {
+  if (typeof document === 'undefined') return;
+  
+  const root = document.documentElement;
+
+  // Apply colors
+  Object.entries(themeData.colors).forEach(([key, value]) => {
+    root.style.setProperty(`--color-${key}`, value as string);
+  });
+
+  // Apply typography
+  Object.entries(themeData.typography).forEach(([key, value]) => {
+    root.style.setProperty(`--typography-${key}`, value as string);
+  });
+
+  // Apply layout
+  Object.entries(themeData.layout).forEach(([key, value]) => {
+    root.style.setProperty(`--layout-${key}`, value as string);
+  });
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Fetch theme data
+ */
+async function fetchThemeData(themeName: string): Promise<Theme> {
+  // Wait a bit to ensure dev server is ready
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
+  const path = `/themes/${themeName}.json`;
+  console.log('[ThemeFix] Fetching from:', path);
+
+  const response = await fetch(path);
+  console.log('[ThemeFix] Response status:', response.status);
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  const themeData = await response.json();
+  console.log('[ThemeFix] Theme loaded:', themeData.name);
+  
+  return themeData;
+}
+
 // Simple theme loader that works
+// NASA JPL Rule 4: Function refactored to be ≤60 lines
 export async function loadThemeFixed(
   themeName: string = 'super_amoled_black_responsive'
 ): Promise<Theme | null> {
@@ -34,42 +82,10 @@ export async function loadThemeFixed(
   themeState.update((s) => ({ ...s, loading: true, error: null }));
 
   try {
-    // Wait a bit to ensure dev server is ready
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    // Use the simplest path that works
-    const path = `/themes/${themeName}.json`;
-    console.log('[ThemeFix] Fetching from:', path);
-
-    const response = await fetch(path);
-    console.log('[ThemeFix] Response status:', response.status);
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const themeData = await response.json();
-    console.log('[ThemeFix] Theme loaded:', themeData.name);
-
+    const themeData = await fetchThemeData(themeName);
+    
     // Apply to DOM
-    if (typeof document !== 'undefined') {
-      const root = document.documentElement;
-
-      // Apply colors
-      Object.entries(themeData.colors).forEach(([key, value]) => {
-        root.style.setProperty(`--color-${key}`, value as string);
-      });
-
-      // Apply typography
-      Object.entries(themeData.typography).forEach(([key, value]) => {
-        root.style.setProperty(`--typography-${key}`, value as string);
-      });
-
-      // Apply layout
-      Object.entries(themeData.layout).forEach(([key, value]) => {
-        root.style.setProperty(`--layout-${key}`, value as string);
-      });
-    }
+    applyThemeToDOM(themeData);
 
     // Update state
     themeState.update((s) => ({

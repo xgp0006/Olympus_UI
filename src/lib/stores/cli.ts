@@ -36,112 +36,155 @@ const initialState: CliState = {
   connected: false
 };
 
-// Create the main CLI store
-function createCliStore() {
-  const { subscribe, set, update } = writable<CliState>(initialState);
+/**
+ * NASA JPL Rule 4: Split - CLI store context
+ */
+interface CliStoreContext {
+  update: (updater: (state: CliState) => CliState) => void;
+  subscribe: (run: (value: CliState) => void) => (() => void);
+  cliOutputUnlisten: UnlistenFn | null;
+  cliTerminatedUnlisten: UnlistenFn | null;
+}
 
-  // Event listeners
-  let cliOutputUnlisten: UnlistenFn | null = null;
-  let cliTerminatedUnlisten: UnlistenFn | null = null;
-
-  return {
-    subscribe,
-
-    /**
-     * Initialize CLI store and set up event listeners
-     */
-    async initialize(): Promise<void> {
-      try {
-        // Set up CLI output event listener
-        cliOutputUnlisten = await setupEventListener<CliOutput>(
-          'cli-output',
-          (payload) => {
-            const output = {
-              ...payload,
-              timestamp: Date.now()
-            };
-
-            update((state) => ({
-              ...state,
-              output: [...state.output, output],
-              connected: true
-            }));
-          },
-          {
-            showErrorNotifications: false, // CLI errors are handled internally
-            enableLogging: true
-          }
-        );
-
-        // Set up CLI termination event listener
-        cliTerminatedUnlisten = await setupEventListener<CliTermination>(
-          'cli-terminated',
-          (payload) => {
-            update((state) => ({
-              ...state,
-              isRunning: false,
-              lastExitCode: payload.code
-            }));
-          },
-          {
-            showErrorNotifications: false, // CLI errors are handled internally
-            enableLogging: true
-          }
-        );
-
-        update((state) => ({ ...state, connected: true }));
-        console.log('CLI store initialized successfully');
-      } catch (error) {
-        console.error('Failed to initialize CLI store:', error);
-        update((state) => ({ ...state, connected: false }));
-        throw error;
-      }
-    },
-
-    /**
-     * Execute a CLI command
-     */
-    async executeCommand(command: string): Promise<void> {
-      if (!command.trim()) {
-        return;
-      }
-
-      try {
-        update((state) => ({
-          ...state,
-          isRunning: true,
-          currentCommand: command,
-          commandHistory: [...state.commandHistory, command],
-          lastExitCode: null
-        }));
-
-        await CliCommands.runCommand(command.trim());
-      } catch (error) {
-        console.error('Failed to execute CLI command:', error);
-
-        // Add error to output
-        const errorOutput: CliOutput = {
-          line: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          stream: 'stderr',
+/**
+ * NASA JPL Rule 4: Split - Initialize CLI event listeners
+ */
+async function initializeCliListeners(ctx: CliStoreContext): Promise<void> {
+  try {
+    // Set up CLI output event listener
+    ctx.cliOutputUnlisten = await setupEventListener<CliOutput>(
+      'cli-output',
+      (payload) => {
+        const output = {
+          ...payload,
           timestamp: Date.now()
         };
 
-        update((state) => ({
+        ctx.update((state) => ({
+          ...state,
+          output: [...state.output, output],
+          connected: true
+        }));
+      },
+      {
+        showErrorNotifications: false,
+        enableLogging: true
+      }
+    );
+
+    // Set up CLI termination event listener
+    ctx.cliTerminatedUnlisten = await setupEventListener<CliTermination>(
+      'cli-terminated',
+      (payload) => {
+        ctx.update((state) => ({
           ...state,
           isRunning: false,
-          output: [...state.output, errorOutput],
-          lastExitCode: 1
+          lastExitCode: payload.code
         }));
-
-        throw error;
+      },
+      {
+        showErrorNotifications: false,
+        enableLogging: true
       }
+    );
+
+    ctx.update((state) => ({ ...state, connected: true }));
+    console.log('CLI store initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize CLI store:', error);
+    ctx.update((state) => ({ ...state, connected: false }));
+    throw error;
+  }
+}
+
+/**
+ * NASA JPL Rule 4: Split - Execute CLI command
+ */
+async function executeCliCommand(
+  ctx: CliStoreContext,
+  command: string
+): Promise<void> {
+  if (!command.trim()) {
+    return;
+  }
+
+  try {
+    ctx.update((state) => ({
+      ...state,
+      isRunning: true,
+      currentCommand: command,
+      commandHistory: [...state.commandHistory, command],
+      lastExitCode: null
+    }));
+
+    await CliCommands.runCommand(command.trim());
+  } catch (error) {
+    console.error('Failed to execute CLI command:', error);
+
+    const errorOutput: CliOutput = {
+      line: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      stream: 'stderr',
+      timestamp: Date.now()
+    };
+
+    ctx.update((state) => ({
+      ...state,
+      isRunning: false,
+      output: [...state.output, errorOutput],
+      lastExitCode: 1
+    }));
+
+    throw error;
+  }
+}
+
+/**
+ * NASA JPL Rule 4: Split - Cleanup CLI listeners
+ */
+function cleanupCliListeners(ctx: CliStoreContext): void {
+  if (ctx.cliOutputUnlisten) {
+    ctx.cliOutputUnlisten();
+    ctx.cliOutputUnlisten = null;
+  }
+  if (ctx.cliTerminatedUnlisten) {
+    ctx.cliTerminatedUnlisten();
+    ctx.cliTerminatedUnlisten = null;
+  }
+
+  ctx.update((state) => ({ ...state, connected: false }));
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Create CLI core methods
+ */
+function createCliCoreMethods(ctx: CliStoreContext, subscribe: (run: (value: CliState) => void) => (() => void)) {
+  return {
+    subscribe,
+
+    async initialize(): Promise<void> {
+      await initializeCliListeners(ctx);
     },
 
+    async executeCommand(command: string): Promise<void> {
+      await executeCliCommand(ctx, command);
+    },
+
+    destroy(): void {
+      cleanupCliListeners(ctx);
+    }
+  };
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Create CLI utility methods
+ */
+function createCliUtilityMethods(ctx: CliStoreContext, update: (updater: (state: CliState) => CliState) => void, set: (value: CliState) => void, subscribe: (run: (value: CliState) => void) => (() => void)) {
+  return {
     /**
      * Clear command history
      */
     clearHistory(): void {
-      update((state) => ({
+      update((state: CliState) => ({
         ...state,
         commandHistory: []
       }));
@@ -151,7 +194,7 @@ function createCliStore() {
      * Clear output buffer
      */
     clearOutput(): void {
-      update((state) => ({
+      update((state: CliState) => ({
         ...state,
         output: []
       }));
@@ -162,7 +205,7 @@ function createCliStore() {
      */
     getHistoryCommand(index: number): string | null {
       let currentState: CliState;
-      const unsubscribe = subscribe((state) => {
+      const unsubscribe = subscribe((state: CliState) => {
         currentState = state;
       });
       unsubscribe();
@@ -177,26 +220,10 @@ function createCliStore() {
      * Update current command (for input tracking)
      */
     updateCurrentCommand(command: string): void {
-      update((state) => ({
+      update((state: CliState) => ({
         ...state,
         currentCommand: command
       }));
-    },
-
-    /**
-     * Cleanup event listeners
-     */
-    destroy(): void {
-      if (cliOutputUnlisten) {
-        cliOutputUnlisten();
-        cliOutputUnlisten = null;
-      }
-      if (cliTerminatedUnlisten) {
-        cliTerminatedUnlisten();
-        cliTerminatedUnlisten = null;
-      }
-
-      update((state) => ({ ...state, connected: false }));
     },
 
     /**
@@ -206,6 +233,39 @@ function createCliStore() {
       set(initialState);
     }
   };
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Create CLI store methods
+ * Function refactored to be ≤60 lines (69 → 15 lines)
+ */
+function createCliStoreMethods(ctx: CliStoreContext, update: (updater: (state: CliState) => CliState) => void, set: (value: CliState) => void, subscribe: (run: (value: CliState) => void) => (() => void)) {
+  return {
+    ...createCliCoreMethods(ctx, subscribe),
+    ...createCliUtilityMethods(ctx, update, set, subscribe)
+  };
+}
+
+/**
+ * Creates the main CLI store
+ * NASA JPL Rule 4: Function refactored to be ≤60 lines (83 → 22 lines)
+ */
+function createCliStore() {
+  const { subscribe, set, update } = writable<CliState>(initialState);
+
+  // Event listeners
+  let cliOutputUnlisten: UnlistenFn | null = null;
+  let cliTerminatedUnlisten: UnlistenFn | null = null;
+
+  // Create context for extracted functions
+  const ctx = {
+    update,
+    subscribe,
+    cliOutputUnlisten,
+    cliTerminatedUnlisten
+  } as CliStoreContext;
+
+  return createCliStoreMethods(ctx, update, set, subscribe);
 }
 
 // Export the CLI store instance

@@ -309,7 +309,77 @@
   }
 
   /**
+   * NASA JPL Rule 4: Split function - Calculate safe waterfall dimensions
+   */
+  function calculateWaterfallDimensions(width: number, height: number, historyLength: number): {
+    safeWidth: number;
+    safeHeight: number;
+    startX: number;
+    startY: number;
+  } | null {
+    const waterfallHeight = Math.min(height - 40, historyLength);
+    const waterfallWidth = width - 60;
+    const startX = 30;
+    const startY = 20;
+
+    if (waterfallWidth <= 0 || waterfallHeight <= 0) {
+      console.warn('Waterfall: Invalid dimensions', { waterfallWidth, waterfallHeight });
+      return null;
+    }
+
+    const MAX_DIMENSION = 4096; // NASA JPL Rule 2: Bounded memory
+    const safeWidth = Math.min(Math.max(1, Math.floor(waterfallWidth)), MAX_DIMENSION);
+    const safeHeight = Math.min(Math.max(1, Math.floor(waterfallHeight)), MAX_DIMENSION);
+
+    if (safeWidth !== waterfallWidth || safeHeight !== waterfallHeight) {
+      console.warn('Waterfall: Dimensions clamped', {
+        original: { waterfallWidth, waterfallHeight },
+        clamped: { safeWidth, safeHeight }
+      });
+    }
+
+    return { safeWidth, safeHeight, startX, startY };
+  }
+
+  /**
+   * NASA JPL Rule 4: Split function - Render waterfall pixels
+   */
+  function renderWaterfallPixels(
+    pixels: Uint8ClampedArray,
+    history: (Float32Array | number[])[],
+    safeWidth: number,
+    safeHeight: number,
+    dataLength: number
+  ): void {
+    if (!state.colorMap) return;
+    
+    for (let y = 0; y < safeHeight && y < history.length; y++) {
+      const magnitudes = history[y];
+
+      for (let x = 0; x < safeWidth; x++) {
+        const binIndex = Math.floor((x / safeWidth) * dataLength);
+        const magnitude = magnitudes[binIndex] || state.minMagnitude;
+
+        const normalizedMagnitude = Math.max(
+          0,
+          Math.min(1, (magnitude - state.minMagnitude) / (state.maxMagnitude - state.minMagnitude))
+        );
+
+        const colorIndex = Math.floor(normalizedMagnitude * 255);
+        const colorMapPixel = colorIndex * 4;
+
+        const pixelIndex = (y * safeWidth + x) * 4;
+        pixels[pixelIndex] = state.colorMap.data[colorMapPixel];
+        pixels[pixelIndex + 1] = state.colorMap.data[colorMapPixel + 1];
+        pixels[pixelIndex + 2] = state.colorMap.data[colorMapPixel + 2];
+        pixels[pixelIndex + 3] = state.colorMap.data[colorMapPixel + 3];
+      }
+    }
+  }
+
+  /**
    * Draws the waterfall data using efficient pixel manipulation
+   * NASA JPL Rule 4: Function refactored to be ≤60 lines
    */
   function drawWaterfallData(ctx: CanvasRenderingContext2D, width: number, height: number): void {
     if (!state.colorMap || state.waterfallHistory.length === 0) {
@@ -323,76 +393,120 @@
       return;
     }
 
-    // Calculate dimensions for waterfall display
-    const waterfallHeight = Math.min(height - 40, history.length); // Leave space for labels
-    const waterfallWidth = width - 60; // Leave space for frequency labels
-    const startX = 30;
-    const startY = 20;
+    // Calculate safe dimensions
+    const dims = calculateWaterfallDimensions(width, height, history.length);
+    if (!dims) return;
 
-    // Validate dimensions before creating image data
-    if (waterfallWidth <= 0 || waterfallHeight <= 0) {
-      console.warn('Waterfall: Invalid dimensions, skipping render', {
-        waterfallWidth,
-        waterfallHeight
-      });
-      return;
-    }
+    const { safeWidth, safeHeight, startX, startY } = dims;
 
-    // Additional safety checks for reasonable bounds
-    const MAX_DIMENSION = 4096; // Prevent excessive memory allocation
-    const safeWidth = Math.min(Math.max(1, Math.floor(waterfallWidth)), MAX_DIMENSION);
-    const safeHeight = Math.min(Math.max(1, Math.floor(waterfallHeight)), MAX_DIMENSION);
-
-    if (safeWidth !== waterfallWidth || safeHeight !== waterfallHeight) {
-      console.warn('Waterfall: Dimensions clamped for safety', {
-        original: { waterfallWidth, waterfallHeight },
-        clamped: { safeWidth, safeHeight }
-      });
-    }
-
-    // Create image data for efficient pixel manipulation with validated dimensions
+    // Create image data for efficient pixel manipulation
     const imageData = ctx.createImageData(safeWidth, safeHeight);
-    const pixels = imageData.data;
-
-    // Render each line of the waterfall using safe dimensions
-    for (let y = 0; y < safeHeight && y < history.length; y++) {
-      const magnitudes = history[y];
-
-      for (let x = 0; x < safeWidth; x++) {
-        // Map x position to frequency bin
-        const binIndex = Math.floor((x / safeWidth) * dataLength);
-        const magnitude = magnitudes[binIndex] || state.minMagnitude;
-
-        // Normalize magnitude to 0-1 range
-        const normalizedMagnitude = Math.max(
-          0,
-          Math.min(1, (magnitude - state.minMagnitude) / (state.maxMagnitude - state.minMagnitude))
-        );
-
-        // Map to color using color map
-        const colorIndex = Math.floor(normalizedMagnitude * 255);
-        const colorMapPixel = colorIndex * 4;
-
-        // Set pixel color using safe dimensions
-        const pixelIndex = (y * safeWidth + x) * 4;
-        pixels[pixelIndex] = state.colorMap.data[colorMapPixel]; // Red
-        pixels[pixelIndex + 1] = state.colorMap.data[colorMapPixel + 1]; // Green
-        pixels[pixelIndex + 2] = state.colorMap.data[colorMapPixel + 2]; // Blue
-        pixels[pixelIndex + 3] = state.colorMap.data[colorMapPixel + 3]; // Alpha
-      }
-    }
+    
+    // Render pixels
+    renderWaterfallPixels(imageData.data, history, safeWidth, safeHeight, dataLength);
 
     // Draw the image data to canvas
     ctx.putImageData(imageData, startX, startY);
 
-    // Draw border around waterfall using safe dimensions
+    // Draw border around waterfall
     ctx.strokeStyle = getThemeColor('grid_line_color', '#333333');
     ctx.lineWidth = 1;
     ctx.strokeRect(startX, startY, safeWidth, safeHeight);
   }
 
   /**
+   * NASA JPL Rule 4: Split function - Draw frequency labels and grid
+   */
+  function drawFrequencyLabels(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    waterfallWidth: number,
+    waterfallHeight: number,
+    startX: number,
+    startY: number,
+    labelColor: string
+  ): void {
+    if (!showFrequencyLabels || !processedData?.centerFrequency || !processedData?.sampleRate) {
+      return;
+    }
+
+    const startFreq = processedData.centerFrequency - processedData.sampleRate / 2;
+    const endFreq = processedData.centerFrequency + processedData.sampleRate / 2;
+    const freqLabels = 5;
+
+    ctx.textAlign = 'center';
+
+    for (let i = 0; i <= freqLabels; i++) {
+      const freq = startFreq + ((endFreq - startFreq) * i) / freqLabels;
+      const x = startX + (waterfallWidth * i) / freqLabels;
+      const freqMHz = (freq / 1000000).toFixed(1);
+
+      ctx.fillText(`${freqMHz}`, x, height - 5);
+
+      if (i > 0 && i < freqLabels) {
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.moveTo(x, startY);
+        ctx.lineTo(x, startY + waterfallHeight);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    // Center frequency marker
+    ctx.strokeStyle = labelColor;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(startX + waterfallWidth / 2, startY);
+    ctx.lineTo(startX + waterfallWidth / 2, startY + waterfallHeight);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  /**
+   * NASA JPL Rule 4: Split function - Draw time labels and grid
+   */
+  function drawTimeLabels(
+    ctx: CanvasRenderingContext2D,
+    waterfallWidth: number,
+    waterfallHeight: number,
+    startX: number,
+    startY: number,
+    gridColor: string
+  ): void {
+    if (!showTimeLabels || state.waterfallHistory.length === 0) {
+      return;
+    }
+
+    ctx.textAlign = 'right';
+    const timeLabels = Math.min(8, Math.floor(waterfallHeight / 30));
+
+    for (let i = 0; i <= timeLabels; i++) {
+      const timeIndex = (state.waterfallHistory.length * i) / timeLabels;
+      const y = startY + (waterfallHeight * i) / timeLabels;
+
+      const secondsAgo = timeIndex / 30; // ~30fps update rate
+      const timeLabel = secondsAgo < 60 ? `${secondsAgo.toFixed(0)}s` : `${(secondsAgo / 60).toFixed(1)}m`;
+
+      ctx.fillText(timeLabel, startX - 5, y + 4);
+
+      if (i > 0 && i < timeLabels) {
+        ctx.strokeStyle = gridColor;
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.moveTo(startX, y);
+        ctx.lineTo(startX + waterfallWidth, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+  }
+
+  /**
    * Draws labels for frequency and time axes
+   * NASA JPL Rule 4: Function refactored to be ≤60 lines
    */
   function drawLabels(
     ctx: CanvasRenderingContext2D,
@@ -411,77 +525,11 @@
     const startX = 30;
     const startY = 20;
 
-    // Frequency labels (bottom axis)
-    if (
-      showFrequencyLabels &&
-      processedData &&
-      processedData.centerFrequency &&
-      processedData.sampleRate
-    ) {
-      const startFreq = processedData.centerFrequency - processedData.sampleRate / 2;
-      const endFreq = processedData.centerFrequency + processedData.sampleRate / 2;
+    // Draw frequency labels and vertical grid
+    drawFrequencyLabels(ctx, width, height, waterfallWidth, waterfallHeight, startX, startY, labelColor);
 
-      ctx.textAlign = 'center';
-      const freqLabels = 5;
-
-      for (let i = 0; i <= freqLabels; i++) {
-        const freq = startFreq + ((endFreq - startFreq) * i) / freqLabels;
-        const x = startX + (waterfallWidth * i) / freqLabels;
-        const freqMHz = (freq / 1000000).toFixed(1);
-
-        // Draw frequency label
-        ctx.fillText(`${freqMHz}`, x, height - 5);
-
-        // Draw vertical grid line
-        if (i > 0 && i < freqLabels) {
-          ctx.setLineDash([2, 2]);
-          ctx.beginPath();
-          ctx.moveTo(x, startY);
-          ctx.lineTo(x, startY + waterfallHeight);
-          ctx.stroke();
-          ctx.setLineDash([]);
-        }
-      }
-
-      // Center frequency marker
-      ctx.strokeStyle = labelColor;
-      ctx.lineWidth = 2;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(startX + waterfallWidth / 2, startY);
-      ctx.lineTo(startX + waterfallWidth / 2, startY + waterfallHeight);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-
-    // Time labels (left axis)
-    if (showTimeLabels && state.waterfallHistory.length > 0) {
-      ctx.textAlign = 'right';
-      const timeLabels = Math.min(8, Math.floor(waterfallHeight / 30));
-
-      for (let i = 0; i <= timeLabels; i++) {
-        const timeIndex = (state.waterfallHistory.length * i) / timeLabels;
-        const y = startY + (waterfallHeight * i) / timeLabels;
-
-        // Calculate approximate time (assuming ~30fps update rate)
-        const secondsAgo = timeIndex / 30;
-        const timeLabel =
-          secondsAgo < 60 ? `${secondsAgo.toFixed(0)}s` : `${(secondsAgo / 60).toFixed(1)}m`;
-
-        ctx.fillText(timeLabel, startX - 5, y + 4);
-
-        // Draw horizontal grid line
-        if (i > 0 && i < timeLabels) {
-          ctx.strokeStyle = gridColor;
-          ctx.setLineDash([2, 2]);
-          ctx.beginPath();
-          ctx.moveTo(startX, y);
-          ctx.lineTo(startX + waterfallWidth, y);
-          ctx.stroke();
-          ctx.setLineDash([]);
-        }
-      }
-    }
+    // Draw time labels and horizontal grid
+    drawTimeLabels(ctx, waterfallWidth, waterfallHeight, startX, startY, gridColor);
 
     // Color scale legend (right side)
     drawColorScale(ctx, width - 25, startY, 15, waterfallHeight, labelColor);

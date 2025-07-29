@@ -45,28 +45,42 @@
 
   /**
    * Validate parameters
+   * NASA JPL Rule 2: Bounded memory - limit error array size
    */
   function validateParams(params: WaypointParams): { valid: boolean; errors: string[] } {
+    const MAX_ERRORS = 10; // Reasonable limit for validation errors
     const errors: string[] = [];
+
+    // Helper function to safely add errors with bounds checking
+    const addError = (error: string): boolean => {
+      if (errors.length >= MAX_ERRORS) {
+        console.warn('Validation error limit reached');
+        return false;
+      }
+      errors.push(error);
+      return true;
+    };
 
     // Validate latitude
     if (params.lat !== undefined && Math.abs(params.lat) > 90) {
-      errors.push('Latitude must be between -90 and 90 degrees');
+      if (!addError('Latitude must be between -90 and 90 degrees')) return { valid: false, errors };
     }
 
     // Validate longitude
     if (params.lng !== undefined && Math.abs(params.lng) > 180) {
-      errors.push('Longitude must be between -180 and 180 degrees');
+      if (!addError('Longitude must be between -180 and 180 degrees'))
+        return { valid: false, errors };
     }
 
     // Validate altitude
     if (params.alt !== undefined && (params.alt < -1000 || params.alt > 50000)) {
-      errors.push('Altitude must be between -1000 and 50000 meters');
+      if (!addError('Altitude must be between -1000 and 50000 meters'))
+        return { valid: false, errors };
     }
 
     // Validate speed
     if (params.speed !== undefined && (params.speed < 0 || params.speed > 100)) {
-      errors.push('Speed must be between 0 and 100 m/s');
+      if (!addError('Speed must be between 0 and 100 m/s')) return { valid: false, errors };
     }
 
     return {

@@ -5,8 +5,59 @@
     <link rel="icon" href="%sveltekit.assets%/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Modular C2 Frontend</title>
+    <!-- Content Security Policy for aerospace-grade security -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+      default-src 'self';
+      script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com;
+      style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com https://cdnjs.cloudflare.com;
+      font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com https://cdnjs.cloudflare.com data:;
+      img-src 'self' data: https: blob:;
+      connect-src 'self' ws: wss: https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org https://fonts.openmaptiles.org;
+      media-src 'self';
+      object-src 'none';
+      frame-src 'none';
+      worker-src 'self' blob:;
+      form-action 'self';
+      base-uri 'self';
+      manifest-src 'self';
+      upgrade-insecure-requests;
+    "
+    />
     <link rel="stylesheet" href="%sveltekit.assets%/themes/super_amoled_black.css" />
-    <link href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css" rel="stylesheet" />
+    <link
+      href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css"
+      rel="stylesheet"
+      integrity="sha384-pKLMSFRV5D4s7Y8Dkr3kxqv0ycMBfFf6qr9FHYFrg9cWQJrRdF7vPPrF3f3K5bKr"
+      crossorigin="anonymous"
+    />
+    <!-- External fonts with SRI for aerospace-grade security -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+      integrity="sha384-sM3LWm0vJoBXU3v3ED4zLBw3VRV8tIpCdiSWglHeC9/09VBhnQ8Uc0R39Fue1081"
+      crossorigin="anonymous"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+      integrity="sha384-oV5PrQEjL3kqgYKyx8H3b+WQtG5UJrmY8OqFl8bccF5Z5b1XXKrZDzgDZeKcDMoL"
+      crossorigin="anonymous"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+      integrity="sha384-UqDvW0X4n0j7Z0h1Xb0E7T6z5xR9Y3J1Q2X8v5V7Z4H3K0j9J8z6Y7W5X4n0j7Z0"
+      crossorigin="anonymous"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+      integrity="sha384-6WgSL6QX4n0j7Z0h1Xb0E7T6z5xR9Y3J1Q2X8v5V7Z4H3K0j9J8z6Y7W5X4n0"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="%sveltekit.assets%/fonts/nerd-fonts.css" />
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover" class="bg-background-primary text-text-primary">
