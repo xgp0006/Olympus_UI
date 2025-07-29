@@ -56,13 +56,13 @@
           alt: 100
         }
       };
-      
+
       // Add the waypoint to the mission store
       await addMissionItem(newWaypoint);
-      
+
       // Select the new waypoint
       selectMissionItem(newWaypoint.id);
-      
+
       console.log(`Created waypoint at ${lngLat[1].toFixed(4)}, ${lngLat[0].toFixed(4)}`);
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to create waypoint';
@@ -159,10 +159,10 @@
           alt: 100
         }
       };
-      
+
       // Add the waypoint to the mission store
       await addMissionItem(newWaypoint);
-      
+
       // Select the new waypoint
       selectMissionItem(newWaypoint.id);
     } catch (err) {
@@ -277,8 +277,8 @@
       {/if}
 
       <!-- Mission Accordion floats over the map -->
-      <div 
-        class="accordion-overlay" 
+      <div
+        class="accordion-overlay"
         class:collapsed={accordionCollapsed}
         class:docked={accordionDocked}
         class:undocked={!accordionDocked}

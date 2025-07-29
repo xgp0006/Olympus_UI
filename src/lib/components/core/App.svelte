@@ -203,7 +203,9 @@
             title="Show Command Line"
           >
             <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4V8h16v10zm-10-1h2v-2h-2v2zm4 0h2v-2h-2v2zm4 0h2v-2h-2v2z"/>
+              <path
+                d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4V8h16v10zm-10-1h2v-2h-2v2zm4 0h2v-2h-2v2zm4 0h2v-2h-2v2z"
+              />
             </svg>
             <span>CLI</span>
           </button>

@@ -215,13 +215,14 @@ export async function updateWaypointParams(
           ? {
               ...item,
               params: { ...item.params, ...params },
-              position: params.lat !== undefined && params.lng !== undefined && params.alt !== undefined
-                ? {
-                    lat: params.lat,
-                    lng: params.lng,
-                    alt: params.alt
-                  }
-                : item.position
+              position:
+                params.lat !== undefined && params.lng !== undefined && params.alt !== undefined
+                  ? {
+                      lat: params.lat,
+                      lng: params.lng,
+                      alt: params.alt
+                    }
+                  : item.position
             }
           : item
       ),
@@ -249,12 +250,16 @@ export async function updateWaypointParams(
  */
 export async function reorderMissionItem(itemId: string, newIndex: number): Promise<void> {
   try {
-    await invokeTauriCommand<void>('reorder_mission_item', {
-      item_id: itemId,
-      new_index: newIndex
-    }, {
-      showNotification: false // Suppress notification for drag & drop operations
-    });
+    await invokeTauriCommand<void>(
+      'reorder_mission_item',
+      {
+        item_id: itemId,
+        new_index: newIndex
+      },
+      {
+        showNotification: false // Suppress notification for drag & drop operations
+      }
+    );
 
     // Update local state
     missionState.update((state) => {

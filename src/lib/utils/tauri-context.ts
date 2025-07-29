@@ -43,8 +43,11 @@ export function detectTauriContext(): TauriContext {
 
   try {
     // Primary detection: Check for actual Tauri runtime (not just mock)
-    if (typeof window !== 'undefined' && '__TAURI__' in window && 
-        typeof (window as any).__TAURI__?.invoke === 'function') {
+    if (
+      typeof window !== 'undefined' &&
+      '__TAURI__' in window &&
+      typeof (window as any).__TAURI__?.invoke === 'function'
+    ) {
       cachedContext = {
         isAvailable: true,
         isMockMode: false
@@ -53,8 +56,11 @@ export function detectTauriContext(): TauriContext {
     }
 
     // Secondary detection: Check for Tauri-specific window properties with actual functionality
-    if (typeof window !== 'undefined' && '__TAURI_IPC__' in window &&
-        typeof (window as any).__TAURI_IPC__ === 'object') {
+    if (
+      typeof window !== 'undefined' &&
+      '__TAURI_IPC__' in window &&
+      typeof (window as any).__TAURI_IPC__ === 'object'
+    ) {
       cachedContext = {
         isAvailable: true,
         isMockMode: false
@@ -106,9 +112,9 @@ export async function importTauriModule<T = any>(module: string): Promise<T | nu
   }
 
   // Check if we're in actual Tauri app (not just dev environment with __TAURI__ mock)
-  const isTauriApp = '__TAURI__' in window && 
-    typeof (window as any).__TAURI__?.invoke === 'function';
-  
+  const isTauriApp =
+    '__TAURI__' in window && typeof (window as any).__TAURI__?.invoke === 'function';
+
   if (!isTauriApp) {
     return null;
   }

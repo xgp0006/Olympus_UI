@@ -1,43 +1,43 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
+  <head>
     <title>Theme Test</title>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Theme Loading Test</h1>
     <div id="result"></div>
-    
+
     <script>
-        async function testThemeLoading() {
-            const resultDiv = document.getElementById('result');
-            
-            const paths = [
-                '/themes/super_amoled_black_responsive.json',
-                '/themes/super_amoled_black.json',
-                './themes/super_amoled_black_responsive.json',
-                './themes/super_amoled_black.json'
-            ];
-            
-            for (const path of paths) {
-                try {
-                    console.log(`Trying: ${path}`);
-                    const response = await fetch(path);
-                    const status = response.status;
-                    const text = await response.text();
-                    
-                    resultDiv.innerHTML += `<p>Path: ${path} - Status: ${status} - Length: ${text.length}</p>`;
-                    
-                    if (response.ok) {
-                        const json = JSON.parse(text);
-                        resultDiv.innerHTML += `<p style="color: green;">✓ Successfully loaded theme: ${json.name}</p>`;
-                    }
-                } catch (error) {
-                    resultDiv.innerHTML += `<p style="color: red;">✗ Error loading ${path}: ${error.message}</p>`;
-                }
+      async function testThemeLoading() {
+        const resultDiv = document.getElementById('result');
+
+        const paths = [
+          '/themes/super_amoled_black_responsive.json',
+          '/themes/super_amoled_black.json',
+          './themes/super_amoled_black_responsive.json',
+          './themes/super_amoled_black.json'
+        ];
+
+        for (const path of paths) {
+          try {
+            console.log(`Trying: ${path}`);
+            const response = await fetch(path);
+            const status = response.status;
+            const text = await response.text();
+
+            resultDiv.innerHTML += `<p>Path: ${path} - Status: ${status} - Length: ${text.length}</p>`;
+
+            if (response.ok) {
+              const json = JSON.parse(text);
+              resultDiv.innerHTML += `<p style="color: green;">✓ Successfully loaded theme: ${json.name}</p>`;
             }
+          } catch (error) {
+            resultDiv.innerHTML += `<p style="color: red;">✗ Error loading ${path}: ${error.message}</p>`;
+          }
         }
-        
-        testThemeLoading();
+      }
+
+      testThemeLoading();
     </script>
-</body>
+  </body>
 </html>

@@ -133,14 +133,14 @@ function validateTheme(themeData: unknown): themeData is Theme {
   // Check required components - 'sdr' and 'dashboard' are optional for basic themes
   const requiredComponents = ['cli', 'map', 'button', 'plugin_card', 'accordion', 'hex_coin'];
   const optionalComponents = ['sdr', 'dashboard'];
-  
+
   for (const component of requiredComponents) {
     if (!(component in components)) {
       console.error(`Theme validation failed: missing required component '${component}'`);
       return false;
     }
   }
-  
+
   // Validate optional components if present
   for (const component of optionalComponents) {
     if (component in components) {
@@ -224,7 +224,7 @@ function applyThemeToRoot(themeData: Theme): void {
  */
 async function loadDefaultTheme(): Promise<Theme> {
   console.log('Loading hardcoded default theme...');
-  
+
   const defaultTheme: Theme = {
     name: 'default_fallback',
     metadata: {
@@ -310,7 +310,7 @@ async function loadDefaultTheme(): Promise<Theme> {
       button_press_scale: '0.98'
     }
   };
-  
+
   return defaultTheme;
 }
 
@@ -325,7 +325,9 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
   try {
     console.log(`Loading theme from: ${themePath}`);
     console.log(`Browser environment: ${browser}`);
-    console.log(`Window.__TAURI__ exists: ${'__TAURI__' in (typeof window !== 'undefined' ? window : {})}`);
+    console.log(
+      `Window.__TAURI__ exists: ${'__TAURI__' in (typeof window !== 'undefined' ? window : {})}`
+    );
 
     let themeContent: string | undefined;
 
@@ -333,17 +335,17 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
     if (!browser) {
       throw new Error('Theme loading is only supported in browser context');
     }
-    
+
     // Add a small delay on first load to ensure dev server is ready
     const win = window as any;
     if (typeof window !== 'undefined' && !win.__theme_init_delay__) {
       win.__theme_init_delay__ = true;
       console.log('[loadThemeFromFile] Adding initial delay for dev server readiness');
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
-    
+
     const isBrowser = browser && typeof window !== 'undefined';
-    
+
     if (isBrowser) {
       // Check if we're in a Tauri context
       if ('__TAURI__' in window) {
@@ -367,19 +369,19 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
           // Fall through to regular browser fetch logic
         }
       }
-      
+
       if (!themeContent) {
         // In regular browser, use multiple fallback paths with better URL construction
         const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
         const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
         const basePath = currentPath.endsWith('/') ? currentPath.slice(0, -1) : currentPath;
-        
+
         const fallbackPaths = [
           `/static/themes/${themeName}.json`, // Full static path (primary for dev)
           `/themes/${themeName}.json`, // Primary path from root
           `./themes/${themeName}.json`, // Relative path
           `themes/${themeName}.json`, // Without leading slash
-          `${basePath}/themes/${themeName}.json`, // Current path + themes
+          `${basePath}/themes/${themeName}.json` // Current path + themes
         ].filter(Boolean); // Remove any empty paths
 
         let lastError: Error | null = null;
@@ -392,13 +394,13 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
             const response = await fetch(fallbackPath, {
               method: 'GET',
               headers: {
-                'Accept': 'application/json',
+                Accept: 'application/json',
                 'Cache-Control': 'no-cache'
               },
               mode: 'cors',
               credentials: 'same-origin'
             });
-            
+
             if (response.ok) {
               themeContent = await response.text();
               fetchSuccess = true;
@@ -428,9 +430,13 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
             `Window location: ${(typeof window !== 'undefined' && window.location?.href) || 'unknown'}`,
             `Origin: ${currentOrigin || 'unknown'}`,
             `Protocol: ${(typeof window !== 'undefined' && window.location?.protocol) || 'unknown'}`,
-            isDev ? 'Dev server context - ensure static/themes/ directory exists and is accessible' : ''
-          ].filter(Boolean).join('\n');
-          
+            isDev
+              ? 'Dev server context - ensure static/themes/ directory exists and is accessible'
+              : ''
+          ]
+            .filter(Boolean)
+            .join('\n');
+
           console.error(errorDetails);
           throw new Error(`Failed to fetch`);
         }
@@ -440,7 +446,7 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
     if (!themeContent) {
       throw new Error('No theme content loaded');
     }
-    
+
     const themeData = JSON.parse(themeContent);
 
     if (!validateTheme(themeData)) {
@@ -462,7 +468,7 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
 export async function loadTheme(options: ThemeLoadOptions = {}): Promise<Theme> {
   console.log('[loadTheme] Starting theme load with options:', options);
   console.log('[loadTheme] Browser environment:', browser);
-  
+
   const {
     themeName = DEFAULT_THEME_NAME,
     fallbackTheme = DEFAULT_THEME_NAME,
@@ -490,7 +496,8 @@ export async function loadTheme(options: ThemeLoadOptions = {}): Promise<Theme> 
         try {
           themeData = await loadThemeFromFile(fallbackTheme);
         } catch (fallbackError) {
-          const errorMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+          const errorMsg =
+            fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
           // Try loading a hardcoded default theme as last resort
           console.log('Loading hardcoded default theme...');
           try {

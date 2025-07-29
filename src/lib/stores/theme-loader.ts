@@ -4,7 +4,7 @@
 import { browser } from '$app/environment';
 
 async function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function loadThemeWithRetry(themeName: string, maxRetries = 3): Promise<any> {
@@ -15,13 +15,13 @@ export async function loadThemeWithRetry(themeName: string, maxRetries = 3): Pro
 
   // Use the correct path that we know works
   const themePath = `/themes/${themeName}.json`;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`[ThemeLoader] Attempt ${attempt}/${maxRetries} loading ${themePath}`);
-      
+
       const response = await fetch(themePath);
-      
+
       if (response.ok) {
         const text = await response.text();
         const theme = JSON.parse(text);
@@ -32,7 +32,7 @@ export async function loadThemeWithRetry(themeName: string, maxRetries = 3): Pro
       }
     } catch (error) {
       console.error(`[ThemeLoader] Attempt ${attempt} failed:`, error);
-      
+
       if (attempt < maxRetries) {
         // Wait before retrying, with exponential backoff
         const waitTime = attempt * 500;
@@ -41,6 +41,6 @@ export async function loadThemeWithRetry(themeName: string, maxRetries = 3): Pro
       }
     }
   }
-  
+
   throw new Error(`Failed to load theme ${themeName} after ${maxRetries} attempts`);
 }

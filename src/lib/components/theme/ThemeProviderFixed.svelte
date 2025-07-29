@@ -5,17 +5,17 @@
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import { loadThemeFixed, theme, themeLoading, themeError } from '../../stores/theme-fix';
-  
+
   export let themeName: string = 'super_amoled_black_responsive';
   export let showError: boolean = true;
-  
+
   let mounted = false;
   let loadAttempted = false;
-  
+
   onMount(() => {
     mounted = true;
     console.log('[ThemeProviderFixed] Mounted, browser:', browser);
-    
+
     // Load theme after mount
     if (browser && !loadAttempted) {
       loadAttempted = true;
@@ -26,9 +26,7 @@
 
 <!-- Show loading state -->
 {#if $themeLoading}
-  <div class="theme-loading">
-    Loading theme...
-  </div>
+  <div class="theme-loading">Loading theme...</div>
 {/if}
 
 <!-- Show error if enabled -->
@@ -55,7 +53,7 @@
     text-align: center;
     z-index: 9999;
   }
-  
+
   .theme-error {
     position: fixed;
     top: 0;
@@ -67,7 +65,7 @@
     text-align: center;
     z-index: 9999;
   }
-  
+
   .theme-content {
     /* Use fallback colors if theme not loaded */
     background-color: var(--color-background_primary, #000);

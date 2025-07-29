@@ -136,12 +136,12 @@ export function getComponentTheme<T extends keyof Theme['components']>(
   fallback: string = 'inherit'
 ): string {
   if (!theme?.components) return fallback;
-  
+
   const componentData = theme.components[component];
-  if (!componentData || typeof componentData !== "object") return fallback;
-  
+  if (!componentData || typeof componentData !== 'object') return fallback;
+
   const value = (componentData as any)[property];
-  return (typeof value === "string" ? value : fallback);
+  return typeof value === 'string' ? value : fallback;
 }
 
 /**
@@ -188,12 +188,12 @@ export function getResponsiveTheme(
   fallback: string = 'inherit'
 ): string {
   if (!theme?.responsive?.[breakpoint]) return fallback;
-  
+
   const breakpointData = theme.responsive[breakpoint];
   if (!breakpointData || typeof breakpointData !== 'object') return fallback;
-  
+
   const value = (breakpointData as any)[property];
-  return (typeof value === 'string' ? value : fallback);
+  return typeof value === 'string' ? value : fallback;
 }
 
 /**
@@ -209,9 +209,9 @@ export function getTouchTheme(
   fallback: string = 'inherit'
 ): string {
   if (!theme?.touch) return fallback;
-  
+
   const value = (theme.touch as any)[property];
-  return (typeof value === 'string' ? value : fallback);
+  return typeof value === 'string' ? value : fallback;
 }
 
 /**
@@ -240,7 +240,14 @@ export function cssVar(
 export function cssVars(
   variables: Array<{
     name: string;
-    category: 'color' | 'typography' | 'layout' | 'component' | 'animation' | 'responsive' | 'touch';
+    category:
+      | 'color'
+      | 'typography'
+      | 'layout'
+      | 'component'
+      | 'animation'
+      | 'responsive'
+      | 'touch';
     key: string;
     component?: string;
   }>

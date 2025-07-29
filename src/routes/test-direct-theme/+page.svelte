@@ -1,27 +1,30 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  
+
   let fetchResults: any[] = [];
   let themeData: any = null;
-  
+
   async function testFetch(url: string) {
     const startTime = Date.now();
     try {
       const response = await fetch(url);
       const elapsed = Date.now() - startTime;
-      
+
       if (response.ok) {
         const data = await response.text();
-        fetchResults = [...fetchResults, {
-          url,
-          status: response.status,
-          statusText: response.statusText,
-          elapsed,
-          success: true,
-          dataLength: data.length,
-          preview: data.substring(0, 100) + '...'
-        }];
-        
+        fetchResults = [
+          ...fetchResults,
+          {
+            url,
+            status: response.status,
+            statusText: response.statusText,
+            elapsed,
+            success: true,
+            dataLength: data.length,
+            preview: data.substring(0, 100) + '...'
+          }
+        ];
+
         // Try to parse as JSON
         try {
           themeData = JSON.parse(data);
@@ -29,28 +32,34 @@
           console.error('Failed to parse JSON:', e);
         }
       } else {
-        fetchResults = [...fetchResults, {
-          url,
-          status: response.status,
-          statusText: response.statusText,
-          elapsed,
-          success: false,
-          error: `HTTP ${response.status}`
-        }];
+        fetchResults = [
+          ...fetchResults,
+          {
+            url,
+            status: response.status,
+            statusText: response.statusText,
+            elapsed,
+            success: false,
+            error: `HTTP ${response.status}`
+          }
+        ];
       }
     } catch (error) {
       const elapsed = Date.now() - startTime;
-      fetchResults = [...fetchResults, {
-        url,
-        status: 'Error',
-        statusText: error instanceof Error ? error.message : String(error),
-        elapsed,
-        success: false,
-        error: error instanceof Error ? error.toString() : String(error)
-      }];
+      fetchResults = [
+        ...fetchResults,
+        {
+          url,
+          status: 'Error',
+          statusText: error instanceof Error ? error.message : String(error),
+          elapsed,
+          success: false,
+          error: error instanceof Error ? error.toString() : String(error)
+        }
+      ];
     }
   }
-  
+
   onMount(async () => {
     // Test different URL patterns
     const urls = [
@@ -61,7 +70,7 @@
       window.location.origin + '/themes/super_amoled_black_responsive.json',
       '/themes/super_amoled_black.json'
     ];
-    
+
     for (const url of urls) {
       await testFetch(url);
     }
@@ -70,14 +79,14 @@
 
 <div class="test-container">
   <h1>Direct Theme Fetch Test</h1>
-  
+
   <div class="info">
     <h2>Environment Info:</h2>
     <p>Location: {typeof window !== 'undefined' ? window.location.href : 'SSR'}</p>
     <p>Origin: {typeof window !== 'undefined' ? window.location.origin : 'SSR'}</p>
     <p>Protocol: {typeof window !== 'undefined' ? window.location.protocol : 'SSR'}</p>
   </div>
-  
+
   <div class="results">
     <h2>Fetch Results:</h2>
     {#each fetchResults as result}
@@ -97,7 +106,7 @@
       </div>
     {/each}
   </div>
-  
+
   {#if themeData}
     <div class="theme-data">
       <h2>Theme Data Loaded:</h2>
@@ -116,18 +125,21 @@
     color: #fff;
     min-height: 100vh;
   }
-  
-  h1, h2 {
+
+  h1,
+  h2 {
     color: #00bfff;
   }
-  
-  .info, .results, .theme-data {
+
+  .info,
+  .results,
+  .theme-data {
     background: #1a1a1a;
     padding: 1rem;
     margin: 1rem 0;
     border-radius: 6px;
   }
-  
+
   .result {
     background: #2a2a2a;
     padding: 1rem;
@@ -135,26 +147,26 @@
     border-radius: 4px;
     border-left: 4px solid;
   }
-  
+
   .result.success {
     border-color: #00ff00;
   }
-  
+
   .result.error {
     border-color: #ff4444;
   }
-  
+
   h3 {
     margin: 0 0 0.5rem 0;
     font-size: 0.9em;
     word-break: break-all;
   }
-  
+
   p {
     margin: 0.25rem 0;
     font-size: 0.85em;
   }
-  
+
   pre {
     background: #0a0a0a;
     padding: 0.5rem;
@@ -163,11 +175,11 @@
     font-size: 0.8em;
     margin: 0.5rem 0 0 0;
   }
-  
+
   details {
     margin-top: 0.5rem;
   }
-  
+
   summary {
     cursor: pointer;
     font-size: 0.85em;

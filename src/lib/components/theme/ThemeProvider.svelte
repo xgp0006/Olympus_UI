@@ -41,7 +41,7 @@
       // Try one more time after a delay
       if (browser) {
         console.log('Retrying theme load after delay...');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
         try {
           const retryOptions: ThemeLoadOptions = {
             themeName: currentThemeName,
@@ -63,7 +63,7 @@
     if (autoLoad && browser) {
       // Add delay to ensure dev server and browser environment are ready
       console.log('[ThemeProvider] Waiting for environment to stabilize...');
-      await new Promise(resolve => setTimeout(resolve, 250));
+      await new Promise((resolve) => setTimeout(resolve, 250));
       await loadCurrentTheme();
     }
   });
@@ -96,9 +96,7 @@
       <span class="error-message">Theme Error: {$themeError}</span>
       <span class="error-hint">The app will continue with a default theme.</span>
     </div>
-    <button class="retry-button" on:click={() => loadCurrentTheme()}>
-      Retry
-    </button>
+    <button class="retry-button" on:click={() => loadCurrentTheme()}> Retry </button>
   </div>
 {/if}
 
@@ -170,7 +168,7 @@
     font-size: 0.9em;
     font-weight: 600;
   }
-  
+
   .error-hint {
     font-size: 0.8em;
     opacity: 0.9;

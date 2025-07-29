@@ -135,13 +135,13 @@
       onLongPress: () => {
         // Long press to toggle expansion
         togglePanel();
-        
+
         // Haptic feedback if supported
         if ('vibrate' in navigator) {
           navigator.vibrate(50);
         }
       },
-      
+
       onTap: () => {
         // Single tap to toggle when collapsed
         if (!isExpanded) {
@@ -152,7 +152,7 @@
       onDoubleTap: () => {
         // Double tap to toggle in any state
         togglePanel();
-        
+
         // Haptic feedback if supported
         if ('vibrate' in navigator) {
           navigator.vibrate([30, 30, 30]);
@@ -168,7 +168,7 @@
           // Pan down when expanded to resize
           const newHeight = Math.max(100, panelHeight - gesture.deltaY);
           panelHeight = newHeight;
-          
+
           if (cliView) {
             setTimeout(() => {
               cliView?.resizeTerminal();
@@ -206,7 +206,7 @@
       document.removeEventListener('mousemove', handleResizeDrag);
       document.removeEventListener('mouseup', handleResizeEnd);
     }
-    
+
     // Clean up touch gestures
     if (touchGestureCleanup) {
       touchGestureCleanup();
@@ -229,14 +229,16 @@
     on:mousedown={handleResizeStart}
     on:click={() => !isExpanded && togglePanel()}
     on:dblclick={togglePanel}
-    aria-label={isExpanded ? "Resize CLI panel" : "Expand CLI panel"}
+    aria-label={isExpanded ? 'Resize CLI panel' : 'Expand CLI panel'}
     data-testid="resize-handle"
-    title={isExpanded ? "Drag to resize • Double-click or long press to collapse" : "Click, double-click, or long press to expand"}
+    title={isExpanded
+      ? 'Drag to resize • Double-click or long press to collapse'
+      : 'Click, double-click, or long press to expand'}
   >
     <div class="resize-indicator">
       <div class="center-handle">
         <svg viewBox="0 0 24 24" fill="currentColor" class="handle-icon">
-          <path d="M8 6h8v2H8V6zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
+          <path d="M8 6h8v2H8V6zm0 4h8v2H8v-2zm0 4h8v2H8v-2z" />
         </svg>
       </div>
     </div>

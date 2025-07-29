@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  
+
   let results: string[] = [];
-  
+
   onMount(async () => {
     // Test different fetch paths
     const paths = [
@@ -11,13 +11,13 @@
       './themes/super_amoled_black_responsive.json',
       'themes/super_amoled_black_responsive.json'
     ];
-    
+
     for (const path of paths) {
       try {
         results = [...results, `Testing: ${path}`];
         const response = await fetch(path);
         results = [...results, `Status: ${response.status}, OK: ${response.ok}`];
-        
+
         if (response.ok) {
           const text = await response.text();
           results = [...results, `Content length: ${text.length}`];
@@ -47,7 +47,7 @@
     color: white;
     padding: 1rem;
   }
-  
+
   p {
     color: white;
     padding: 0.5rem 1rem;

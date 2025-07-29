@@ -50,10 +50,13 @@
     // Position in center-right of screen, away from other UI elements
     const defaultX = typeof window !== 'undefined' ? window.innerWidth - 150 : 200;
     const defaultY = typeof window !== 'undefined' ? window.innerHeight / 2 : 150;
-    
+
     return {
       x: Math.max(100, defaultX), // Ensure it's at least 100px from left edge
-      y: Math.max(100, Math.min(defaultY, (typeof window !== 'undefined' ? window.innerHeight - 100 : 400))) // Keep it within bounds
+      y: Math.max(
+        100,
+        Math.min(defaultY, typeof window !== 'undefined' ? window.innerHeight - 100 : 400)
+      ) // Keep it within bounds
     };
   }
 
@@ -141,7 +144,7 @@
    */
   function handleComponentDragStart(event: MouseEvent): void {
     if (isDocked) return; // Can't drag when docked
-    
+
     isDragging = true;
     const startX = event.clientX - componentPosition.x;
     const startY = event.clientY - componentPosition.y;
@@ -324,28 +327,32 @@
     class:docked={isDocked}
     class:undocked={!isDocked}
     class:dragging={isDragging}
-    style={!isDocked ? `position: absolute; left: ${componentPosition.x}px; top: ${componentPosition.y}px; width: 320px;` : ''}
+    style={!isDocked
+      ? `position: absolute; left: ${componentPosition.x}px; top: ${componentPosition.y}px; width: 320px;`
+      : ''}
     bind:this={accordionElement}
     data-testid="mission-accordion"
   >
-    <div 
+    <div
       class="accordion-header"
-      role={!isDocked ? "button" : undefined}
+      role={!isDocked ? 'button' : undefined}
       tabindex={!isDocked ? 0 : undefined}
       on:mousedown={!isDocked ? handleComponentDragStart : undefined}
-      on:keydown={!isDocked ? (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          // Create a synthetic mouse event for keyboard activation
-          const syntheticEvent = new MouseEvent('mousedown', {
-            clientX: 0,
-            clientY: 0,
-            bubbles: true
-          });
-          handleComponentDragStart(syntheticEvent);
-        }
-      } : undefined}
-      aria-label={!isDocked ? "Drag to move component" : undefined}
+      on:keydown={!isDocked
+        ? (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              // Create a synthetic mouse event for keyboard activation
+              const syntheticEvent = new MouseEvent('mousedown', {
+                clientX: 0,
+                clientY: 0,
+                bubbles: true
+              });
+              handleComponentDragStart(syntheticEvent);
+            }
+          }
+        : undefined}
+      aria-label={!isDocked ? 'Drag to move component' : undefined}
     >
       <div class="header-title">
         <h3>Waypoint Component</h3>
@@ -358,9 +365,9 @@
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               {#if isDocked}
-                <path d="M3 3h10v10H3V3zm2 2v6h6V5H5z"/>
+                <path d="M3 3h10v10H3V3zm2 2v6h6V5H5z" />
               {:else}
-                <path d="M2 2h4v4H2V2zm8 0h4v4h-4V2zM2 10h4v4H2v-4zm8 0h4v4h-4v-4z"/>
+                <path d="M2 2h4v4H2V2zm8 0h4v4h-4V2zM2 10h4v4H2v-4zm8 0h4v4h-4v-4z" />
               {/if}
             </svg>
           </button>
@@ -384,7 +391,7 @@
           data-testid="add-waypoint-button"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 2v6H2v2h6v6h2v-6h6V8h-6V2H8z"/>
+            <path d="M8 2v6H2v2h6v6h2v-6h6V8h-6V2H8z" />
           </svg>
           <span>Add Waypoint</span>
         </button>
@@ -394,81 +401,77 @@
       </div>
     </div>
 
-  {#if accordionItems.length === 0}
-    <div class="empty-state" data-testid="accordion-empty">
-      <div class="empty-icon">📋</div>
-      <p>No mission items</p>
-      <span class="empty-hint">Click on the map to add waypoints</span>
-    </div>
-  {:else}
-    <div
-      class="accordion-content"
-      use:dndzone={{
-        items: accordionItems,
-        dragDisabled: dragDisabled || $isMobile,
-        dropTargetStyle: {},
-        morphDisabled: true,
-        flipDurationMs: 200,
-        dropFromOthersDisabled: true
-      }}
-      on:consider={handleDndConsider}
-      on:finalize={handleDndFinalize}
-    >
-      {#each accordionItems as item (item.id)}
-        <div
-          class="accordion-item"
-          class:selected={selectedItemId === item.id}
-          animate:flip={{ duration: 200 }}
-          data-testid="accordion-item-{item.id}"
-        >
-          <div class="item-header">
-            <div class="drag-handle" title="Drag to reorder">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                <circle cx="3" cy="3" r="1" />
-                <circle cx="9" cy="3" r="1" />
-                <circle cx="3" cy="6" r="1" />
-                <circle cx="9" cy="6" r="1" />
-                <circle cx="3" cy="9" r="1" />
-                <circle cx="9" cy="9" r="1" />
-              </svg>
+    {#if accordionItems.length === 0}
+      <div class="empty-state" data-testid="accordion-empty">
+        <div class="empty-icon">📋</div>
+        <p>No mission items</p>
+        <span class="empty-hint">Click on the map to add waypoints</span>
+      </div>
+    {:else}
+      <div
+        class="accordion-content"
+        use:dndzone={{
+          items: accordionItems,
+          dragDisabled: dragDisabled || $isMobile,
+          dropTargetStyle: {},
+          morphDisabled: true,
+          flipDurationMs: 200,
+          dropFromOthersDisabled: true
+        }}
+        on:consider={handleDndConsider}
+        on:finalize={handleDndFinalize}
+      >
+        {#each accordionItems as item (item.id)}
+          <div
+            class="accordion-item"
+            class:selected={selectedItemId === item.id}
+            animate:flip={{ duration: 200 }}
+            data-testid="accordion-item-{item.id}"
+          >
+            <div class="item-header">
+              <div class="drag-handle" title="Drag to reorder">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                  <circle cx="3" cy="3" r="1" />
+                  <circle cx="9" cy="3" r="1" />
+                  <circle cx="3" cy="6" r="1" />
+                  <circle cx="9" cy="6" r="1" />
+                  <circle cx="3" cy="9" r="1" />
+                  <circle cx="9" cy="9" r="1" />
+                </svg>
+              </div>
+
+              <button
+                class="item-selector"
+                class:selected={selectedItemId === item.id}
+                on:click={() => handleItemSelect(item.id)}
+                on:keydown={(e) => handleKeyDown(e, item.id)}
+                title="Select item"
+              >
+                <div class="item-icon" style="color: {getItemTypeColor(item.type)}">
+                  {getItemTypeIcon(item.type)}
+                </div>
+
+                <div class="item-info">
+                  <div class="item-name">{item.name}</div>
+                  <div class="item-type">{item.type.toUpperCase()}</div>
+                  {#if item.position}
+                    <div class="item-coordinates">
+                      {item.position.lat.toFixed(4)}, {item.position.lng.toFixed(4)}
+                    </div>
+                  {/if}
+                </div>
+              </button>
             </div>
 
-            <button
-              class="item-selector"
-              class:selected={selectedItemId === item.id}
-              on:click={() => handleItemSelect(item.id)}
-              on:keydown={(e) => handleKeyDown(e, item.id)}
-              title="Select item"
-            >
-              <div class="item-icon" style="color: {getItemTypeColor(item.type)}">
-                {getItemTypeIcon(item.type)}
+            {#if selectedItemId === item.id}
+              <div class="item-details">
+                <WaypointItem {item} on:update={handleItemUpdate} />
               </div>
-
-              <div class="item-info">
-                <div class="item-name">{item.name}</div>
-                <div class="item-type">{item.type.toUpperCase()}</div>
-                {#if item.position}
-                  <div class="item-coordinates">
-                    {item.position.lat.toFixed(4)}, {item.position.lng.toFixed(4)}
-                  </div>
-                {/if}
-              </div>
-            </button>
-
+            {/if}
           </div>
-
-          {#if selectedItemId === item.id}
-            <div class="item-details">
-              <WaypointItem
-                {item}
-                on:update={handleItemUpdate}
-              />
-            </div>
-          {/if}
-        </div>
-      {/each}
-    </div>
-  {/if}
+        {/each}
+      </div>
+    {/if}
   </div>
 {/if}
 
@@ -722,7 +725,6 @@
     font-family: var(--typography-font_family_mono);
   }
 
-
   .item-details {
     border-top: var(--layout-border_width) solid var(--component-accordion-border_color);
     background-color: var(--color-background_primary);
@@ -766,7 +768,6 @@
   :global(.accordion-content.dnd-action-drop-target) {
     background-color: rgba(0, 191, 255, 0.05);
   }
-
 
   /* Touch-optimized styles */
   .mission-accordion.mobile .item-selector {

@@ -5,17 +5,21 @@
 ## Pre-Development Task Analysis
 
 ### Phase 0: Task Master Integration & Context
+
 **MANDATORY BEFORE ANY DEVELOPMENT:**
+
 - [ ] **Read CLAUDE.md COMPLETELY** - Focus on Code Coherence and Consistency section for architectural patterns, naming conventions, error handling consistency, testing patterns, and future-proofing strategies
 - [ ] **Read design specifications**: `@".kiro/specs/olympus-cli-interconnectivity/design.md"`
 - [ ] **Read system requirements**: `@".kiro/specs/olympus-cli-interconnectivity/requirements.md"`
-- [ ] **Load Task Master context**: Use mcp__task-master-ai__get_task for current task details
+- [ ] **Load Task Master context**: Use mcp**task-master-ai**get_task for current task details
 - [ ] **Analyze task dependencies**: Check if other tasks must complete first
 - [ ] **Map task scope**: Identify all files, modules, and integrations affected
 - [ ] **Validate task readiness**: Ensure all prerequisites are met
 
 ### Phase 0.1: Agent Work Assignment Prevention
+
 **CRITICAL: NO OVERLAPPING WORK ASSIGNMENTS**
+
 ```bash
 # Create exclusive task lock file
 echo "SD_AGENT_LOCK: $(date +%s) - Task $(TASK_ID)" > .task-locks/sd-lock-$(date +%s).txt
@@ -26,31 +30,38 @@ ps aux | grep -E "(SD|Sequential|Development)" | grep -v grep || echo "CLEAR TO 
 ## Phase 1: Comprehensive Research & Intelligence
 
 ### 1.1 External Research (Sequential - Wait for Completion)
+
 **Agent Assignment: RESEARCH_SPECIALIST_1**
 **TASK SCOPE: Information gathering only - NO CODE IMPLEMENTATION**
 
 #### Pre-Implementation Research
+
 - [ ] **WebSearch**: Research aerospace-grade solutions for specific task requirements
 - [ ] **WebFetch**: Gather official documentation and NASA JPL compliance standards
 - [ ] **GitHub Search**: Find reference implementations and proven aerospace patterns
 - [ ] **Context7**: Research library-specific best practices for task components
-- [ ] **Task Master Research**: Use mcp__task-master-ai__research for task-specific intelligence
+- [ ] **Task Master Research**: Use mcp**task-master-ai**research for task-specific intelligence
 
 #### Research Documentation Requirements
+
 ```markdown
 # Research Report - Task [ID]
+
 ## Task Scope Understanding
+
 - Primary objective: [Clear task goal]
 - Acceptance criteria: [Specific requirements]
 - NASA JPL compliance requirements: [Applicable rules]
 
 ## External Intelligence
+
 - Best practices found: [List with sources]
 - Reference implementations: [GitHub links and analysis]
 - Aerospace standards: [Relevant guidelines]
 - Library documentation: [Context7 findings]
 
 ## Implementation Strategy
+
 - Recommended approach: [Based on research]
 - Aerospace compliance plan: [NASA JPL rule adherence]
 - Risk factors identified: [Potential issues]
@@ -59,10 +70,12 @@ ps aux | grep -E "(SD|Sequential|Development)" | grep -v grep || echo "CLEAR TO 
 **GATE CHECKPOINT**: Research complete and documented before proceeding
 
 ### 1.2 Codebase Pattern Analysis (Wait for 1.1 Completion)
+
 **Agent Assignment: PATTERN_ANALYSIS_SPECIALIST_1**
 **TASK SCOPE: Analysis only - NO CODE CHANGES**
 
 #### Existing Code Pattern Investigation
+
 - [ ] **Scan target modules** for existing error handling patterns
 - [ ] **Document function signatures** and return types in task scope
 - [ ] **Identify testing patterns** used in similar code sections
@@ -73,6 +86,7 @@ ps aux | grep -E "(SD|Sequential|Development)" | grep -v grep || echo "CLEAR TO 
 - [ ] **Map interconnectivity patterns** (MAVLink, ROS2, GPS, Core message bus integration)
 
 #### Codebase Coherence Analysis
+
 ```rust
 // Coherence Analysis Report - Task [ID]
 /*
@@ -105,6 +119,7 @@ TESTING CONSISTENCY:
 ```
 
 #### Pattern Documentation
+
 ```rust
 // Pattern Analysis Report - Task [ID]
 /*
@@ -130,12 +145,14 @@ EXISTING FUNCTION ORGANIZATION:
 ## Phase 2: NASA JPL Compliance Pre-Validation
 
 ### 2.1 Pre-Implementation Compliance Planning
+
 **Agent Assignment: COMPLIANCE_PLANNING_SPECIALIST_1**
 **TASK SCOPE: Compliance verification only - NO CODE IMPLEMENTATION**
 
 #### Complete NASA JPL Rule Analysis for Task
 
 ##### Rule 1: Cyclomatic Complexity (≤10 per function)
+
 - [ ] **Plan**: Break task into functions with single responsibility
 - [ ] **Design**: Minimize nested conditions (≤3 levels maximum)
 - [ ] **Strategy**: Extract complex logic into helper functions
@@ -143,6 +160,7 @@ EXISTING FUNCTION ORGANIZATION:
 - [ ] **Document**: Function complexity targets for each component
 
 ##### Rule 2: Dynamic Memory Allocation
+
 - [ ] **Plan**: Use existing memory allocation patterns from codebase
 - [ ] **Design**: Leverage `heapless` collections for bounded operations
 - [ ] **Strategy**: Pre-allocate arrays with fixed sizes
@@ -150,6 +168,7 @@ EXISTING FUNCTION ORGANIZATION:
 - [ ] **Document**: Memory usage patterns for task implementation
 
 ##### Rule 3: Recursion
+
 - [ ] **Plan**: Design iterative solutions only
 - [ ] **Design**: Explicit and finite loop bounds
 - [ ] **Strategy**: Stack-based traversal for any tree structures
@@ -157,6 +176,7 @@ EXISTING FUNCTION ORGANIZATION:
 - [ ] **Document**: Iteration patterns for complex operations
 
 ##### Rule 4: Function Length (≤60 lines)
+
 - [ ] **Plan**: Decompose task into functions ≤60 lines each
 - [ ] **Design**: Single responsibility principle for each function
 - [ ] **Strategy**: Create helper functions for repeated logic
@@ -164,6 +184,7 @@ EXISTING FUNCTION ORGANIZATION:
 - [ ] **Document**: Function breakdown strategy
 
 ##### Rule 5: Assertions
+
 - [ ] **Plan**: Parameter validation for all public functions
 - [ ] **Design**: Return value verification strategy
 - [ ] **Strategy**: Boundary condition checking approach
@@ -171,6 +192,7 @@ EXISTING FUNCTION ORGANIZATION:
 - [ ] **Document**: Assertion placement strategy
 
 ##### Rule 6: Minimal Scope
+
 - [ ] **Plan**: Variable declaration at point of use
 - [ ] **Design**: Const usage for immutable values
 - [ ] **Strategy**: Minimal scope variable management
@@ -178,6 +200,7 @@ EXISTING FUNCTION ORGANIZATION:
 - [ ] **Document**: Scope management strategy
 
 ##### Rule 7: Return Value Checking
+
 - [ ] **Plan**: All function calls handle return values
 - [ ] **Design**: No ignored `Result` types
 - [ ] **Strategy**: Error condition handling approach
@@ -185,6 +208,7 @@ EXISTING FUNCTION ORGANIZATION:
 - [ ] **Document**: Error handling strategy
 
 ##### Rule 8: Preprocessor Use (Rust: Macros)
+
 - [ ] **Plan**: Simple declarative macros only
 - [ ] **Design**: No complex procedural macros
 - [ ] **Strategy**: Replace macros with functions where possible
@@ -192,6 +216,7 @@ EXISTING FUNCTION ORGANIZATION:
 - [ ] **Document**: Macro usage justification
 
 ##### Rule 9: Pointer Use (Rust: References & Raw Pointers)
+
 - [ ] **Plan**: Maximum one level of dereferencing
 - [ ] **Design**: Slice indexing over pointer arithmetic
 - [ ] **Strategy**: References over raw pointers always
@@ -199,6 +224,7 @@ EXISTING FUNCTION ORGANIZATION:
 - [ ] **Document**: Reference usage strategy
 
 ##### Rule 10: Compiler Warnings
+
 - [ ] **Plan**: Zero warnings target
 - [ ] **Design**: Clean compilation strategy
 - [ ] **Strategy**: No `#[allow(warnings)]` in production
@@ -210,16 +236,18 @@ EXISTING FUNCTION ORGANIZATION:
 ## Phase 3: Exclusive Implementation Planning
 
 ### 3.1 Sequential Agent Assignment Protocol
+
 **Agent Assignment: IMPLEMENTATION_COORDINATOR_1**
 
 #### File-Based Work Distribution
+
 ```bash
 # Create file assignment matrix (NO OVERLAPS ALLOWED)
 TASK_FILES=$(mcp__task-master-ai__get_task [TASK_ID] | grep -E '\.rs$' | sort)
 
 # Assign exclusive ownership
 AGENT_1_FILES="[List specific files]"  # Implementation Agent 1
-AGENT_2_FILES="[List specific files]"  # Testing Agent 1  
+AGENT_2_FILES="[List specific files]"  # Testing Agent 1
 AGENT_3_FILES="[List specific files]"  # Integration Agent 1
 
 # Create file locks
@@ -229,22 +257,26 @@ done
 ```
 
 #### Sequential Implementation Strategy
+
 ```markdown
 # Implementation Sequence - Task [ID]
 
 ## Phase 3A: Core Implementation (IMPLEMENTATION_AGENT_1)
+
 - Files: [Specific file list]
 - Dependencies: Wait for Research completion
 - Validation: Per-file compilation check
 - Duration: Estimated completion time
 
-## Phase 3B: Testing Implementation (TESTING_AGENT_1) 
+## Phase 3B: Testing Implementation (TESTING_AGENT_1)
+
 - Files: [Test file list]
 - Dependencies: Wait for Phase 3A completion
 - Validation: Test compilation and execution
 - Duration: Estimated completion time
 
 ## Phase 3C: Integration Validation (INTEGRATION_AGENT_1)
+
 - Files: [Integration test files]
 - Dependencies: Wait for Phase 3B completion
 - Validation: Full workspace compilation
@@ -254,6 +286,7 @@ done
 ### 3.2 Agent Synchronization Protocol
 
 #### Pre-Work Checklist for Each Agent
+
 ```bash
 # Before starting ANY implementation work
 AGENT_CHECK() {
@@ -267,13 +300,13 @@ AGENT_CHECK() {
             fi
         fi
     done
-    
+
     # 2. Verify previous phase completion
     if [ ! -f ".phase-completions/phase-$(($CURRENT_PHASE - 1)).complete" ]; then
         echo "ERROR: Previous phase not complete"
         exit 1
     fi
-    
+
     # 3. Load research and compliance documentation
     source research-report-task-$TASK_ID.sh
     source compliance-plan-task-$TASK_ID.sh
@@ -283,10 +316,12 @@ AGENT_CHECK() {
 ## Phase 4: Accurate Implementation with Zero Errors
 
 ### 4.1 Implementation Agent Protocol
+
 **Agent Assignment: IMPLEMENTATION_AGENT_1**
 **EXCLUSIVE FILE ACCESS: Core implementation files only**
 
 #### Pre-Implementation Validation
+
 - [ ] **Load research findings**: All external intelligence gathered
 - [ ] **Load pattern analysis**: Existing codebase patterns documented
 - [ ] **Load compliance plan**: NASA JPL rule adherence strategy
@@ -294,6 +329,7 @@ AGENT_CHECK() {
 - [ ] **Baseline test**: `cargo check --package [target-crate]` passes
 
 #### Implementation Requirements (MANDATORY)
+
 - [ ] **Match existing code style**: Follow exact patterns from pattern analysis
 - [ ] **Maintain architectural coherence**: Follow interconnectivity design patterns
 - [ ] **Implement NASA JPL compliance**: Follow every rule from compliance plan
@@ -304,6 +340,7 @@ AGENT_CHECK() {
 - [ ] **Maintain interconnectivity**: Follow established MAVLink, ROS2, GPS, Core integration patterns
 
 #### Codebase Coherence Enforcement (MANDATORY - Per CLAUDE.md)
+
 ```rust
 // MANDATORY: Each implementation must maintain coherence per CLAUDE.md guidelines
 fn enforce_codebase_coherence() -> Result<(), CoherenceError> {
@@ -311,58 +348,61 @@ fn enforce_codebase_coherence() -> Result<(), CoherenceError> {
     assert!(follows_module_organization_pattern()); // lib.rs, error.rs, domain modules
     assert!(follows_naming_conventions()); // snake_case, PascalCase, SCREAMING_SNAKE_CASE
     assert!(follows_import_organization()); // std, external, local order
-    
+
     // Interconnectivity consistency (CLAUDE.md Data Flow Consistency)
     assert!(follows_mavlink_integration_pattern()); // olympus-mavlink patterns
-    assert!(follows_ros2_integration_pattern()); // olympus-ros2 patterns  
+    assert!(follows_ros2_integration_pattern()); // olympus-ros2 patterns
     assert!(follows_gps_integration_pattern()); // olympus-gps patterns
     assert!(follows_core_message_bus_pattern()); // universal event bus
-    
+
     // Error handling consistency (CLAUDE.md Error Handling section)
     assert!(uses_consistent_error_types()); // OlympusError, crate-specific errors
     assert!(follows_result_propagation_pattern()); // aerospace-grade patterns
-    
+
     // Testing consistency (CLAUDE.md Testing Consistency section)
     assert!(follows_test_organization_pattern()); // tests/ directory structure
     assert!(uses_consistent_mock_patterns()); // factory patterns
-    
+
     // Documentation consistency (CLAUDE.md Documentation Standards)
     assert!(follows_documentation_style()); // usage examples, safety considerations
     assert!(includes_aerospace_safety_notes()); // performance characteristics
-    
+
     Ok(())
 }
 ```
 
 #### Implementation Verification Per Function
+
 ```rust
 // MANDATORY: Each function must pass this verification
 fn verify_implementation_compliance() -> Result<(), ComplianceError> {
     // Rule 1: Cyclomatic complexity ≤10
     assert!(cyclomatic_complexity() <= 10);
-    
+
     // Rule 4: Function length ≤60 lines
     assert!(line_count() <= 60);
-    
+
     // Rule 5: All parameters validated
     assert!(all_parameters_validated());
-    
+
     // Rule 7: All return values handled
     assert!(no_ignored_results());
-    
+
     // Rule 10: No warnings
     assert!(cargo_clippy_clean());
-    
+
     Ok(())
 }
 ```
 
-### 4.2 Testing Agent Protocol  
+### 4.2 Testing Agent Protocol
+
 **Agent Assignment: TESTING_AGENT_1**
 **EXCLUSIVE FILE ACCESS: Test files only**
 **DEPENDENCY: Wait for IMPLEMENTATION_AGENT_1 completion**
 
 #### Test Implementation Requirements
+
 - [ ] **Wait for implementation completion**: Verify `.phase-completions/implementation.complete`
 - [ ] **Load implementation details**: Review what was implemented
 - [ ] **Create comprehensive tests**: Cover all aerospace requirements
@@ -370,6 +410,7 @@ fn verify_implementation_compliance() -> Result<(), ComplianceError> {
 - [ ] **Test error conditions**: Aerospace-grade error handling validation
 
 #### Test Categories (ALL REQUIRED)
+
 ```rust
 #[cfg(test)]
 mod aerospace_compliance_tests {
@@ -381,7 +422,7 @@ mod aerospace_compliance_tests {
     #[test] fn test_parameter_validation() { /* verify all params checked */ }
     #[test] fn test_minimal_scope() { /* verify variable scoping */ }
     #[test] fn test_return_value_checking() { /* verify all Results handled */ }
-    
+
     // Aerospace-specific tests
     #[test] fn test_real_time_constraints() { /* verify performance */ }
     #[test] fn test_error_recovery() { /* verify graceful degradation */ }
@@ -395,14 +436,14 @@ mod codebase_coherence_tests {
     #[test] fn test_naming_convention_consistency() { /* verify snake_case, PascalCase */ }
     #[test] fn test_import_organization_consistency() { /* verify std, external, local order */ }
     #[test] fn test_error_type_consistency() { /* verify OlympusError usage */ }
-    
+
     // Interconnectivity pattern tests
     #[test] fn test_mavlink_integration_pattern() { /* verify follows olympus-mavlink patterns */ }
     #[test] fn test_ros2_integration_pattern() { /* verify follows olympus-ros2 patterns */ }
     #[test] fn test_gps_integration_pattern() { /* verify follows olympus-gps patterns */ }
     #[test] fn test_core_message_bus_pattern() { /* verify follows olympus-core patterns */ }
     #[test] fn test_plugin_architecture_pattern() { /* verify follows olympus-plugin patterns */ }
-    
+
     // Design specification compliance tests
     #[test] fn test_cli_interconnectivity_requirements() { /* verify .kiro/specs requirements */ }
     #[test] fn test_design_specification_compliance() { /* verify .kiro/specs design */ }
@@ -411,11 +452,13 @@ mod codebase_coherence_tests {
 ```
 
 ### 4.3 Integration Agent Protocol
-**Agent Assignment: INTEGRATION_AGENT_1** 
+
+**Agent Assignment: INTEGRATION_AGENT_1**
 **EXCLUSIVE FILE ACCESS: Integration test files only**
 **DEPENDENCY: Wait for TESTING_AGENT_1 completion**
 
 #### Integration Validation Requirements
+
 - [ ] **Wait for testing completion**: Verify `.phase-completions/testing.complete`
 - [ ] **Full workspace compilation**: `cargo build --workspace`
 - [ ] **All tests pass**: `cargo test --workspace`
@@ -430,15 +473,18 @@ mod codebase_coherence_tests {
 ## Phase 5: Task Master Integration & Validation
 
 ### 5.1 Task Completion Validation
+
 **Agent Assignment: VALIDATION_AGENT_1**
 
 #### Task Master Status Update
+
 - [ ] **Update task status**: `mcp__task-master-ai__set_task_status [TASK_ID] "review"`
 - [ ] **Document implementation**: `mcp__task-master-ai__update_task [TASK_ID] "Implementation complete with NASA JPL compliance"`
 - [ ] **Add implementation details**: Document what was built and how
 - [ ] **Link to aerospace standards**: Reference compliance verification
 
 #### Final Validation Checklist
+
 - [ ] **Zero compilation errors**: `cargo build --workspace` succeeds
 - [ ] **Zero warnings**: `cargo clippy --workspace --all-targets -- -D warnings` clean
 - [ ] **All tests pass**: `cargo test --workspace` success
@@ -455,9 +501,11 @@ mod codebase_coherence_tests {
 ## Phase 6: Cleanup & Lock Release
 
 ### 6.1 Agent Resource Cleanup
+
 **Agent Assignment: CLEANUP_AGENT_1**
 
 #### Release File Locks
+
 ```bash
 # Release all file locks
 for lock_file in .task-locks/*.lock; do
@@ -474,6 +522,7 @@ mcp__task-master-ai__set_task_status $TASK_ID "done"
 ```
 
 #### Cleanup Validation
+
 - [ ] **All locks released**: No `.task-locks/*.lock` files remain for this task
 - [ ] **Task marked complete**: Task Master status updated
 - [ ] **Workspace clean**: No temporary files or artifacts
@@ -482,9 +531,10 @@ mcp__task-master-ai__set_task_status $TASK_ID "done"
 ## Critical Success Criteria
 
 **TASK COMPLETION ONLY WHEN:**
+
 - [ ] All NASA JPL Power of 10 rules verified and documented
 - [ ] Zero compilation errors in workspace build
-- [ ] Zero warnings from clippy analysis  
+- [ ] Zero warnings from clippy analysis
 - [ ] All tests pass with aerospace-grade coverage
 - [ ] **Codebase coherence maintained**: All architectural patterns followed
 - [ ] **Interconnectivity integrity verified**: MAVLink, ROS2, GPS, Core integration consistent
