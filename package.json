@@ -6,6 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite dev",
+    "dev:clean": "node scripts/dev-clean.js",
+    "dev:kill": "node scripts/kill-port.js",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",

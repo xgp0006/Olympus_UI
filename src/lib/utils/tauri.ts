@@ -1284,3 +1284,53 @@ export function shutdownApiUtilities(): void {
 
   console.log('API utilities shut down gracefully');
 }
+
+/**
+ * Backward compatibility alias for safeTauriInvoke
+ * @deprecated Use safeTauriInvoke instead
+ */
+export const safeInvoke = safeTauriInvoke;
+
+/**
+ * Safe filesystem operations
+ */
+export async function writeTextFile(
+  filePath: string, 
+  contents: string, 
+  options?: { dir?: unknown }
+): Promise<void> {
+  const result = await safeTauriInvoke<void>('plugin:fs|write_text_file', { 
+    path: filePath, 
+    contents,
+    options 
+  });
+  if (result === null) {
+    throw new Error(`Failed to write file: ${filePath}`);
+  }
+}
+
+export async function readTextFile(
+  filePath: string, 
+  options?: { dir?: unknown }
+): Promise<string> {
+  const result = await safeTauriInvoke<string>('plugin:fs|read_text_file', { 
+    path: filePath,
+    options 
+  });
+  if (result === null) {
+    throw new Error(`Failed to read file: ${filePath}`);
+  }
+  return result;
+}
+
+/**
+ * Event listener wrapper
+ */
+export const listen = setupEventListener;
+
+/**
+ * Event emitter wrapper  
+ */
+export async function emit(event: string, payload?: unknown): Promise<void> {
+  return TauriApi.emit(event, payload).then(() => {});
+}

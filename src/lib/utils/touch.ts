@@ -4,6 +4,8 @@
  * Requirements: 1.8, 4.5, 4.6
  */
 
+import { BoundedArray } from './bounded-array'; // NASA JPL Rule 2
+
 // ===== TOUCH EVENT TYPES =====
 
 export interface TouchPoint {
@@ -60,12 +62,18 @@ export interface LongPressGesture {
 // ===== GESTURE RECOGNITION =====
 
 export class TouchGestureRecognizer {
+  // NASA JPL Rule 2: Bounded memory allocation for touch points
+  private readonly MAX_TOUCH_POINTS = 10; // Support up to 10 concurrent touches
+  private readonly startPointsPool = new BoundedArray<TouchPoint>(this.MAX_TOUCH_POINTS);
+  private readonly currentPointsPool = new BoundedArray<TouchPoint>(this.MAX_TOUCH_POINTS);
+  private readonly lastPointsPool = new BoundedArray<TouchPoint>(this.MAX_TOUCH_POINTS);
+  
   private gestureState: GestureState = {
     isActive: false,
     startTime: 0,
-    startPoints: [],
-    currentPoints: [],
-    lastPoints: []
+    startPoints: this.startPointsPool.toArray(), // NASA JPL Rule 2: Bounded
+    currentPoints: this.currentPointsPool.toArray(), // NASA JPL Rule 2: Bounded
+    lastPoints: this.lastPointsPool.toArray() // NASA JPL Rule 2: Bounded
   };
 
   private tapTimeout: number | null = null;

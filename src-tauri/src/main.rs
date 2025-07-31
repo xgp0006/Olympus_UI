@@ -7,6 +7,9 @@ use std::sync::Mutex;
 use tauri::Manager;
 use tauri::State;
 
+mod map_features;
+mod mavlink;
+
 // Application state for mission data
 #[derive(Default)]
 struct AppState {
@@ -91,14 +94,14 @@ async fn run_cli_command(
     // Execute command based on platform
     let output = if cfg!(target_os = "windows") {
         Command::new("cmd")
-            .args(&["/C", &command])
+            .args(["/C", &command])
             .output()
-            .map_err(|e| format!("Failed to execute command: {}", e))?
+            .map_err(|e| format!("Failed to execute command: {e}"))?
     } else {
         Command::new("sh")
-            .args(&["-c", &command])
+            .args(["-c", &command])
             .output()
-            .map_err(|e| format!("Failed to execute command: {}", e))?
+            .map_err(|e| format!("Failed to execute command: {e}"))?
     };
 
     // Emit stdout
@@ -109,7 +112,7 @@ async fn run_cli_command(
                 "line": line,
                 "stream": "stdout"
             }))
-            .map_err(|e| format!("Failed to emit stdout: {}", e))?;
+            .map_err(|e| format!("Failed to emit stdout: {e}"))?;
     }
 
     // Emit stderr
@@ -120,7 +123,7 @@ async fn run_cli_command(
                 "line": line,
                 "stream": "stderr"
             }))
-            .map_err(|e| format!("Failed to emit stderr: {}", e))?;
+            .map_err(|e| format!("Failed to emit stderr: {e}"))?;
     }
 
     // Emit termination event
@@ -129,7 +132,7 @@ async fn run_cli_command(
         .emit_all("cli-terminated", serde_json::json!({
             "code": exit_code
         }))
-        .map_err(|e| format!("Failed to emit termination: {}", e))?;
+        .map_err(|e| format!("Failed to emit termination: {e}"))?;
 
     Ok(())
 }
@@ -208,7 +211,7 @@ fn select_mission_item(item_id: Option<String>) -> Result<(), String> {
     // This is primarily handled by the frontend state
     // Backend can use this for logging or analytics
     if let Some(id) = item_id {
-        println!("Mission item selected: {}", id);
+        println!("Mission item selected: {id}");
     } else {
         println!("Mission item deselected");
     }
@@ -260,6 +263,8 @@ fn main() {
         .manage(AppState {
             mission_items: Mutex::new(initialize_mission_data()),
         })
+        .manage(map_features::init())
+        .manage(mavlink::init())
         .invoke_handler(tauri::generate_handler![
             health_check,
             get_app_info,
@@ -270,7 +275,23 @@ fn main() {
             update_waypoint_params,
             reorder_mission_item,
             delete_mission_item,
-            select_mission_item
+            select_mission_item,
+            // Map features commands
+            map_features::convert_coordinates,
+            map_features::fetch_map_data_batch,
+            map_features::update_gps_position,
+            map_features::start_measurement,
+            map_features::add_measurement_point,
+            // MAVLink drone commands
+            mavlink::connect_drone,
+            mavlink::disconnect_drone,
+            mavlink::get_vehicle_info,
+            mavlink::get_drone_parameters,
+            mavlink::set_drone_parameter,
+            mavlink::test_motor,
+            mavlink::emergency_stop,
+            mavlink::calibrate_accelerometer,
+            mavlink::calibrate_gyroscope
         ])
         .setup(|app| {
             // Initialize application
@@ -310,7 +331,7 @@ fn main() {
         })
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {
-            eprintln!("Fatal error running Tauri application: {}", e);
+            eprintln!("Fatal error running Tauri application: {e}");
             std::process::exit(1);
         });
 }

@@ -7,7 +7,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { plugins, activePluginWritable, initializePluginSystem } from '../../stores/plugins';
-  import { responsiveStore, isMobile, isTablet, currentBreakpoint } from '../../utils/responsive';
+  import { responsiveStore, isMobile, isTablet } from '../../utils/responsive';
   import ThemeProvider from '../theme/ThemeProvider.svelte';
   import PluginDashboard from '../plugins/PluginDashboard.svelte';
   import PluginContainer from '../plugins/PluginContainer.svelte';
@@ -23,7 +23,6 @@
   // Responsive state
   $: isMobileDevice = $isMobile;
   $: isTabletDevice = $isTablet;
-  $: breakpoint = $currentBreakpoint;
 
   // Initialize application
   onMount(() => {

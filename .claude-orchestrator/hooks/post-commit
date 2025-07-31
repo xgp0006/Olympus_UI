@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Post-commit hook - Send validation results to audit agent
+
+COMMIT_HASH=$(git rev-parse HEAD)
+AUTHOR=$(git log -1 --pretty=format:'%an')
+WORKTREE=$(basename $(git rev-parse --show-toplevel))
+
+# Send to audit validator via WebSocket
+if command -v websocat &> /dev/null; then
+    echo "{
+        \"type\": \"commit\",
+        \"worktree\": \"$WORKTREE\",
+        \"commit\": \"$COMMIT_HASH\",
+        \"author\": \"$AUTHOR\",
+        \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+    }" | websocat ws://localhost:8765/audit 2>/dev/null || true
+fi
+
+# Log commit for tracking
+echo "[$WORKTREE] Commit $COMMIT_HASH by $AUTHOR" >> .claude-orchestrator/logs/commits.log

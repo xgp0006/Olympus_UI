@@ -134,33 +134,83 @@ Object.defineProperty(window, 'cancelAnimationFrame', {
   value: vi.fn((id) => clearTimeout(id))
 });
 
-// Mock CSS custom properties
+// Mock CSS custom properties with comprehensive theme variables
+const mockThemeVariables: Record<string, string> = {
+  '--color-background_primary': '#000000',
+  '--color-background_secondary': '#111111',
+  '--color-text_primary': '#ffffff',
+  '--color-text_secondary': '#cccccc',
+  '--color-accent_blue': '#0066ff',
+  '--layout-border_radius': '4px',
+  '--layout-spacing_unit': '8px',
+  '--responsive-mobile-cli-mobile_height': '200px',
+  '--responsive-tablet-cli-tablet_height': '250px',
+  '--responsive-desktop-cli-desktop_height': '300px'
+};
+
+// Create proper document.documentElement structure for DOM access
+const mockDocumentElement = {
+  style: {
+    setProperty: vi.fn(),
+    getPropertyValue: vi.fn((prop: string) => mockThemeVariables[prop] || ''),
+    removeProperty: vi.fn()
+  },
+  classList: {
+    add: vi.fn(),
+    remove: vi.fn(),
+    contains: vi.fn(),
+    toggle: vi.fn()
+  },
+  setAttribute: vi.fn(),
+  getAttribute: vi.fn(),
+  hasAttribute: vi.fn(),
+  removeAttribute: vi.fn(),
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+  tagName: 'HTML',
+  nodeName: 'HTML',
+  nodeType: 1
+};
+
+// Ensure document.documentElement exists and is properly mocked
+Object.defineProperty(document, 'documentElement', {
+  value: mockDocumentElement,
+  writable: false,
+  configurable: true
+});
+
+// Also ensure it's available on the window.document
+Object.defineProperty(window.document, 'documentElement', {
+  value: mockDocumentElement,
+  writable: false,
+  configurable: true
+});
+
 const originalGetComputedStyle = window.getComputedStyle;
 window.getComputedStyle = vi.fn((element) => {
-  const style = originalGetComputedStyle(element);
-
-  // Add mock CSS custom properties
+  // Create a proper mock style object
   const mockStyle = {
-    ...style,
     getPropertyValue: vi.fn((property) => {
       if (property.startsWith('--')) {
-        // Return mock theme values for CSS custom properties
-        const themeMap: Record<string, string> = {
-          '--color-background_primary': '#000000',
-          '--color-background_secondary': '#111111',
-          '--color-text_primary': '#ffffff',
-          '--color-text_secondary': '#cccccc',
-          '--color-accent_blue': '#0066ff',
-          '--layout-border_radius': '4px',
-          '--layout-spacing_unit': '8px'
-        };
-        return themeMap[property] || '';
+        return mockThemeVariables[property] || '';
       }
-      return style.getPropertyValue(property);
-    })
+      // Fallback for non-custom properties
+      return '';
+    }),
+    setProperty: vi.fn(),
+    removeProperty: vi.fn(),
+    cssText: '',
+    length: 0,
+    parentRule: null,
+    [Symbol.iterator]: function* () {
+      // Make it iterable for Array.from()
+      for (const key of Object.keys(mockThemeVariables)) {
+        yield key;
+      }
+    }
   };
 
-  return mockStyle;
+  return mockStyle as unknown as CSSStyleDeclaration;
 });
 
 // Mock localStorage

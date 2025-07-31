@@ -16,15 +16,16 @@
     type TapGesture
   } from '$lib/utils/touch';
   import type { MissionItem } from '$lib/plugins/mission-planner/types';
+  import { BoundedArray } from '$lib/utils/bounded-array';
 
   // ===== STATE =====
   let activeDemo = 'overview';
-  let gestureLog: string[] = [];
+  let gestureLogArray = new BoundedArray<string>(50);
   let touchDemoElement: HTMLElement;
   let touchGestureCleanup: (() => void) | null = null;
 
   // Demo mission items
-  const demoMissionItems: MissionItem[] = [
+  const demoMissionItemsArray: MissionItem[] = [
     {
       id: 'takeoff-1',
       type: 'takeoff',
@@ -61,6 +62,8 @@
       position: { lat: 37.7765, lng: -122.4175, alt: 0 }
     }
   ];
+  const demoMissionItems = new BoundedArray<MissionItem>(10);
+  demoMissionItems.pushMany(demoMissionItemsArray);
 
   // ===== FUNCTIONS =====
 
@@ -68,14 +71,14 @@
    * Add gesture to log
    */
   function logGesture(message: string): void {
-    gestureLog = [message, ...gestureLog.slice(0, 9)]; // Keep last 10 entries
+    gestureLogArray.push(message); // BoundedArray automatically maintains size limit
   }
 
   /**
    * Clear gesture log
    */
   function clearLog(): void {
-    gestureLog = [];
+    gestureLogArray.clear();
   }
 
   /**
@@ -325,7 +328,7 @@
               <button class="clear-log-btn" on:click={clearLog}>Clear</button>
             </div>
             <div class="log-content">
-              {#each gestureLog as entry, index}
+              {#each gestureLogArray.getAll() as entry, index}
                 <div class="log-entry" class:recent={index === 0}>
                   {entry}
                 </div>
@@ -344,7 +347,7 @@
           <div class="map-container">
             <MapViewer
               selectedItemId={null}
-              missionItems={demoMissionItems}
+              missionItems={demoMissionItems.getAll()}
               center={[-122.4194, 37.7749]}
               zoom={12}
               on:mapclick={handleMapClick}
@@ -368,7 +371,7 @@
                 <h3>Map Events</h3>
               </div>
               <div class="log-content">
-                {#each gestureLog.slice(0, 5) as entry}
+                {#each gestureLogArray.getAll().slice(0, 5) as entry}
                   <div class="log-entry">{entry}</div>
                 {:else}
                   <div class="log-empty">Interact with the map to see events</div>
@@ -384,7 +387,7 @@
 
         <div class="coins-demo-container">
           <div class="coins-area">
-            {#each demoMissionItems as item, index}
+            {#each demoMissionItems.getAll() as item, index}
               <MinimizedCoin
                 {item}
                 isPinned={false}
@@ -414,7 +417,7 @@
                 <h3>Coin Events</h3>
               </div>
               <div class="log-content">
-                {#each gestureLog.slice(0, 5) as entry}
+                {#each gestureLogArray.getAll().slice(0, 5) as entry}
                   <div class="log-entry">{entry}</div>
                 {:else}
                   <div class="log-empty">Interact with coins to see events</div>
@@ -430,7 +433,7 @@
 
         <div class="accordion-demo-container">
           <div class="accordion-container">
-            <MissionAccordion items={demoMissionItems} selectedItemId={null} />
+            <MissionAccordion items={demoMissionItems.getAll()} selectedItemId={null} />
           </div>
 
           <div class="accordion-instructions">

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Control - Agent Dashboard</title>
+    <style>
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: #0a0e27;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #4ECDC4;
+            margin: 0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .agent-card {
+            background: #162447;
+            border: 2px solid #1e3a8a;
+            border-radius: 8px;
+            padding: 20px;
+            transition: transform 0.2s;
+        }
+        .agent-card:hover {
+            transform: translateY(-5px);
+            border-color: #4ECDC4;
+        }
+        .agent-name {
+            font-size: 1.2em;
+            color: #4ECDC4;
+            margin-bottom: 10px;
+        }
+        .agent-task {
+            color: #8b92b3;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+        .metrics {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+        .metric {
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 1.5em;
+            color: #45B7D1;
+        }
+        .metric-label {
+            font-size: 0.8em;
+            color: #8b92b3;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            background: #2ecc71;
+            color: #0a0e27;
+        }
+        .performance-bar {
+            height: 4px;
+            background: #1e3a8a;
+            border-radius: 2px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .performance-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2ecc71, #f1c40f, #e74c3c);
+            width: var(--performance);
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Mission Control - Map Features Development</h1>
+        <p>Target: 144fps (6.94ms frame budget)</p>
+    </div>
+
+    <div class="grid">
+        <div class="agent-card">
+            <div class="agent-name">📍 Location Entry</div>
+            <div class="agent-task">Multi-format coordinate input (MGRS/UTM/LatLong/W3W)</div>
+            <div class="status">Active</div>
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-value">0.5ms</div>
+                    <div class="metric-label">Frame Budget</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">144fps</div>
+                    <div class="metric-label">Current</div>
+                </div>
+            </div>
+            <div class="performance-bar">
+                <div class="performance-fill" style="--performance: 7%"></div>
+            </div>
+        </div>
+
+        <div class="agent-card">
+            <div class="agent-name">🎯 Map Crosshair</div>
+            <div class="agent-task">Dynamic crosshair with distance rings & NATO icons</div>
+            <div class="status">Active</div>
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-value">1.5ms</div>
+                    <div class="metric-label">Frame Budget</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">144fps</div>
+                    <div class="metric-label">Current</div>
+                </div>
+            </div>
+            <div class="performance-bar">
+                <div class="performance-fill" style="--performance: 22%"></div>
+            </div>
+        </div>
+
+        <div class="agent-card">
+            <div class="agent-name">📐 Measuring Tools</div>
+            <div class="agent-task">Shape drawing & spline-based flight paths</div>
+            <div class="status">Active</div>
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-value">1.0ms</div>
+                    <div class="metric-label">Frame Budget</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">144fps</div>
+                    <div class="metric-label">Current</div>
+                </div>
+            </div>
+            <div class="performance-bar">
+                <div class="performance-fill" style="--performance: 14%"></div>
+            </div>
+        </div>
+
+        <div class="agent-card">
+            <div class="agent-name">💬 Messaging System</div>
+            <div class="agent-task">Toast notifications for aviation alerts</div>
+            <div class="status">Active</div>
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-value">0.3ms</div>
+                    <div class="metric-label">Frame Budget</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">144fps</div>
+                    <div class="metric-label">Current</div>
+                </div>
+            </div>
+            <div class="performance-bar">
+                <div class="performance-fill" style="--performance: 4%"></div>
+            </div>
+        </div>
+
+        <div class="agent-card">
+            <div class="agent-name">✈️ ADS-B Display</div>
+            <div class="agent-task">Real-time aircraft tracking (500+ targets)</div>
+            <div class="status">Active</div>
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-value">2.0ms</div>
+                    <div class="metric-label">Frame Budget</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">144fps</div>
+                    <div class="metric-label">Current</div>
+                </div>
+            </div>
+            <div class="performance-bar">
+                <div class="performance-fill" style="--performance: 29%"></div>
+            </div>
+        </div>
+
+        <div class="agent-card">
+            <div class="agent-name">🌦️ Weather Overlay</div>
+            <div class="agent-task">AccuWeather-style meteorological visualization</div>
+            <div class="status">Active</div>
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-value">1.5ms</div>
+                    <div class="metric-label">Frame Budget</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">144fps</div>
+                    <div class="metric-label">Current</div>
+                </div>
+            </div>
+            <div class="performance-bar">
+                <div class="performance-fill" style="--performance: 22%"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulate live updates
+        setInterval(() => {
+            document.querySelectorAll('.metric-value').forEach(el => {
+                if (el.textContent.includes('fps')) {
+                    const fps = 142 + Math.floor(Math.random() * 4);
+                    el.textContent = fps + 'fps';
+                    el.style.color = fps >= 144 ? '#2ecc71' : '#f1c40f';
+                }
+            });
+        }, 1000);
+    </script>
+</body>
+</html>

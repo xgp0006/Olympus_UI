@@ -22,10 +22,16 @@ interface MissionState {
 }
 
 /**
+ * NASA JPL Rule 2: Bounded memory allocation for mission state
+ */
+const MAX_MISSION_ITEMS = 100; // Aerospace-grade limit
+const missionItemsPool = new BoundedArray<MissionItem>(MAX_MISSION_ITEMS);
+
+/**
  * Internal mission state store
  */
 const missionState: Writable<MissionState> = writable({
-  items: [],
+  items: missionItemsPool.toArray(), // NASA JPL Rule 2: Use bounded allocation
   selectedItemId: null,
   loading: false,
   error: null,
@@ -334,6 +340,60 @@ export function removeMissionItem(itemId: string): void {
 }
 
 /**
+ * Update a mission item
+ * @param itemId - ID of the item to update
+ * @param updates - Updates to apply to the item
+ */
+export async function updateMissionItem(itemId: string, updates: Partial<MissionItem>): Promise<void> {
+  try {
+    // Update local state optimistically
+    missionState.update((state) => ({
+      ...state,
+      items: state.items.map((item) =>
+        item.id === itemId ? { ...item, ...updates } : item
+      ),
+      lastUpdated: Date.now()
+    }));
+
+    // Sync with backend if available
+    await invokeTauriCommand<void>('update_mission_item', {
+      item_id: itemId,
+      updates
+    });
+
+    console.log(`Updated mission item: ${itemId}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update mission item';
+    
+    missionState.update((state) => ({
+      ...state,
+      error: errorMessage
+    }));
+
+    console.error('Failed to update mission item:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a mission item (alias for removeMissionItem for consistency)
+ * @param itemId - ID of the item to delete
+ */
+export async function deleteMissionItem(itemId: string): Promise<void> {
+  removeMissionItem(itemId);
+  
+  try {
+    // Sync with backend if available
+    await invokeTauriCommand<void>('delete_mission_item', {
+      item_id: itemId
+    });
+  } catch (error) {
+    console.warn('Failed to sync deletion with backend:', error);
+    // Don't throw - we already updated local state
+  }
+}
+
+/**
  * Clear mission error state
  */
 export function clearMissionError(): void {
@@ -603,6 +663,20 @@ export function validateMissionSequence(items: MissionItem[]): {
     errors: errors.getAll(),
     warnings: warnings.getAll()
   };
+}
+
+/**
+ * Set mission items directly (for reordering operations)
+ * @param items - Mission items to set
+ */
+export function setMissionItems(items: MissionItem[]): void {
+  missionState.update((state) => ({
+    ...state,
+    items,
+    lastUpdated: Date.now()
+  }));
+
+  console.log(`Set ${items.length} mission items`);
 }
 
 /**

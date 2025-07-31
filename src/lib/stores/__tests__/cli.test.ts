@@ -50,16 +50,16 @@ describe('CLI Store', () => {
 
     // Should set up two event listeners
     expect(setupEventListener).toHaveBeenCalledTimes(2);
-    expect(setupEventListener).toHaveBeenCalledWith(
-      'cli-output',
-      expect.any(Function),
-      expect.any(Function)
-    );
-    expect(setupEventListener).toHaveBeenCalledWith(
-      'cli-terminated',
-      expect.any(Function),
-      expect.any(Function)
-    );
+    
+    // Check first call (cli-output)
+    const firstCall = vi.mocked(setupEventListener).mock.calls[0];
+    expect(firstCall[0]).toBe('cli-output');
+    expect(typeof firstCall[1]).toBe('function');
+    
+    // Check second call (cli-terminated)
+    const secondCall = vi.mocked(setupEventListener).mock.calls[1];
+    expect(secondCall[0]).toBe('cli-terminated');
+    expect(typeof secondCall[1]).toBe('function');
 
     // Should mark as connected
     const state = get(cliStore);

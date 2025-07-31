@@ -9,6 +9,12 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "types": ["node", "vite/client", "vitest/globals", "@testing-library/jest-dom"]
-  }
+    "types": ["node", "vite/client", "vitest/globals", "@testing-library/jest-dom"],
+    "verbatimModuleSyntax": true,
+    "ignoreDeprecations": "5.0"
+  },
+  "exclude": [
+    "src/orchestrator/**/*",
+    ".claude-orchestrator/**/*"
+  ]
 }

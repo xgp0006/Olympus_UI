@@ -1,0 +1,30 @@
+MAP FEATURE AGENTS - LAUNCH SUMMARY
+===================================
+
+All agent worktrees have been created. To start development:
+
+1. LOCATION ENTRY AGENT
+   Terminal 1: cd .claude-orchestrator/worktrees/location-entry && claude
+   
+2. MAP CROSSHAIR AGENT  
+   Terminal 2: cd .claude-orchestrator/worktrees/map-crosshair && claude
+   
+3. MEASURING TOOLS AGENT
+   Terminal 3: cd .claude-orchestrator/worktrees/measuring-tools && claude
+   
+4. MESSAGING SYSTEM AGENT
+   Terminal 4: cd .claude-orchestrator/worktrees/messaging-system && claude
+   
+5. ADS-B DISPLAY AGENT
+   Terminal 5: cd .claude-orchestrator/worktrees/adsb-display && claude
+   
+6. WEATHER OVERLAY AGENT
+   Terminal 6: cd .claude-orchestrator/worktrees/weather-overlay && claude
+
+Each agent should read their AGENT_INSTRUCTIONS.md file to understand their mission.
+
+Shared code is in: src/lib/map-features/
+
+Performance target: 144fps (6.94ms frame budget)
+
+Good luck! 🚀

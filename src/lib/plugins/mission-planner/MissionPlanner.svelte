@@ -1,35 +1,103 @@
 <!--
   Mission Planner Plugin Component
-  Two-panel layout with MapViewer and mission accordion
-  Mobile-first responsive design with touch optimization
+  Full-screen map with draggable tool panels
+  Aerospace-grade modular interface
   Requirements: 4.1, 4.2, 4.3, 4.4, 4.9
 -->
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { isMobile, isTablet, currentBreakpoint } from '$lib/utils/responsive';
   import MapViewer from './MapViewer.svelte';
-  import MissionAccordion from './MissionAccordion.svelte';
+  import DraggableMissionAccordion from './DraggableMissionAccordion.svelte';
+  import MapToolsController from './MapToolsController.svelte';
+  import MapToolsLayer from './MapToolsLayer.svelte';
+  import DraggableMessaging from './DraggableMessaging.svelte';
+  import NotificationSystem from '$lib/map-features/messaging/NotificationSystem.svelte';
+  import { notify } from '$lib/map-features/messaging/notification-store';
   import {
     missionItems,
     selectedMissionItem,
     loadMissionData,
     selectMissionItem,
-    addMissionItem
+    addMissionItem,
+    updateMissionItem,
+    deleteMissionItem,
+    setMissionItems
   } from '$lib/stores/mission';
-  import type { MapClickEvent, WaypointParams } from './types';
+  import type { MapClickEvent, MissionItem, WaypointParams } from './types';
+  import type { Coordinate, LatLng, MapViewport, CrosshairSettings } from '$lib/map-features/types';
 
   // ===== STATE =====
   let error: string | null = null;
-  let accordionCollapsed = false;
-  let accordionDocked = true;
-  let accordionMinimized = false;
-
-  // Responsive state
-  $: isMobileDevice = $isMobile;
-  $: isTabletDevice = $isTablet;
-  $: breakpoint = $currentBreakpoint;
+  let mapViewerComponent: MapViewer;
+  let mapToolsLayer: MapToolsLayer;
+  
+  // Tool visibility states
+  let showMapTools = true;
+  let showMissionAccordion = true;
+  let showMessaging = true;
+  
+  // Map viewport for features
+  let viewport: MapViewport | null = null;
+  
+  // Feature states
+  let showCrosshair = false;
+  let showMeasuring = false;
+  let showADSB = false;
+  let showWeather = false;
+  let crosshairSettings: Partial<CrosshairSettings> = {};
+  let showRing = false;
+  let ringDistance = 1000;
+  let measuringTool: 'line' | 'area' | null = null;
+  let measuringUnit: 'metric' | 'imperial' = 'metric';
+  let adsbSettings = {
+    showLabels: true,
+    showTrails: true,
+    maxAircraft: 100
+  };
+  let weatherLayers = {
+    radar: true,
+    satellite: false,
+    temperature: false,
+    wind: false
+  };
+  let weatherOpacity = 0.7;
 
   // ===== FUNCTIONS =====
+
+  /**
+   * Handle coordinate selection from location entry tool
+   */
+  async function handleCoordinateSelect(event: CustomEvent<{ coordinate: Coordinate; latLng: LatLng }>) {
+    const { latLng } = event.detail;
+    
+    try {
+      // Create a new waypoint at the selected location
+      const newWaypoint: MissionItem = {
+        id: `waypoint-${Date.now()}`,
+        type: 'waypoint',
+        name: `Waypoint ${$missionItems.length + 1}`,
+        params: {
+          lat: latLng.lat,
+          lng: latLng.lng,
+          alt: 100,
+          speed: 10
+        } as WaypointParams,
+        position: {
+          lat: latLng.lat,
+          lng: latLng.lng,
+          alt: 100
+        }
+      };
+
+      await addMissionItem(newWaypoint);
+      selectMissionItem(newWaypoint.id);
+      
+      console.log(`Created waypoint at ${latLng.lat.toFixed(4)}, ${latLng.lng.toFixed(4)}`);
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to create waypoint';
+      console.error('Failed to create waypoint:', err);
+    }
+  }
 
   /**
    * Handle map click events - create waypoint at clicked location
@@ -40,16 +108,16 @@
 
     try {
       // Create a new waypoint at the clicked location
-      const newWaypoint = {
+      const newWaypoint: MissionItem = {
         id: `waypoint-${Date.now()}`,
-        type: 'waypoint' as const,
+        type: 'waypoint',
         name: `Waypoint ${$missionItems.length + 1}`,
         params: {
           lat: lngLat[1], // lat is second element
           lng: lngLat[0], // lng is first element
           alt: 100, // Default altitude
           speed: 10 // Default speed
-        },
+        } as WaypointParams,
         position: {
           lat: lngLat[1],
           lng: lngLat[0],
@@ -64,6 +132,13 @@
       selectMissionItem(newWaypoint.id);
 
       console.log(`Created waypoint at ${lngLat[1].toFixed(4)}, ${lngLat[0].toFixed(4)}`);
+      
+      // Notify user
+      notify({
+        type: 'success',
+        title: 'Waypoint Created',
+        message: `New waypoint added at ${lngLat[1].toFixed(4)}, ${lngLat[0].toFixed(4)}`
+      });
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to create waypoint';
       console.error('Failed to create waypoint:', err);
@@ -71,104 +146,62 @@
   }
 
   /**
-   * Handle accordion item selection
+   * Handle mission item selection
    */
-  function handleAccordionSelect(event: CustomEvent<{ itemId: string }>): void {
-    selectMissionItem(event.detail.itemId);
+  function handleSelectItem(event: CustomEvent<{ id: string }>): void {
+    selectMissionItem(event.detail.id);
   }
 
   /**
-   * Handle accordion item minimize
+   * Handle mission item update
    */
-  function handleAccordionMinimize(event: CustomEvent<{ itemId: string }>): void {
-    console.log('Minimize item:', event.detail.itemId);
-    // TODO: Implement minimize to coin functionality in future task
-  }
-
-  /**
-   * Handle accordion item update
-   */
-  function handleAccordionUpdate(
-    event: CustomEvent<{ itemId: string; params: WaypointParams }>
-  ): void {
-    console.log('Update item:', event.detail.itemId, event.detail.params);
-    // The update is already handled by the WaypointItem component
-  }
-
-  /**
-   * Handle accordion errors
-   */
-  function handleAccordionError(event: CustomEvent<string>): void {
-    error = event.detail;
-    console.error('Accordion error:', error);
-  }
-
-  /**
-   * Handle component dock
-   */
-  function handleComponentDock(): void {
-    accordionDocked = true;
-    console.log('Waypoint component docked');
-  }
-
-  /**
-   * Handle component undock
-   */
-  function handleComponentUndock(): void {
-    accordionDocked = false;
-    console.log('Waypoint component undocked');
-  }
-
-  /**
-   * Handle component minimize
-   */
-  function handleComponentMinimize(): void {
-    accordionMinimized = true;
-    console.log('Waypoint component minimized');
-  }
-
-  /**
-   * Handle component expand
-   */
-  function handleComponentExpand(): void {
-    accordionMinimized = false;
-    console.log('Waypoint component expanded');
-  }
-
-  /**
-   * Handle add waypoint request
-   */
-  async function handleAddWaypoint(): Promise<void> {
+  async function handleUpdateItem(event: CustomEvent<{ id: string; params: any }>): Promise<void> {
     try {
-      // Create a new waypoint at the center of the current map view
-      // In a real implementation, this would open a dialog or use the current map center
-      const mapCenter = { lat: 37.7749, lng: -122.4194 }; // Default to San Francisco
-      const newWaypoint = {
-        id: `waypoint-${Date.now()}`,
-        type: 'waypoint' as const,
-        name: `Waypoint ${$missionItems.length + 1}`,
-        params: {
-          lat: mapCenter.lat,
-          lng: mapCenter.lng,
-          alt: 100,
-          speed: 10
-        },
-        position: {
-          lat: mapCenter.lat,
-          lng: mapCenter.lng,
-          alt: 100
-        }
-      };
-
-      // Add the waypoint to the mission store
-      await addMissionItem(newWaypoint);
-
-      // Select the new waypoint
-      selectMissionItem(newWaypoint.id);
+      const item = $missionItems.find(i => i.id === event.detail.id);
+      if (item) {
+        await updateMissionItem(event.detail.id, {
+          ...item,
+          params: event.detail.params
+        });
+      }
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to add waypoint';
-      console.error('Failed to add waypoint:', err);
+      error = err instanceof Error ? err.message : 'Failed to update item';
+      console.error('Failed to update item:', err);
     }
+  }
+
+  /**
+   * Handle mission item deletion
+   */
+  async function handleDeleteItem(event: CustomEvent<{ id: string }>): Promise<void> {
+    try {
+      await deleteMissionItem(event.detail.id);
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to delete item';
+      console.error('Failed to delete item:', err);
+    }
+  }
+
+  /**
+   * Handle mission items reorder
+   */
+  function handleReorderItems(event: CustomEvent<{ items: MissionItem[] }>): void {
+    // Update store with reordered items
+    setMissionItems(event.detail.items);
+  }
+
+  /**
+   * Handle tool minimize events
+   */
+  function handleMapToolsMinimize(event: CustomEvent<{ minimized: boolean }>): void {
+    console.log('Map tools minimized:', event.detail.minimized);
+  }
+
+  /**
+   * Handle accordion minimize events
+   */
+  function handleAccordionMinimize(event: CustomEvent<{ minimized: boolean }>): void {
+    console.log('Mission accordion minimized:', event.detail.minimized);
   }
 
   /**
@@ -176,6 +209,17 @@
    */
   function handleMapReady(): void {
     console.log('Map is ready');
+    // Initialize viewport
+    updateViewport();
+  }
+  
+  /**
+   * Update viewport for map features
+   */
+  function updateViewport(): void {
+    if (mapViewerComponent?.getViewport) {
+      viewport = mapViewerComponent.getViewport();
+    }
   }
 
   /**
@@ -193,24 +237,11 @@
     try {
       // Load mission data from backend
       await loadMissionData();
-
-      // Auto-collapse accordion on mobile
-      if (isMobileDevice) {
-        accordionCollapsed = true;
-      }
-
       console.log('Mission Planner initialized');
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to initialize Mission Planner';
       console.error('Mission Planner initialization failed:', err);
     }
-  }
-
-  /**
-   * Toggle accordion visibility on mobile
-   */
-  function toggleAccordion(): void {
-    accordionCollapsed = !accordionCollapsed;
   }
 
   // ===== LIFECYCLE =====
@@ -225,12 +256,7 @@
 </script>
 
 <!-- ===== TEMPLATE ===== -->
-<div
-  class="mission-planner"
-  class:mobile={isMobileDevice}
-  class:tablet={isTabletDevice}
-  data-testid="mission-planner"
->
+<div class="mission-planner" data-testid="mission-planner">
   {#if error}
     <div class="error-state" data-testid="mission-planner-error">
       <div class="error-content">
@@ -251,61 +277,104 @@
     <!-- Map fills entire container -->
     <div class="map-container">
       <MapViewer
+        bind:this={mapViewerComponent}
         selectedItemId={$selectedMissionItem?.id || null}
         missionItems={$missionItems}
         on:mapclick={handleMapClick}
         on:ready={handleMapReady}
         on:error={handleMapError}
+        on:move={updateViewport}
+        on:zoom={updateViewport}
       />
+      
+      <!-- Map tools overlay layer -->
+      {#if viewport}
+        <MapToolsLayer
+          bind:this={mapToolsLayer}
+          {viewport}
+          {showCrosshair}
+          {showMeasuring}
+          {showADSB}
+          {showWeather}
+          {crosshairSettings}
+          {showRing}
+          {ringDistance}
+          {measuringTool}
+          {measuringUnit}
+          {adsbSettings}
+          {weatherLayers}
+          {weatherOpacity}
+        />
+      {/if}
     </div>
 
-    <!-- Components float over the map -->
-    <div class="floating-components">
-      <!-- Mobile accordion toggle button -->
-      {#if isMobileDevice}
-        <button
-          class="accordion-toggle"
-          class:active={!accordionCollapsed}
-          on:click={toggleAccordion}
-          data-testid="accordion-toggle"
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
-          </svg>
-          Mission Items
-        </button>
+    <!-- Draggable components layer -->
+    <div class="draggable-layer">
+      <!-- Map Tools Controller -->
+      {#if showMapTools}
+        <MapToolsController
+          id="map-tools"
+          title="Map Tools"
+          initialX={20}
+          initialY={100}
+          {viewport}
+          on:coordinateSelect={handleCoordinateSelect}
+          on:minimize={handleMapToolsMinimize}
+          on:crosshairSettings={(e) => {
+            crosshairSettings = e.detail.settings;
+            showCrosshair = true;
+          }}
+          on:measuringTool={(e) => {
+            measuringTool = e.detail.tool;
+            showMeasuring = e.detail.tool !== null;
+          }}
+          on:adsbSettings={(e) => {
+            adsbSettings = { ...adsbSettings, ...e.detail.settings };
+            showADSB = true;
+          }}
+          on:weatherLayers={(e) => {
+            weatherLayers = e.detail.layers;
+            showWeather = Object.values(e.detail.layers).some(v => v);
+          }}
+        />
       {/if}
 
-      <!-- Mission Accordion floats over the map -->
-      <div
-        class="accordion-overlay"
-        class:collapsed={accordionCollapsed}
-        class:docked={accordionDocked}
-        class:undocked={!accordionDocked}
-        class:mobile={isMobileDevice}
-      >
-        <MissionAccordion
-          items={$missionItems}
+      <!-- Mission Accordion -->
+      {#if showMissionAccordion}
+        <DraggableMissionAccordion
+          id="mission-accordion"
+          title="Mission Items"
+          initialX={typeof window !== 'undefined' ? window.innerWidth - 450 : 800}
+          initialY={100}
+          missionItems={$missionItems}
           selectedItemId={$selectedMissionItem?.id || null}
-          isDocked={accordionDocked}
-          isMinimized={accordionMinimized}
-          on:select={handleAccordionSelect}
+          on:selectItem={handleSelectItem}
+          on:updateItem={handleUpdateItem}
+          on:deleteItem={handleDeleteItem}
+          on:reorderItems={handleReorderItems}
           on:minimize={handleAccordionMinimize}
-          on:update={handleAccordionUpdate}
-          on:addWaypoint={handleAddWaypoint}
-          on:error={handleAccordionError}
-          on:dock={handleComponentDock}
-          on:undock={handleComponentUndock}
-          on:minimizeComponent={handleComponentMinimize}
-          on:expandComponent={handleComponentExpand}
         />
-      </div>
+      {/if}
+      
+      <!-- Messaging System -->
+      {#if showMessaging}
+        <DraggableMessaging
+          id="messaging"
+          title="Messages"
+          initialX={20}
+          initialY={400}
+          on:minimize={(e) => console.log('Messaging minimized:', e.detail.minimized)}
+        />
+      {/if}
     </div>
   {/if}
+  
+  <!-- Global notification system -->
+  <NotificationSystem />
 </div>
 
 <style>
-  /* Overlay Layout - Map fills container, components float over */
+  /* Full-screen layout with map and draggable tools */
   .mission-planner {
     position: relative;
     width: 100%;
@@ -324,8 +393,8 @@
     z-index: 1;
   }
 
-  /* Floating components layer over the map */
-  .floating-components {
+  /* Draggable components layer */
+  .draggable-layer {
     position: absolute;
     top: 0;
     left: 0;
@@ -335,76 +404,9 @@
     pointer-events: none; /* Allow map interaction through empty areas */
   }
 
-  /* Mobile accordion toggle */
-  .accordion-toggle {
-    position: absolute;
-    top: var(--responsive-mobile-panel_padding, 12px);
-    right: var(--responsive-mobile-panel_padding, 12px);
-    z-index: 20;
-    display: flex;
-    align-items: center;
-    gap: calc(var(--layout-spacing_unit) / 2);
-    background-color: var(--color-background_secondary);
-    border: var(--layout-border_width) solid var(--color-background_tertiary);
-    color: var(--color-text_primary);
-    padding: var(--responsive-mobile-button-mobile_padding, 12px 16px);
-    border-radius: var(--layout-border_radius);
-    font-size: var(--responsive-mobile-font_size_sm, 14px);
-    cursor: pointer;
-    transition: all var(--animations-mobile_transition_duration, 150ms);
-    min-height: var(--responsive-mobile-touch_target_min, 44px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    pointer-events: auto; /* Re-enable pointer events for the button */
-  }
-
-  .accordion-toggle:hover,
-  .accordion-toggle.active {
-    background-color: var(--color-accent_blue);
-    color: white;
-    border-color: var(--color-accent_blue);
-  }
-
-  .accordion-toggle svg {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-  }
-
-  /* Accordion overlay positioning */
-  .accordion-overlay {
-    position: absolute;
-    z-index: 15;
-    pointer-events: auto; /* Re-enable pointer events for accordion */
-    transition: all var(--animations-transition_duration) var(--animations-easing_function);
-  }
-
-  /* Docked positioning - bottom right corner by default */
-  .accordion-overlay.docked {
-    bottom: var(--layout-spacing_unit);
-    right: var(--layout-spacing_unit);
-    width: 320px;
-    max-height: 400px;
-  }
-
-  /* Mobile docked positioning - bottom of screen */
-  .accordion-overlay.docked.mobile {
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    max-height: 50vh;
-  }
-
-  /* Mobile collapsed state */
-  .accordion-overlay.collapsed.mobile {
-    transform: translateY(100%);
-  }
-
-  /* Undocked state - can be positioned anywhere */
-  .accordion-overlay.undocked {
-    /* Position will be set dynamically by the component */
-    width: 320px;
-    max-height: 400px;
+  /* DraggableContainer components handle their own pointer events */
+  .draggable-layer :global(.draggable-container) {
+    pointer-events: auto;
   }
 
   /* Error state */
@@ -461,52 +463,10 @@
     transform: scale(var(--animation-button_press_scale));
   }
 
-  /* Tablet responsive adjustments */
-  @media (min-width: 768px) {
-    .accordion-toggle {
-      display: none; /* Hide mobile toggle on tablet+ */
-    }
-
-    .accordion-overlay.docked {
-      width: var(--responsive-tablet-accordion-tablet_width, 400px);
-      max-height: 500px;
-    }
-
-    .accordion-overlay.collapsed.mobile {
-      transform: none; /* No mobile collapse behavior on tablet+ */
-    }
-  }
-
-  /* Desktop responsive adjustments */
-  @media (min-width: 1024px) {
-    .accordion-overlay.docked {
-      width: var(--responsive-desktop-accordion-desktop_width, 350px);
-      max-height: 600px;
-    }
-  }
-
-  /* Touch optimization */
-  @media (hover: none) and (pointer: coarse) {
-    .accordion-toggle {
-      padding: calc(var(--responsive-mobile-button-mobile_padding, 12px) * 1.2);
-      font-size: var(--responsive-mobile-font_size_base, 16px);
-    }
-
-    .accordion-toggle svg {
-      width: 20px;
-      height: 20px;
-    }
-
-    .accordion-overlay.docked.mobile {
-      max-height: 60vh; /* More space on touch devices */
-    }
-  }
-
   /* Reduced motion support */
   @media (prefers-reduced-motion: reduce) {
-    .accordion-overlay,
-    .accordion-toggle {
-      transition-duration: var(--animations-reduced_motion_duration, 0ms);
+    .mission-planner * {
+      transition-duration: var(--animations-reduced_motion_duration, 0ms) !important;
     }
   }
 </style>

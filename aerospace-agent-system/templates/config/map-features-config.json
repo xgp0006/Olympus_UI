@@ -1,0 +1,118 @@
+{
+  "project": "aerospace-map-features",
+  "targetFPS": 144,
+  "frameBudgetMs": 6.94,
+  
+  "agents": {
+    "location-entry": {
+      "type": "ui",
+      "performance": {
+        "frameBudget": 0.5,
+        "memoryLimit": "50MB"
+      },
+      "dependencies": ["shared/performance", "types"],
+      "validation": ["coordinate-accuracy", "input-validation"]
+    },
+    
+    "map-crosshair": {
+      "type": "ui",
+      "performance": {
+        "frameBudget": 1.5,
+        "memoryLimit": "100MB"
+      },
+      "dependencies": ["shared/performance", "types", "webgl"],
+      "validation": ["render-performance", "icon-loading"]
+    },
+    
+    "measuring-tools": {
+      "type": "plugin",
+      "performance": {
+        "frameBudget": 1.0,
+        "memoryLimit": "75MB"
+      },
+      "dependencies": ["shared/performance", "types", "waypoint-store"],
+      "validation": ["geometry-accuracy", "waypoint-conversion"]
+    },
+    
+    "messaging-system": {
+      "type": "telemetry",
+      "performance": {
+        "frameBudget": 0.3,
+        "memoryLimit": "25MB"
+      },
+      "dependencies": ["shared/performance", "types", "tauri"],
+      "validation": ["message-ordering", "animation-performance"]
+    },
+    
+    "adsb-display": {
+      "type": "telemetry",
+      "performance": {
+        "frameBudget": 2.0,
+        "memoryLimit": "200MB"
+      },
+      "dependencies": ["shared/performance", "types", "three", "tauri"],
+      "validation": ["render-capacity", "update-frequency"]
+    },
+    
+    "weather-overlay": {
+      "type": "ui",
+      "performance": {
+        "frameBudget": 1.5,
+        "memoryLimit": "150MB"
+      },
+      "dependencies": ["shared/performance", "types", "webgl", "particles"],
+      "validation": ["animation-smoothness", "color-accuracy"]
+    },
+    
+    "audit-validator": {
+      "type": "validator",
+      "performance": {
+        "frameBudget": 0,
+        "memoryLimit": "100MB"
+      },
+      "mode": "background",
+      "bypassBlocking": true,
+      "validation": ["all"]
+    }
+  },
+  
+  "sharedInfrastructure": {
+    "performanceMonitor": true,
+    "frameScheduler": true,
+    "dirtyRectOptimization": true,
+    "webWorkers": true,
+    "gpuAcceleration": true
+  },
+  
+  "validationRules": {
+    "nasaJpl": {
+      "enabled": true,
+      "blocking": false,
+      "rules": [
+        "function-length",
+        "loop-bounds",
+        "memory-allocation",
+        "assertion-density",
+        "error-handling"
+      ]
+    },
+    
+    "performance": {
+      "enabled": true,
+      "blocking": false,
+      "thresholds": {
+        "fps": 144,
+        "frameTime": 6.94,
+        "memoryGrowth": 5
+      }
+    }
+  },
+  
+  "gitWorkflow": {
+    "worktreePrefix": "claude/map-",
+    "baseBranch": "main",
+    "mergeStrategy": "sequential",
+    "autoValidation": true,
+    "continuousIntegration": true
+  }
+}

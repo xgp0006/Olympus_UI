@@ -6,6 +6,7 @@
 
 import { writable, derived, type Writable } from 'svelte/store';
 import { browser } from '$app/environment';
+import { BoundedArray } from '../utils/bounded-array'; // NASA JPL Rule 2
 import type { Plugin } from '../types/plugin';
 import { showNotification } from './notifications';
 
@@ -21,10 +22,16 @@ interface PluginState {
 }
 
 /**
- * Internal plugin state store
+ * NASA JPL Rule 2: Bounded memory allocation for plugins
+ */
+const MAX_PLUGINS = 20; // Aerospace-grade limit
+const pluginsPool = new BoundedArray<Plugin>(MAX_PLUGINS);
+
+/**
+ * Internal plugin state store with bounded allocations
  */
 const pluginState: Writable<PluginState> = writable({
-  plugins: [],
+  plugins: pluginsPool.toArray(), // NASA JPL Rule 2: Bounded
   activePlugin: null,
   loading: false,
   error: null,
@@ -127,6 +134,18 @@ const MOCK_PLUGINS: Plugin[] = [
     version: '1.0.0',
     author: 'Modular C2 Team',
     category: 'communication'
+  },
+  {
+    id: 'drone-config',
+    name: 'Drone Configuration',
+    description:
+      'Professional drone configuration with MAVLink support, motor testing, and parameter tuning.',
+    icon: '🚁',
+    enabled: true,
+    version: '1.0.0',
+    author: 'Aerospace Team',
+    category: 'navigation',
+    permissions: ['serial', 'websocket', 'filesystem', 'hardware']
   }
 ];
 

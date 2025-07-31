@@ -22,6 +22,7 @@
     type TapGesture
   } from '$lib/utils/touch';
   import type { MapClickEvent, MissionItem } from './types';
+  import type { MapViewport } from '$lib/map-features/types';
 
   // ===== PROPS =====
   export let selectedItemId: string | null = null;
@@ -753,6 +754,35 @@
     } catch (err) {
       console.error('Failed to highlight selected item:', err);
     }
+  }
+
+  /**
+   * Get current viewport for map features
+   */
+  export function getViewport(): MapViewport | null {
+    if (!map) return null;
+    
+    const bounds = map.getBounds();
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    const bearing = map.getBearing();
+    const pitch = map.getPitch();
+    const container = map.getContainer();
+    
+    return {
+      center: { lng: center.lng, lat: center.lat },
+      zoom,
+      bearing,
+      pitch,
+      bounds: {
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest()
+      },
+      width: container.offsetWidth,
+      height: container.offsetHeight
+    };
   }
 
   /**

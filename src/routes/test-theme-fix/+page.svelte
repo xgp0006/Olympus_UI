@@ -1,11 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { theme, themeError, themeLoading } from '../../lib/stores/theme';
+  import { BoundedArray } from '$lib/utils/bounded-array';
 
-  let logs: string[] = [];
+  let logs = new BoundedArray<string>(50);
 
   function addLog(message: string) {
-    logs = [...logs, `${new Date().toISOString()}: ${message}`];
+    logs.push(`${new Date().toISOString()}: ${message}`);
   }
 
   onMount(() => {
@@ -53,7 +54,7 @@
 
   <div class="logs">
     <h2>Logs:</h2>
-    <pre>{logs.join('\n')}</pre>
+    <pre>{logs.getAll().join('\n')}</pre>
   </div>
 </div>
 

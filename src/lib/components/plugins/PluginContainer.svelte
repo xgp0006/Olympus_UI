@@ -12,6 +12,7 @@
   // Import plugin components
   import MissionPlanner from '../../plugins/mission-planner/MissionPlanner.svelte';
   import SdrDashboard from '../../plugins/sdr-suite/SdrDashboard.svelte';
+  import DroneConfigDashboard from '../../plugins/drone-config/DroneConfigDashboard.svelte';
 
   // Props
   export let pluginId: string;
@@ -29,7 +30,7 @@
     loaded: boolean;
     error: Error | null;
     plugin: Plugin | null;
-    component: typeof MissionPlanner | typeof SdrDashboard | null;
+    component: typeof MissionPlanner | typeof SdrDashboard | typeof DroneConfigDashboard | null;
     retryCount: number;
   }
 
@@ -43,9 +44,10 @@
   };
 
   // Plugin component registry
-  const PLUGIN_COMPONENTS: Record<string, typeof MissionPlanner | typeof SdrDashboard> = {
+  const PLUGIN_COMPONENTS: Record<string, typeof MissionPlanner | typeof SdrDashboard | typeof DroneConfigDashboard> = {
     'mission-planner': MissionPlanner,
-    'sdr-suite': SdrDashboard
+    'sdr-suite': SdrDashboard,
+    'drone-config': DroneConfigDashboard
   };
 
   // Maximum retry attempts for plugin loading

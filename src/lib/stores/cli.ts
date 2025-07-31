@@ -4,6 +4,7 @@
  */
 import { writable, derived } from 'svelte/store';
 import { setupEventListener, CliCommands } from '$lib/utils/tauri';
+import { BoundedArray } from '$lib/utils/bounded-array'; // NASA JPL Rule 2
 import type { UnlistenFn } from '@tauri-apps/api/event';
 
 // Types
@@ -26,12 +27,18 @@ export interface CliTermination {
   code: number;
 }
 
-// Initial state
+// NASA JPL Rule 2: Bounded memory allocation for CLI state
+const MAX_COMMAND_HISTORY = 50; // Aerospace-grade limit
+const MAX_OUTPUT_LINES = 1000; // Aerospace-grade limit
+const commandHistoryPool = new BoundedArray<string>(MAX_COMMAND_HISTORY);
+const outputPool = new BoundedArray<CliOutput>(MAX_OUTPUT_LINES);
+
+// Initial state with bounded allocations
 const initialState: CliState = {
   isRunning: false,
   currentCommand: '',
-  commandHistory: [],
-  output: [],
+  commandHistory: commandHistoryPool.toArray(), // NASA JPL Rule 2: Bounded
+  output: outputPool.toArray(), // NASA JPL Rule 2: Bounded
   lastExitCode: null,
   connected: false
 };

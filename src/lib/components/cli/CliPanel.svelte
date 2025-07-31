@@ -7,7 +7,7 @@
 <script lang="ts">
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
   import { browser } from '$app/environment';
-  import { isMobile, isTablet, currentBreakpoint } from '../../utils/responsive';
+  import { isMobile, isTablet } from '../../utils/responsive';
   import { addTouchGestures } from '../../utils/touch';
   import CliView from './CliView.svelte';
 
@@ -32,7 +32,6 @@
   // Responsive state
   $: isMobileDevice = $isMobile;
   $: isTabletDevice = $isTablet;
-  $: breakpoint = $currentBreakpoint;
 
   // Responsive panel heights
   $: responsivePanelHeight = browser

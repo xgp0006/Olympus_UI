@@ -1,0 +1,190 @@
+/**
+ * Theme Transition Styles for Drone Config Plugin
+ * NASA JPL Compliant - Smooth theme switching without visual artifacts
+ */
+
+/* Base transition for all theme-aware elements */
+.drone-config-dashboard *,
+.calibration-wizard *,
+.flight-mode-panel *,
+.parameter-panel *,
+.motor-controls *,
+.motor-diagram *,
+.motor-test-panel *,
+.pid-tuning-panel *,
+.safety-controls *,
+.telemetry-display * {
+  transition-property: background-color, color, border-color, box-shadow, fill, stroke;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-in-out;
+}
+
+/* Disable transitions for performance-critical elements */
+.emergency-stop,
+.emergency-stop *,
+.channel-bar-fill,
+.throttle-fill,
+.motor-spinning,
+.axis-value,
+.channel-value,
+.telemetry-value,
+.pid-graph-line {
+  transition: none !important;
+}
+
+/* Smooth transitions for modal overlays */
+.modal-overlay,
+.safety-modal {
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Animation adjustments for theme switches */
+@media (prefers-reduced-motion: reduce) {
+  .drone-config-dashboard *,
+  .calibration-wizard *,
+  .flight-mode-panel *,
+  .parameter-panel *,
+  .motor-controls *,
+  .motor-diagram *,
+  .motor-test-panel *,
+  .pid-tuning-panel *,
+  .safety-controls *,
+  .telemetry-display * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High-performance GPU-accelerated transitions */
+.theme-transitioning {
+  will-change: background-color, color, border-color;
+}
+
+/* Prevent layout shifts during theme transitions */
+.drone-config-dashboard {
+  contain: layout style paint;
+}
+
+/* Special handling for SVG elements */
+svg * {
+  transition-property: fill, stroke, stroke-width, opacity;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-in-out;
+}
+
+/* Gradient transitions */
+.channel-bar-fill,
+.quality-fill,
+.coverage-fill {
+  transition-property: width, background;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-out;
+}
+
+/* Button hover states with theme awareness */
+button:not(.emergency-stop) {
+  transition: all 0.2s ease;
+}
+
+/* Input field transitions */
+input[type="text"],
+input[type="number"],
+input[type="range"],
+select,
+textarea {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-in-out;
+}
+
+/* Focus states with smooth transitions */
+*:focus {
+  transition-property: outline-color, box-shadow;
+  transition-duration: 0.15s;
+  transition-timing-function: ease-out;
+}
+
+/* Card and panel transitions */
+.parameter-group,
+.mode-card,
+.switch-position,
+.sensor-data-panel,
+.visualization-panel {
+  transition-property: background-color, border-color, box-shadow, transform;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-in-out;
+}
+
+/* Loading states */
+.loading-overlay {
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Progress bars and indicators */
+.progress-fill,
+.stability-indicator,
+.quality-indicator {
+  transition-property: width, background-color, transform;
+  transition-duration: 0.3s;
+  transition-timing-function: ease-out;
+}
+
+/* Notification transitions */
+.warning-banner,
+.error-message,
+.success-message {
+  transition: all 0.3s ease-in-out;
+}
+
+/* 3D element transitions */
+.drone-model {
+  transition-property: transform, filter, opacity;
+  transition-duration: 0.3s;
+  transition-timing-function: ease-out;
+}
+
+/* Graph and chart transitions */
+.pid-graph,
+.telemetry-graph {
+  transition-property: background-color, border-color;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-in-out;
+}
+
+/* Drag and drop transitions */
+.drag-over {
+  transition-property: background-color, border-color, transform;
+  transition-duration: 0.15s;
+  transition-timing-function: ease-out;
+}
+
+/* Accordion and expandable sections */
+.group-header,
+.expandable-section {
+  transition-property: background-color, color, transform;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-in-out;
+}
+
+/* Icon transitions */
+.group-icon,
+.mode-icon,
+.status-icon {
+  transition-property: transform, color, opacity;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-in-out;
+}
+
+/* Theme-specific performance optimizations */
+:root {
+  --theme-transition-duration: 0.2s;
+  --theme-transition-timing: ease-in-out;
+}
+
+/* Batch transitions for better performance */
+.theme-batch-transition {
+  transition: 
+    background-color var(--theme-transition-duration) var(--theme-transition-timing),
+    color var(--theme-transition-duration) var(--theme-transition-timing),
+    border-color var(--theme-transition-duration) var(--theme-transition-timing),
+    box-shadow var(--theme-transition-duration) var(--theme-transition-timing);
+}
