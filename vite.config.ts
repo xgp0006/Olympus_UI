@@ -6,14 +6,21 @@ export default defineConfig({
 
   // Tauri expects a fixed port, fail if that port is not available
   server: {
-    port: 1420,
+    port: 5173,
     strictPort: true,
     host: 'localhost',
     watch: {
       // 3. tell vite to ignore watching `src-tauri`
       ignored: ['**/src-tauri/**']
+    },
+    // Allow serving static files
+    fs: {
+      allow: ['..']
     }
   },
+
+  // Public directory for static assets
+  publicDir: 'static',
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   // 1. prevent vite from obscuring rust errors
@@ -24,10 +31,16 @@ export default defineConfig({
 
   build: {
     // Tauri supports es2021
-    target: process.env.TAURI_PLATFORM == 'windows' ? 'chrome105' : 'safari13',
+    target: 'chrome105', // Default to Chrome 105 for Windows
     // don't minify for debug builds
-    minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
+    minify: 'esbuild',
     // produce sourcemaps for debug builds
-    sourcemap: !!process.env.TAURI_DEBUG
+    sourcemap: true
+  },
+
+  define: {
+    // Define environment variables for browser
+    'import.meta.env.VITE_STRICT_ASSERTIONS': JSON.stringify('false'),
+    'import.meta.env.VITE_DEBUG_ASSERTIONS': JSON.stringify('true')
   }
 });

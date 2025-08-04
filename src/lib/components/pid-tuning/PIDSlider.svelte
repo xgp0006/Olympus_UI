@@ -14,7 +14,7 @@
 <script lang="ts">
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   import { spring } from 'svelte/motion';
-  import type { PIDSliderProps, ValidationResult } from '$lib/types/pid-tuning';
+  import type { PIDSliderProps } from '$lib/types/pid-tuning';
   import { DEFAULT_PID_CONSTRAINTS } from '$lib/types/pid-tuning';
 
   // Component props with strict typing
@@ -50,7 +50,6 @@
   let inputElement: HTMLInputElement;
   let isDragging = false;
   let isFocused = false;
-  let lastChangeTimestamp = 0;
   let validationStatus: 'safe' | 'warning' | 'critical' = 'safe';
 
   // Animation springs for smooth interactions
@@ -66,7 +65,7 @@
   $: normalizedValue = ((value - min) / (max - min)) * 100;
   $: displayValue = value.toFixed(precision);
   $: constraints = DEFAULT_PID_CONSTRAINTS[axis];
-  
+
   // Validation logic
   $: {
     updateValidationStatus(value);
@@ -95,22 +94,31 @@
    */
   function updateValidationStatus(currentValue: number): void {
     const constraint = constraints[pidType];
-    
+
     if (currentValue < constraint.min || currentValue > constraint.max) {
       validationStatus = 'critical';
-      dispatch('critical', `${pidType} value ${currentValue} is outside safe range [${constraint.min}, ${constraint.max}]`);
+      dispatch(
+        'critical',
+        `${pidType} value ${currentValue} is outside safe range [${constraint.min}, ${constraint.max}]`
+      );
       return;
     }
 
     if (criticalThreshold && currentValue > criticalThreshold) {
       validationStatus = 'critical';
-      dispatch('critical', `${pidType} value ${currentValue} exceeds critical threshold ${criticalThreshold}`);
+      dispatch(
+        'critical',
+        `${pidType} value ${currentValue} exceeds critical threshold ${criticalThreshold}`
+      );
       return;
     }
 
     if (warningThreshold && currentValue > warningThreshold) {
       validationStatus = 'warning';
-      dispatch('warning', `${pidType} value ${currentValue} exceeds warning threshold ${warningThreshold}`);
+      dispatch(
+        'warning',
+        `${pidType} value ${currentValue} exceeds warning threshold ${warningThreshold}`
+      );
       return;
     }
 
@@ -123,11 +131,10 @@
   function handleSliderInput(event: Event): void {
     const target = event.target as HTMLInputElement;
     const newValue = parseFloat(target.value);
-    
+
     if (isNaN(newValue) || newValue === value) return;
-    
+
     updateValueWithHistory(newValue);
-    lastChangeTimestamp = performance.now();
   }
 
   /**
@@ -136,13 +143,13 @@
   function handleNumericInput(event: Event): void {
     const target = event.target as HTMLInputElement;
     let newValue = parseFloat(target.value);
-    
+
     if (isNaN(newValue)) return;
-    
+
     // Clamp to valid range
     newValue = Math.max(min, Math.min(max, newValue));
     newValue = Math.round(newValue / step) * step;
-    
+
     updateValueWithHistory(newValue);
   }
 
@@ -155,15 +162,15 @@
       // Truncate history at current position
       valueHistory = valueHistory.slice(0, historyIndex + 1);
       valueHistory.push(value);
-      
+
       // Limit history size
       if (valueHistory.length > MAX_HISTORY) {
         valueHistory = valueHistory.slice(-MAX_HISTORY);
       }
-      
+
       historyIndex = valueHistory.length - 1;
     }
-    
+
     value = newValue;
     dispatch('change', value);
   }
@@ -183,40 +190,40 @@
         event.preventDefault();
         updateValueWithHistory(Math.min(max, value + step));
         break;
-        
+
       case 'ArrowDown':
       case 'ArrowLeft':
         event.preventDefault();
         updateValueWithHistory(Math.max(min, value - step));
         break;
-        
+
       case 'PageUp':
         event.preventDefault();
         updateValueWithHistory(Math.min(max, value + step * 10));
         break;
-        
+
       case 'PageDown':
         event.preventDefault();
         updateValueWithHistory(Math.max(min, value - step * 10));
         break;
-        
+
       case 'Home':
         event.preventDefault();
         updateValueWithHistory(min);
         break;
-        
+
       case 'End':
         event.preventDefault();
         updateValueWithHistory(max);
         break;
-        
+
       case 'z':
         if (cmdKey && historyIndex >= 0) {
           event.preventDefault();
           undo();
         }
         break;
-        
+
       case 'y':
         if (cmdKey) {
           event.preventDefault();
@@ -316,7 +323,7 @@
         <span class="unit">({unit})</span>
       {/if}
     </label>
-    
+
     <div class="value-display" class:critical={validationStatus === 'critical'}>
       {displayValue}
       {#if validationStatus !== 'safe'}
@@ -332,14 +339,14 @@
     <!-- Background track with safety zones -->
     <div class="slider-track">
       {#if warningThreshold}
-        <div 
+        <div
           class="warning-zone"
           style="left: {((warningThreshold - min) / (max - min)) * 100}%"
         ></div>
       {/if}
-      
+
       {#if criticalThreshold}
-        <div 
+        <div
           class="critical-zone"
           style="left: {((criticalThreshold - min) / (max - min)) * 100}%"
         ></div>
@@ -371,7 +378,7 @@
     />
 
     <!-- Custom styled thumb (positioned with spring animation) -->
-    <div 
+    <div
       class="slider-thumb"
       style="left: {$thumbPosition}%; 
              background: hsl({120 - $colorTransition * 60}, 70%, 50%);
@@ -381,11 +388,11 @@
     <!-- Value markers for expert mode -->
     {#if expertMode}
       <div class="value-markers">
-        {#each Array.from({length: 5}, (_, i) => min + (max - min) * (i / 4)) as markerValue}
-          <div 
+        {#each Array.from({ length: 5 }, (_, i) => min + (max - min) * (i / 4)) as markerValue}
+          <div
             class="marker"
             style="left: {((markerValue - min) / (max - min)) * 100}%"
-            title="{markerValue.toFixed(precision)}"
+            title={markerValue.toFixed(precision)}
           >
             <span class="marker-label">{markerValue.toFixed(precision)}</span>
           </div>
@@ -419,10 +426,11 @@
   <!-- Help text -->
   {#if expertMode}
     <div id="help-{axis}-{pidType}" class="help-text">
-      {pidType} coefficient controls {pidType === 'P' ? 'proportional response' : 
-                                     pidType === 'I' ? 'integral windup' : 
-                                     'derivative damping'} for {axis} axis movement.
-      Range: {min} - {max}, Current: {displayValue}
+      {pidType} coefficient controls {pidType === 'P'
+        ? 'proportional response'
+        : pidType === 'I'
+          ? 'integral windup'
+          : 'derivative damping'} for {axis} axis movement. Range: {min} - {max}, Current: {displayValue}
     </div>
   {/if}
 </div>
@@ -439,7 +447,7 @@
     transition: all 200ms ease-out;
     user-select: none;
   }
-  
+
   :global(.dark) .pid-slider {
     background-color: rgb(31 41 55);
     border-color: rgb(75 85 99);
@@ -457,7 +465,7 @@
   .pid-slider.readonly {
     background-color: rgb(243 244 246);
   }
-  
+
   :global(.dark) .pid-slider.readonly {
     background-color: rgb(17 24 39);
   }
@@ -466,7 +474,7 @@
     border-color: rgb(251 191 36);
     background-color: rgb(254 252 232);
   }
-  
+
   :global(.dark) .pid-slider.validation-warning {
     background-color: rgb(113 63 18);
   }
@@ -475,7 +483,7 @@
     border-color: rgb(248 113 113);
     background-color: rgb(254 242 242);
   }
-  
+
   :global(.dark) .pid-slider.validation-critical {
     background-color: rgb(127 29 29);
   }
@@ -491,7 +499,7 @@
     font-weight: 500;
     color: rgb(55 65 81);
   }
-  
+
   :global(.dark) .slider-label {
     color: rgb(209 213 219);
   }
@@ -501,7 +509,7 @@
     color: rgb(107 114 128);
     margin-left: 0.25rem;
   }
-  
+
   :global(.dark) .unit {
     color: rgb(156 163 175);
   }
@@ -514,7 +522,7 @@
     min-width: 4rem;
     text-align: right;
   }
-  
+
   :global(.dark) .value-display {
     color: rgb(243 244 246);
   }
@@ -522,7 +530,7 @@
   .value-display.critical {
     color: rgb(220 38 38);
   }
-  
+
   :global(.dark) .value-display.critical {
     color: rgb(248 113 113);
   }
@@ -551,7 +559,7 @@
     top: 50%;
     transform: translateY(-50%);
   }
-  
+
   :global(.dark) .slider-track {
     background-color: rgb(75 85 99);
   }
@@ -593,7 +601,9 @@
     height: 1.5rem;
     border-radius: 9999px;
     border: 2px solid white;
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    box-shadow:
+      0 10px 15px -3px rgb(0 0 0 / 0.1),
+      0 4px 6px -4px rgb(0 0 0 / 0.1);
     pointer-events: none;
     top: 50%;
     transform: translateY(-50%);
@@ -602,7 +612,9 @@
   }
 
   .dragging .slider-thumb {
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    box-shadow:
+      0 20px 25px -5px rgb(0 0 0 / 0.1),
+      0 8px 10px -6px rgb(0 0 0 / 0.1);
   }
 
   .value-markers {
@@ -697,7 +709,7 @@
     .pid-slider {
       border-width: 2px;
     }
-    
+
     .slider-track {
       background-color: black;
     }
@@ -705,7 +717,7 @@
     :global(.dark) .slider-track {
       background-color: white;
     }
-    
+
     .slider-thumb {
       border-width: 4px;
     }
@@ -717,11 +729,11 @@
       width: 2rem;
       height: 2rem;
     }
-    
+
     .slider-container {
       height: 3rem;
     }
-    
+
     .numeric-input {
       font-size: 1rem;
       line-height: 1.5rem;

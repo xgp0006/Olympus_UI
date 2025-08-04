@@ -26,26 +26,26 @@
 <div class="master-gain">
   <h3>Master Gain</h3>
   <div class="gain-control">
-    <input 
-      type="range" 
-      min="0.5" 
-      max="2.0" 
+    <input
+      type="range"
+      min="0.5"
+      max="2.0"
       step="0.1"
       value={masterGain}
       on:input={(e) => updateMasterGain(Number(e.currentTarget.value))}
       {disabled}
     />
-    <input 
-      type="number" 
-      min="0.5" 
-      max="2.0" 
+    <input
+      type="number"
+      min="0.5"
+      max="2.0"
       step="0.1"
       value={masterGain}
       on:input={(e) => updateMasterGain(Number(e.currentTarget.value))}
       {disabled}
       class="value-input"
     />
-    <button 
+    <button
       class="btn-small"
       on:click={applyMasterGain}
       {disabled}

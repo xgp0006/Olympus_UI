@@ -5,6 +5,7 @@
 ### 1. MotorTestPanel.svelte - Technical Implementation
 
 **Core Architecture**:
+
 ```svelte
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
@@ -15,11 +16,11 @@
   let safetyState = writable<'locked' | 'stage1' | 'stage2' | 'stage3' | 'unlocked'>('locked');
   let motorThrottles = writable<number[]>(Array(props.motorCount).fill(0));
   let emergencyStop = writable<boolean>(false);
-  
+
   // WebGPU-accelerated real-time telemetry visualization
   let telemetryCanvas: HTMLCanvasElement;
   let gpuDevice: GPUDevice;
-  
+
   // Safety timeout system
   let safetyTimer: NodeJS.Timeout;
   const SAFETY_TIMEOUT = 30000; // 30 seconds
@@ -27,23 +28,23 @@
 
 <div class="motor-test-panel" class:safety-locked={$safetyState === 'locked'}>
   <!-- Multi-stage safety confirmation -->
-  <SafetyConfirmationStages 
+  <SafetyConfirmationStages
     bind:currentStage={$safetyState}
     on:emergency-stop={handleEmergencyStop}
   />
-  
+
   <!-- Motor layout visualization with real-time status -->
-  <MotorLayoutDisplay 
-    {frameType} 
-    {motorCount} 
+  <MotorLayoutDisplay
+    {frameType}
+    {motorCount}
     telemetry={$telemetryData}
     throttles={$motorThrottles}
   />
-  
+
   <!-- Individual motor control sliders -->
   <div class="motor-controls">
     {#each Array(motorCount) as _, i}
-      <MotorSlider 
+      <MotorSlider
         motorId={i}
         bind:throttle={$motorThrottles[i]}
         disabled={$safetyState === 'locked'}
@@ -52,38 +53,39 @@
       />
     {/each}
   </div>
-  
+
   <!-- Emergency stop - always visible and accessible -->
   <EmergencyStopButton on:click={handleEmergencyStop} />
 </div>
 ```
 
 **Safety State Machine**:
+
 ```typescript
 const safetyStateMachine = {
   locked: {
     maxThrottle: 0,
     requirements: ['propellers_removed', 'battery_connected'],
     timeout: null,
-    canProgress: (requirements) => requirements.every(r => completed[r])
+    canProgress: (requirements) => requirements.every((r) => completed[r])
   },
   stage1: {
     maxThrottle: 0.25,
     requirements: ['motor_test_confirmation'],
     timeout: 30000,
-    canProgress: (requirements) => requirements.every(r => completed[r])
+    canProgress: (requirements) => requirements.every((r) => completed[r])
   },
   stage2: {
     maxThrottle: 0.5,
     requirements: ['progressive_unlock_1'],
     timeout: 45000,
-    canProgress: (requirements) => requirements.every(r => completed[r])
+    canProgress: (requirements) => requirements.every((r) => completed[r])
   },
   stage3: {
     maxThrottle: 0.75,
     requirements: ['progressive_unlock_2'],
     timeout: 60000,
-    canProgress: (requirements) => requirements.every(r => completed[r])
+    canProgress: (requirements) => requirements.every((r) => completed[r])
   },
   unlocked: {
     maxThrottle: 1.0,
@@ -95,6 +97,7 @@ const safetyStateMachine = {
 ```
 
 **WebGPU Telemetry Rendering**:
+
 ```typescript
 class TelemetryRenderer {
   private device: GPUDevice;
@@ -104,7 +107,7 @@ class TelemetryRenderer {
   async init(canvas: HTMLCanvasElement) {
     const adapter = await navigator.gpu?.requestAdapter();
     this.device = await adapter?.requestDevice();
-    
+
     // Create compute shader for real-time telemetry processing
     const computeShader = this.device.createShaderModule({
       code: `
@@ -133,6 +136,7 @@ class TelemetryRenderer {
 ### 2. ESCConfigurator.svelte - Technical Implementation
 
 **Protocol Detection System**:
+
 ```typescript
 class ESCProtocolManager {
   private supportedProtocols: ESCProtocol[] = [
@@ -144,7 +148,7 @@ class ESCProtocolManager {
       maxUpdateRate: 8000,
       description: 'Highest performance digital protocol',
       minVersion: '4.0.0'
-    },
+    }
     // ... other protocols
   ];
 
@@ -171,12 +175,12 @@ class ESCProtocolManager {
     try {
       // Validate protocol compatibility
       await this.validateProtocolCompatibility(protocol);
-      
+
       // Configure each ESC
       for (const esc of this.connectedESCs) {
         await this.sendProtocolConfiguration(esc.id, protocol);
       }
-      
+
       // Verify configuration
       return await this.verifyProtocolConfiguration(protocol);
     } catch (error) {
@@ -190,10 +194,11 @@ class ESCProtocolManager {
 ### 3. MotorLayoutVisualizer.svelte - Interactive Canvas Implementation
 
 **Drag-and-Drop Motor Positioning**:
+
 ```svelte
 <script lang="ts">
   import { onMount } from 'svelte';
-  
+
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
   let isDragging = false;
@@ -217,20 +222,20 @@ class ESCProtocolManager {
 
   function renderMotorLayout() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     // Draw frame outline
     drawFrameOutline(frameType);
-    
+
     // Draw motor positions with real-time status
     motorPositions.forEach((motor, index) => {
       const screenPos = normalizedToScreen(motor.x, motor.y);
-      const telemetry = telemetryData?.find(t => t.motorId === motor.motorId);
-      
+      const telemetry = telemetryData?.find((t) => t.motorId === motor.motorId);
+
       drawMotor(screenPos, motor, telemetry);
       drawRotationIndicator(screenPos, motor.rotation);
       drawMotorLabel(screenPos, motor.motorId);
     });
-    
+
     // Draw connection lines
     drawMotorConnections();
   }
@@ -238,7 +243,7 @@ class ESCProtocolManager {
   function drawMotor(pos: Point, motor: MotorPosition, telemetry?: MotorTelemetry) {
     const radius = 20;
     const healthColor = getHealthColor(telemetry);
-    
+
     // Motor body
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, radius, 0, 2 * Math.PI);
@@ -247,7 +252,7 @@ class ESCProtocolManager {
     ctx.strokeStyle = motor.motorId === selectedMotor ? '#00ff00' : '#333';
     ctx.lineWidth = 2;
     ctx.stroke();
-    
+
     // RPM indicator
     if (telemetry?.rpm > 0) {
       const rpmRadius = radius + 5 + (telemetry.rpm / 10000) * 10;
@@ -260,9 +265,9 @@ class ESCProtocolManager {
   }
 </script>
 
-<canvas 
+<canvas
   bind:this={canvas}
-  width="600" 
+  width="600"
   height="400"
   class="motor-layout-canvas"
   on:contextmenu|preventDefault
@@ -272,6 +277,7 @@ class ESCProtocolManager {
 ### 4. SafetyInterlocks.svelte - Multi-Level Confirmation System
 
 **Gesture-Based Confirmation for Mobile**:
+
 ```typescript
 class GestureConfirmation {
   private touchSequence: TouchPoint[] = [];
@@ -288,7 +294,7 @@ class GestureConfirmation {
     this.element.addEventListener('touchstart', (e) => {
       touchStartTime = Date.now();
       touchCount = e.touches.length;
-      
+
       // Prevent accidental activation with palm rejection
       if (touchCount > 2) {
         e.preventDefault();
@@ -298,7 +304,7 @@ class GestureConfirmation {
 
     this.element.addEventListener('touchend', (e) => {
       const touchDuration = Date.now() - touchStartTime;
-      
+
       // Require deliberate long press for safety confirmation
       if (touchDuration >= 2000 && touchCount === 1) {
         this.confirmGesture();
@@ -311,26 +317,27 @@ class GestureConfirmation {
     if ('vibrate' in navigator) {
       navigator.vibrate([100, 50, 100]);
     }
-    
+
     this.dispatchEvent('gesture-confirmed');
   }
 }
 ```
 
 **Time-Based Safety Countdown**:
+
 ```svelte
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { tweened } from 'svelte/motion';
-  
+
   let countdownTimer: number;
   let countdown = tweened(0, { duration: 1000 });
-  
+
   function startSafetyCountdown(duration: number) {
     countdown.set(duration);
-    
+
     const interval = setInterval(() => {
-      countdown.update(n => {
+      countdown.update((n) => {
         if (n <= 1) {
           clearInterval(interval);
           onCountdownComplete();
@@ -339,7 +346,7 @@ class GestureConfirmation {
         return n - 1;
       });
     }, 1000);
-    
+
     return interval;
   }
 </script>
@@ -347,10 +354,12 @@ class GestureConfirmation {
 <div class="safety-countdown" class:active={$countdown > 0}>
   <div class="countdown-circle">
     <svg viewBox="0 0 100 100">
-      <circle 
-        cx="50" cy="50" r="45"
-        fill="none" 
-        stroke="#ff4444" 
+      <circle
+        cx="50"
+        cy="50"
+        r="45"
+        fill="none"
+        stroke="#ff4444"
         stroke-width="4"
         stroke-dasharray="283"
         stroke-dashoffset={283 * (1 - $countdown / totalTime)}
@@ -365,55 +374,59 @@ class GestureConfirmation {
 ### 5. MotorHealthMonitor.svelte - Real-Time Telemetry System
 
 **Streaming Telemetry with WebSocket**:
+
 ```typescript
 class TelemetryStreamer {
   private ws: WebSocket;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
-  
+
   constructor(private url: string) {
     this.connect();
   }
 
   private connect() {
     this.ws = new WebSocket(this.url);
-    
+
     this.ws.onopen = () => {
       console.log('Telemetry stream connected');
       this.reconnectAttempts = 0;
     };
-    
+
     this.ws.onmessage = (event) => {
       const telemetry: MotorTelemetry[] = JSON.parse(event.data);
       this.processTelemetryData(telemetry);
     };
-    
+
     this.ws.onclose = () => {
       if (this.reconnectAttempts < this.maxReconnectAttempts) {
-        setTimeout(() => {
-          this.reconnectAttempts++;
-          this.connect();
-        }, 1000 * Math.pow(2, this.reconnectAttempts));
+        setTimeout(
+          () => {
+            this.reconnectAttempts++;
+            this.connect();
+          },
+          1000 * Math.pow(2, this.reconnectAttempts)
+        );
       }
     };
   }
 
   private processTelemetryData(data: MotorTelemetry[]) {
     // Real-time health analysis
-    data.forEach(motor => {
+    data.forEach((motor) => {
       this.analyzeMotorHealth(motor);
     });
-    
+
     // Update stores
     telemetryStore.set(data);
-    
+
     // Check for alerts
     this.checkHealthAlerts(data);
   }
 
   private analyzeMotorHealth(motor: MotorTelemetry): HealthStatus {
     const alerts: HealthAlert[] = [];
-    
+
     // Temperature monitoring
     if (motor.temperature > 85) {
       alerts.push({
@@ -425,7 +438,7 @@ class TelemetryStreamer {
         autoResolve: false
       });
     }
-    
+
     // Current monitoring
     if (motor.current > 30) {
       alerts.push({
@@ -437,11 +450,11 @@ class TelemetryStreamer {
         autoResolve: true
       });
     }
-    
+
     // RPM anomaly detection
     const expectedRpm = this.calculateExpectedRpm(motor.motorId);
     const rpmDeviation = Math.abs(motor.rpm - expectedRpm) / expectedRpm;
-    
+
     if (rpmDeviation > 0.15) {
       alerts.push({
         motorId: motor.motorId,
@@ -452,11 +465,14 @@ class TelemetryStreamer {
         autoResolve: true
       });
     }
-    
+
     return {
       motorId: motor.motorId,
-      overall: alerts.some(a => a.severity === 'critical') ? 'critical' : 
-               alerts.some(a => a.severity === 'warning') ? 'warning' : 'good',
+      overall: alerts.some((a) => a.severity === 'critical')
+        ? 'critical'
+        : alerts.some((a) => a.severity === 'warning')
+          ? 'warning'
+          : 'good',
       alerts
     };
   }
@@ -466,18 +482,19 @@ class TelemetryStreamer {
 ### 6. DirectionTester.svelte - Audio Analysis Implementation
 
 **Sound-Based Direction Detection**:
+
 ```typescript
 class AudioDirectionAnalyzer {
   private audioContext: AudioContext;
   private analyser: AnalyserNode;
   private microphone: MediaStreamAudioSourceNode;
-  
+
   async init(): Promise<void> {
     this.audioContext = new AudioContext();
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     this.microphone = this.audioContext.createMediaStreamSource(stream);
     this.analyser = this.audioContext.createAnalyser();
-    
+
     this.analyser.fftSize = 8192;
     this.microphone.connect(this.analyser);
   }
@@ -487,20 +504,20 @@ class AudioDirectionAnalyzer {
       const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
       const samples: AudioSample[] = [];
       const startTime = Date.now();
-      
+
       const analyzeFrame = () => {
         this.analyser.getByteFrequencyData(dataArray);
-        
+
         // Extract dominant frequency and amplitude
         const dominantFreq = this.findDominantFrequency(dataArray);
         const amplitude = this.calculateRMS(dataArray);
-        
+
         samples.push({
           timestamp: Date.now() - startTime,
           frequency: dominantFreq,
           amplitude: amplitude
         });
-        
+
         if (Date.now() - startTime < duration) {
           requestAnimationFrame(analyzeFrame);
         } else {
@@ -515,21 +532,21 @@ class AudioDirectionAnalyzer {
           });
         }
       };
-      
+
       analyzeFrame();
     });
   }
 
   private determineRotationDirection(samples: AudioSample[]): AudioAnalysis {
     // Analyze frequency modulation patterns
-    const frequencyDeltas = samples.map((sample, i) => 
-      i > 0 ? sample.frequency - samples[i-1].frequency : 0
+    const frequencyDeltas = samples.map((sample, i) =>
+      i > 0 ? sample.frequency - samples[i - 1].frequency : 0
     );
-    
+
     // CW rotation typically shows increasing frequency pattern
     // CCW rotation shows decreasing frequency pattern
     const avgDelta = frequencyDeltas.reduce((a, b) => a + b, 0) / frequencyDeltas.length;
-    
+
     return {
       frequency: samples.reduce((acc, s) => acc + s.frequency, 0) / samples.length,
       amplitude: samples.reduce((acc, s) => acc + s.amplitude, 0) / samples.length,
@@ -543,27 +560,28 @@ class AudioDirectionAnalyzer {
 ### 7. OutputGraphs.svelte - WebGPU Accelerated Visualization
 
 **High-Performance Real-Time Graphing**:
+
 ```typescript
 class GPUGraphRenderer {
   private device: GPUDevice;
   private canvas: HTMLCanvasElement;
   private context: GPUCanvasContext;
   private pipeline: GPURenderPipeline;
-  
+
   async init(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.context = canvas.getContext('webgpu');
-    
+
     const adapter = await navigator.gpu.requestAdapter();
     this.device = await adapter.requestDevice();
-    
+
     // Configure canvas
     this.context.configure({
       device: this.device,
       format: 'bgra8unorm',
       usage: GPUTextureUsage.RENDER_ATTACHMENT
     });
-    
+
     // Create render pipeline for high-frequency updates
     this.pipeline = this.device.createRenderPipeline({
       layout: 'auto',
@@ -601,12 +619,14 @@ class GPUGraphRenderer {
   renderFrame(telemetryData: MotorTelemetry[], timeWindow: number) {
     const encoder = this.device.createCommandEncoder();
     const renderPass = encoder.beginRenderPass({
-      colorAttachments: [{
-        view: this.context.getCurrentTexture().createView(),
-        clearValue: { r: 0, g: 0, b: 0, a: 1 },
-        loadOp: 'clear',
-        storeOp: 'store'
-      }]
+      colorAttachments: [
+        {
+          view: this.context.getCurrentTexture().createView(),
+          clearValue: { r: 0, g: 0, b: 0, a: 1 },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }
+      ]
     });
 
     renderPass.setPipeline(this.pipeline);
@@ -621,16 +641,19 @@ class GPUGraphRenderer {
 ## Performance Optimizations
 
 ### Memory Management
+
 - Circular buffers for telemetry data to prevent memory leaks
 - Lazy loading of historical data with virtualization
 - WebWorker-based calculations to prevent UI blocking
 
 ### Real-Time Rendering
+
 - WebGPU compute shaders for parallel telemetry processing
 - Frame rate limiting to prevent excessive GPU usage
 - Adaptive quality scaling based on system performance
 
 ### Safety System Performance
+
 - Hardware-accelerated timeout timers using Web APIs
 - Immediate emergency stop response (<1ms latency)
 - Redundant safety checks with multiple validation paths
@@ -638,6 +661,7 @@ class GPUGraphRenderer {
 ## Testing Strategy
 
 ### Unit Tests
+
 ```typescript
 // Example safety interlock test
 describe('SafetyInterlocks', () => {
@@ -645,26 +669,28 @@ describe('SafetyInterlocks', () => {
     const { getByRole, queryByRole } = render(SafetyInterlocks, {
       props: { currentLevel: 1, requiresGesture: false }
     });
-    
+
     const motorSlider = queryByRole('slider');
     expect(motorSlider).toBeDisabled();
-    
+
     // Should not enable until safety requirements met
     const propCheckbox = getByRole('checkbox', { name: /propellers removed/i });
     await fireEvent.click(propCheckbox);
-    
+
     expect(motorSlider).toBeDisabled(); // Still disabled until all requirements met
   });
 });
 ```
 
 ### Integration Tests
+
 - End-to-end calibration workflow testing
 - Safety system failure scenarios
 - Real-time telemetry accuracy validation
 - Cross-component communication testing
 
 ### Performance Tests
+
 - Telemetry rendering at 60+ FPS with 8 motors
 - Safety response time under 1ms
 - Memory usage stability over extended periods

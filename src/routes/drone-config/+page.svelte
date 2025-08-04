@@ -19,7 +19,9 @@
   <div class="instructions">
     <h2>Features:</h2>
     <ul>
-      <li><strong>Motor Test Panel:</strong> Safely test individual motors with multi-stage safety system</li>
+      <li>
+        <strong>Motor Test Panel:</strong> Safely test individual motors with multi-stage safety system
+      </li>
       <li><strong>Flight Mode Config:</strong> Drag-and-drop flight mode assignment to switches</li>
       <li><strong>Parameter Editor:</strong> Tune PID controllers and flight parameters</li>
       <li><strong>Accelerometer Calibration:</strong> 6-point calibration with visual guidance</li>

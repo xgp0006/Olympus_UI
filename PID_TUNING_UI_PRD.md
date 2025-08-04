@@ -1,4 +1,5 @@
 # PID Tuning UI/UX Product Requirements Document
+
 ## Drone Configuration Plugin for Modular C2 Frontend
 
 ### Executive Summary
@@ -10,7 +11,9 @@ This PRD defines a comprehensive PID tuning interface for drone flight controlle
 ## 1. Background & Context
 
 ### 1.1 Problem Statement
+
 Current drone flight controller tuning requires:
+
 - Complex manual numeric input for PID coefficients
 - Limited real-time feedback during parameter adjustment
 - Lack of visual response curve analysis
@@ -18,7 +21,9 @@ Current drone flight controller tuning requires:
 - No integrated auto-tuning workflows
 
 ### 1.2 Solution Overview
+
 A modular PID tuning interface featuring:
+
 - Interactive slider-based PID adjustment
 - Real-time response curve visualization
 - Multi-profile management system
@@ -27,6 +32,7 @@ A modular PID tuning interface featuring:
 - Live telemetry integration
 
 ### 1.3 Success Metrics
+
 - 80% reduction in tuning time for novice users
 - 95% accuracy in PID parameter application
 - Sub-100ms response time for all UI interactions
@@ -69,6 +75,7 @@ PIDTuningPlugin/
 **Purpose**: Multi-axis PID coefficient adjustment with live preview
 
 **Props Interface**:
+
 ```typescript
 interface PIDSliderProps {
   // Core Properties
@@ -78,18 +85,18 @@ interface PIDSliderProps {
   min: number;
   max: number;
   step: number;
-  
+
   // UI Configuration
   label: string;
   unit?: string;
   precision: number;
   showNumericInput: boolean;
   expertMode: boolean;
-  
+
   // Validation
   warningThreshold?: number;
   criticalThreshold?: number;
-  
+
   // Events
   onChange: (value: number) => void;
   onWarning?: (message: string) => void;
@@ -98,6 +105,7 @@ interface PIDSliderProps {
 ```
 
 **State Management**:
+
 ```typescript
 interface PIDSliderState {
   currentValue: number;
@@ -109,6 +117,7 @@ interface PIDSliderState {
 ```
 
 **Key Features**:
+
 - Smooth 120fps drag interactions with GPU acceleration
 - Color-coded validation (green/yellow/red)
 - Haptic feedback simulation for desktop
@@ -117,6 +126,7 @@ interface PIDSliderState {
 - Auto-save with configurable debounce delay
 
 **Visual Requirements**:
+
 - Gradient track showing safe/warning/critical zones
 - Animated value transitions (200ms ease-out)
 - Precise thumb positioning with sub-pixel accuracy
@@ -128,6 +138,7 @@ interface PIDSliderState {
 **Purpose**: Flight profile management with seamless switching
 
 **Props Interface**:
+
 ```typescript
 interface RateProfileSelectorProps {
   profiles: FlightProfile[];
@@ -136,7 +147,7 @@ interface RateProfileSelectorProps {
   allowRename: boolean;
   allowDelete: boolean;
   allowCopy: boolean;
-  
+
   // Events
   onProfileSelect: (profileId: string) => void;
   onProfileCreate: (profile: FlightProfile) => void;
@@ -147,6 +158,7 @@ interface RateProfileSelectorProps {
 ```
 
 **State Management**:
+
 ```typescript
 interface RateProfileState {
   isEditing: boolean;
@@ -158,6 +170,7 @@ interface RateProfileState {
 ```
 
 **Key Features**:
+
 - Dropdown with searchable profile names
 - Visual indicators for modified/unsaved profiles
 - Bulk operations (copy, delete, reset)
@@ -170,6 +183,7 @@ interface RateProfileState {
 **Purpose**: Interactive stick response curve editing with visual feedback
 
 **Props Interface**:
+
 ```typescript
 interface ResponseCurveEditorProps {
   // Curve Configuration
@@ -177,16 +191,16 @@ interface ResponseCurveEditorProps {
   expoValue: number;
   superRate: number;
   rcRate: number;
-  
+
   // Display Options
   showGrid: boolean;
   showPreview: boolean;
   enable3DPreview: boolean;
-  
+
   // Input Simulation
   stickPosition: { x: number; y: number };
   simulationSpeed: number;
-  
+
   // Events
   onCurveChange: (config: CurveConfig) => void;
   onStickMove: (position: { x: number; y: number }) => void;
@@ -194,6 +208,7 @@ interface ResponseCurveEditorProps {
 ```
 
 **Key Features**:
+
 - WebGL-accelerated curve rendering
 - Real-time 3D drone model preview
 - Interactive control point manipulation
@@ -202,6 +217,7 @@ interface ResponseCurveEditorProps {
 - Mathematical curve analysis (derivatives, inflection points)
 
 **Visual Requirements**:
+
 - 60fps smooth curve updates
 - Anti-aliased curve rendering
 - Responsive canvas scaling
@@ -213,6 +229,7 @@ interface ResponseCurveEditorProps {
 **Purpose**: Advanced filter parameter adjustment with frequency analysis
 
 **Props Interface**:
+
 ```typescript
 interface FilterConfigurationProps {
   // Filter Types
@@ -221,12 +238,12 @@ interface FilterConfigurationProps {
   dtermLowpass: FilterConfig;
   notchFilters: NotchFilterConfig[];
   dynamicNotch: DynamicNotchConfig;
-  
+
   // Display Options
   showFrequencyResponse: boolean;
   showNyquistPlot: boolean;
   expertMode: boolean;
-  
+
   // Events
   onFilterUpdate: (filterType: string, config: FilterConfig) => void;
   onNotchAdd: (config: NotchFilterConfig) => void;
@@ -235,6 +252,7 @@ interface FilterConfigurationProps {
 ```
 
 **Key Features**:
+
 - Real-time frequency response visualization
 - Drag-and-drop notch filter configuration
 - Filter preset library
@@ -247,16 +265,17 @@ interface FilterConfigurationProps {
 **Purpose**: Flight mode selection with feature-specific settings
 
 **Props Interface**:
+
 ```typescript
 interface FlightModePanelProps {
   availableModes: FlightMode[];
   activeModes: string[];
   modeSettings: Record<string, ModeSettings>;
-  
+
   // Switch Configuration
   switchAssignments: SwitchAssignment[];
   availableSwitches: Switch[];
-  
+
   // Events
   onModeToggle: (modeId: string, enabled: boolean) => void;
   onModeSettings: (modeId: string, settings: ModeSettings) => void;
@@ -265,6 +284,7 @@ interface FlightModePanelProps {
 ```
 
 **Key Features**:
+
 - Toggle-based mode activation
 - Hierarchical mode dependencies
 - Switch assignment wizard
@@ -277,18 +297,19 @@ interface FlightModePanelProps {
 **Purpose**: Preset management system with community sharing
 
 **Props Interface**:
+
 ```typescript
 interface PIDPresetsProps {
   presets: PIDPreset[];
   categories: PresetCategory[];
   userPresets: PIDPreset[];
   communityPresets: PIDPreset[];
-  
+
   // Filtering
   droneType?: DroneType;
   flightStyle?: FlightStyle;
   pilotSkill?: SkillLevel;
-  
+
   // Events
   onPresetApply: (presetId: string) => void;
   onPresetSave: (preset: PIDPreset) => void;
@@ -298,6 +319,7 @@ interface PIDPresetsProps {
 ```
 
 **Key Features**:
+
 - Categorized preset browser
 - Preset rating and review system
 - One-click preset application
@@ -310,21 +332,22 @@ interface PIDPresetsProps {
 **Purpose**: Step-by-step automated tuning workflow
 
 **Props Interface**:
+
 ```typescript
 interface TuningWizardProps {
   // Wizard Configuration
   steps: TuningStep[];
   currentStep: number;
   canSkipSteps: boolean;
-  
+
   // Drone Configuration
   droneSpecs: DroneSpecifications;
   currentConfig: PIDConfiguration;
-  
+
   // Safety
   safetyChecks: SafetyCheck[];
   emergencyStop: () => void;
-  
+
   // Events
   onStepComplete: (stepId: string, results: StepResults) => void;
   onWizardComplete: (finalConfig: PIDConfiguration) => void;
@@ -333,6 +356,7 @@ interface TuningWizardProps {
 ```
 
 **Key Features**:
+
 - Progressive disclosure of complexity
 - Automated flight test execution
 - Real-time safety monitoring
@@ -345,6 +369,7 @@ interface TuningWizardProps {
 **Purpose**: Live telemetry visualization with PID performance analysis
 
 **Props Interface**:
+
 ```typescript
 interface RealTimeGraphProps {
   // Data Configuration
@@ -353,18 +378,18 @@ interface RealTimeGraphProps {
   channels: GraphChannel[];
   timeWindow: number;
   sampleRate: number;
-  
+
   // Display Options
   showMarkers: boolean;
   enableZoom: boolean;
   showStatistics: boolean;
   overlayMode: 'separate' | 'combined';
-  
+
   // Analysis
   enableFFT: boolean;
   enablePSDAnalysis: boolean;
   triggerConditions: TriggerCondition[];
-  
+
   // Events
   onMarkerAdd: (timestamp: number, note: string) => void;
   onZoomChange: (range: TimeRange) => void;
@@ -373,6 +398,7 @@ interface RealTimeGraphProps {
 ```
 
 **Key Features**:
+
 - Hardware-accelerated rendering (WebGL/WebGPU)
 - Streaming data with circular buffers
 - Multi-channel overlay support
@@ -392,20 +418,20 @@ interface PIDConfigStore {
   // Current Configuration
   currentConfig: PIDConfiguration;
   backupConfig: PIDConfiguration;
-  
+
   // Profile Management
   profiles: FlightProfile[];
   activeProfileId: string;
-  
+
   // Validation State
   validationErrors: ValidationError[];
   isValid: boolean;
-  
+
   // Synchronization
   isDirty: boolean;
   lastSyncTimestamp: number;
   syncInProgress: boolean;
-  
+
   // Actions
   updatePID: (axis: Axis, pidType: PIDType, value: number) => void;
   switchProfile: (profileId: string) => Promise<void>;
@@ -424,16 +450,16 @@ interface TelemetryStore {
   isConnected: boolean;
   connectionType: 'usb' | 'bluetooth' | 'wifi';
   lastHeartbeat: number;
-  
+
   // Data Streams
   pidOutput: PIDOutputData[];
   sensorData: SensorData[];
   motorOutputs: MotorData[];
-  
+
   // Real-time Analysis
   pidPerformance: PIDPerformanceMetrics;
   oscillationDetection: OscillationData;
-  
+
   // Actions
   connect: (port: string) => Promise<boolean>;
   disconnect: () => void;
@@ -450,29 +476,31 @@ interface TelemetryStore {
 ### 5.1 Flight Controller Communication
 
 **Protocol Support**:
+
 - MSP (MultiWii Serial Protocol) v1/v2
 - MAVLink integration for ArduPilot
 - Betaflight API compatibility
 - Custom protocol extensibility
 
 **Communication Layers**:
+
 ```typescript
 interface FlightControllerAPI {
   // Connection Management
   connect(port: SerialPort): Promise<boolean>;
   disconnect(): Promise<void>;
   ping(): Promise<boolean>;
-  
+
   // Configuration
   readPIDConfig(): Promise<PIDConfiguration>;
   writePIDConfig(config: PIDConfiguration): Promise<boolean>;
   readProfiles(): Promise<FlightProfile[]>;
-  
+
   // Real-time Data
   startTelemetry(rate: number): Promise<void>;
   stopTelemetry(): Promise<void>;
   onTelemetryData(callback: (data: TelemetryData) => void): void;
-  
+
   // Safety
   emergencyStop(): Promise<void>;
   armDisarm(arm: boolean): Promise<boolean>;
@@ -482,12 +510,14 @@ interface FlightControllerAPI {
 ### 5.2 Tauri Integration
 
 **Native System Access**:
+
 - Serial port enumeration and management
 - File system access for preset storage
 - Hardware acceleration for graphics
 - System notifications for safety alerts
 
 **Security Considerations**:
+
 - Sandboxed flight controller communication
 - Encrypted preset storage
 - Secure firmware update mechanisms
@@ -500,12 +530,14 @@ interface FlightControllerAPI {
 ### 6.1 Responsive Design
 
 **Breakpoints**:
+
 - Mobile: 320px - 768px (simplified interface)
 - Tablet: 768px - 1024px (condensed layout)
 - Desktop: 1024px+ (full-featured interface)
 - Large Screen: 1440px+ (multi-panel layout)
 
 **Adaptive Features**:
+
 - Touch-optimized controls on mobile/tablet
 - Keyboard shortcuts for desktop users
 - Context-sensitive help system
@@ -514,6 +546,7 @@ interface FlightControllerAPI {
 ### 6.2 Accessibility Requirements
 
 **WCAG 2.1 AA Compliance**:
+
 - Screen reader support with ARIA labels
 - High contrast mode with 4.5:1 minimum ratio
 - Keyboard navigation for all interactive elements
@@ -521,6 +554,7 @@ interface FlightControllerAPI {
 - Reduced motion preferences
 
 **Specialized Accessibility**:
+
 - Colorblind-friendly graph colors
 - Haptic feedback for touchscreen devices
 - Audio cues for critical safety warnings
@@ -529,6 +563,7 @@ interface FlightControllerAPI {
 ### 6.3 Performance Requirements
 
 **Response Times**:
+
 - UI interactions: < 16ms (60fps)
 - PID parameter updates: < 50ms
 - Telemetry visualization: < 33ms (30fps)
@@ -536,6 +571,7 @@ interface FlightControllerAPI {
 - Data export: < 2s for 10MB files
 
 **Resource Usage**:
+
 - Maximum 50MB RAM for component library
 - GPU memory < 100MB for visualizations
 - CPU usage < 20% during normal operation
@@ -548,12 +584,14 @@ interface FlightControllerAPI {
 ### 7.1 Flight Safety Protocols
 
 **Pre-flight Validation**:
+
 - PID parameter range checking
 - Filter stability analysis
 - Motor output validation
 - Failsafe configuration verification
 
 **Runtime Safety**:
+
 - Real-time oscillation detection
 - Automatic parameter limiting
 - Emergency stop integration
@@ -562,21 +600,22 @@ interface FlightControllerAPI {
 ### 7.2 Data Validation
 
 **Input Validation**:
+
 ```typescript
 interface ValidationRules {
   pidCoefficients: {
-    P: { min: 0, max: 500, precision: 0.1 };
-    I: { min: 0, max: 200, precision: 0.1 };
-    D: { min: 0, max: 100, precision: 0.1 };
+    P: { min: 0; max: 500; precision: 0.1 };
+    I: { min: 0; max: 200; precision: 0.1 };
+    D: { min: 0; max: 100; precision: 0.1 };
   };
   rates: {
-    rcRate: { min: 0.01, max: 2.5 };
-    expo: { min: 0, max: 100 };
-    superRate: { min: 0, max: 2.0 };
+    rcRate: { min: 0.01; max: 2.5 };
+    expo: { min: 0; max: 100 };
+    superRate: { min: 0; max: 2.0 };
   };
   filters: {
-    frequency: { min: 10, max: 500 };
-    q: { min: 0.1, max: 10.0 };
+    frequency: { min: 10; max: 500 };
+    q: { min: 0.1; max: 10.0 };
   };
 }
 ```
@@ -588,6 +627,7 @@ interface ValidationRules {
 ### 8.1 Component Testing
 
 **Unit Tests** (Coverage: 95%):
+
 - Individual component rendering
 - Props validation and type checking
 - State management correctness
@@ -595,6 +635,7 @@ interface ValidationRules {
 - Accessibility compliance
 
 **Integration Tests**:
+
 - Component interaction workflows
 - Store synchronization
 - Flight controller communication
@@ -604,6 +645,7 @@ interface ValidationRules {
 ### 8.2 Safety Testing
 
 **Simulation Testing**:
+
 - Virtual flight controller environments
 - Fault injection testing
 - Edge case parameter validation
@@ -611,6 +653,7 @@ interface ValidationRules {
 - Security penetration testing
 
 **Hardware-in-the-Loop**:
+
 - Real flight controller integration
 - Actual drone testing (tethered)
 - Communication protocol validation
@@ -622,24 +665,28 @@ interface ValidationRules {
 ## 9. Implementation Timeline
 
 ### Phase 1: Core Components (4 weeks)
+
 - PIDSlider component with validation
 - RateProfileSelector with persistence
 - Basic FlightModePanel implementation
 - PID configuration store
 
 ### Phase 2: Visualization (3 weeks)
+
 - ResponseCurveEditor with WebGL rendering
 - RealTimeGraph with telemetry integration
 - FilterConfiguration with frequency analysis
 - Performance optimization
 
 ### Phase 3: Advanced Features (3 weeks)
+
 - TuningWizard workflow implementation
 - PIDPresets management system
 - Flight controller communication layer
 - Safety protocol integration
 
 ### Phase 4: Polish & Testing (2 weeks)
+
 - Accessibility implementation
 - Performance optimization
 - Comprehensive testing suite
@@ -650,6 +697,7 @@ interface ValidationRules {
 ## 10. Success Criteria
 
 ### 10.1 Functional Requirements
+
 - ✅ All components render correctly across devices
 - ✅ PID parameters update in real-time
 - ✅ Flight controller communication established
@@ -657,6 +705,7 @@ interface ValidationRules {
 - ✅ Data validation prevents invalid inputs
 
 ### 10.2 Performance Requirements
+
 - ✅ 60fps UI interactions on target hardware
 - ✅ < 100ms latency for parameter updates
 - ✅ < 50MB memory footprint
@@ -664,6 +713,7 @@ interface ValidationRules {
 - ✅ Graceful degradation on low-end devices
 
 ### 10.3 User Experience Requirements
+
 - ✅ Intuitive interface for novice users
 - ✅ Advanced features accessible to experts
 - ✅ Comprehensive error messages and help

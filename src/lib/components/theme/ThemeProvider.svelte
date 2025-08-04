@@ -20,12 +20,14 @@
   let mounted = false;
   let currentThemeName = themeName;
 
-  // Load theme function
+  // Load theme function with improved error handling
   async function loadCurrentTheme() {
     if (!mounted || !browser) {
       console.log('[ThemeProvider] Skipping theme load - mounted:', mounted, 'browser:', browser);
       return;
     }
+
+    console.log(`[ThemeProvider] Loading theme: ${currentThemeName}`);
 
     try {
       const options: ThemeLoadOptions = {
@@ -36,21 +38,24 @@
 
       await loadTheme(options);
       await tick(); // Ensure DOM updates
+      console.log(`[ThemeProvider] Theme loaded successfully: ${currentThemeName}`);
     } catch (error) {
-      console.error('Failed to load theme in ThemeProvider:', error);
-      // Try one more time after a delay
-      if (browser) {
-        console.log('Retrying theme load after delay...');
-        await new Promise((resolve) => setTimeout(resolve, 500));
+      console.error('[ThemeProvider] Theme loading failed:', error);
+      
+      // Single retry with fallback theme if primary failed
+      if (browser && currentThemeName !== fallbackTheme) {
+        console.log(`[ThemeProvider] Retrying with fallback theme: ${fallbackTheme}`);
         try {
           const retryOptions: ThemeLoadOptions = {
-            themeName: currentThemeName,
-            fallbackTheme,
+            themeName: fallbackTheme,
+            fallbackTheme: 'super_amoled_black', // Hard fallback
             validateTheme: true
           };
           await loadTheme(retryOptions);
+          console.log(`[ThemeProvider] Fallback theme loaded: ${fallbackTheme}`);
         } catch (retryError) {
-          console.error('Retry also failed:', retryError);
+          console.error('[ThemeProvider] Fallback theme also failed:', retryError);
+          console.log('[ThemeProvider] Will continue with default styles');
         }
       }
     }
@@ -59,12 +64,19 @@
   // Load theme on mount if autoLoad is enabled
   onMount(async () => {
     mounted = true;
+    console.log('[ThemeProvider] Component mounted');
 
     if (autoLoad && browser) {
-      // Add delay to ensure dev server and browser environment are ready
-      console.log('[ThemeProvider] Waiting for environment to stabilize...');
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      // Shorter delay - only for development server readiness
+      const isDev = window.location.hostname === 'localhost';
+      if (isDev) {
+        console.log('[ThemeProvider] Development mode - waiting for server readiness...');
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      }
+      
       await loadCurrentTheme();
+    } else {
+      console.log('[ThemeProvider] Auto-load disabled or not in browser');
     }
   });
 

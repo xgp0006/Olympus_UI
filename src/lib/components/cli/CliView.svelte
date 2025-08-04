@@ -169,8 +169,11 @@
 
       // Execute command via Tauri (Requirement 6.6)
       try {
-        if (!TauriApi.isAvailable()) {
-          terminal.writeln('\x1b[33mWarning: Running in browser mode - commands simulated\x1b[0m');
+        const context = TauriApi.getContext();
+        
+        if (!context.isAvailable) {
+          // Browser-only mode - provide helpful message
+          terminal.writeln('\x1b[90m🌐 Browser-only mode: CLI commands require the desktop application\x1b[0m');
           terminal.write('\x1b[32m❯\x1b[0m ');
         } else {
           const result = await TauriApi.invoke('run_cli_command', {
@@ -278,9 +281,11 @@
    * Sets up event listeners for backend communication (Requirements 2.6, 6.7, 6.8)
    */
   async function setupEventListeners() {
+    const context = TauriApi.getContext();
+    
     // Skip if Tauri not available
-    if (!TauriApi.isAvailable()) {
-      console.log('Tauri not available, skipping event listeners');
+    if (!context.isAvailable) {
+      console.debug('CLI event listeners: Skipped in browser-only mode');
       return;
     }
 
@@ -295,6 +300,7 @@
             if (!terminal) return;
 
             // Sanitize output to prevent terminal escape sequence injection
+            // eslint-disable-next-line no-control-regex
             const sanitizedLine = line.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
 
             // Visually distinguish between stdout and stderr (Requirement 2.7)

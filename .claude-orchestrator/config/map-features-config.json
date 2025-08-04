@@ -2,7 +2,7 @@
   "project": "aerospace-map-features",
   "targetFPS": 144,
   "frameBudgetMs": 6.94,
-  
+
   "agents": {
     "location-entry": {
       "type": "ui",
@@ -13,7 +13,7 @@
       "dependencies": ["shared/performance", "types"],
       "validation": ["coordinate-accuracy", "input-validation"]
     },
-    
+
     "map-crosshair": {
       "type": "ui",
       "performance": {
@@ -23,7 +23,7 @@
       "dependencies": ["shared/performance", "types", "webgl"],
       "validation": ["render-performance", "icon-loading"]
     },
-    
+
     "measuring-tools": {
       "type": "plugin",
       "performance": {
@@ -33,7 +33,7 @@
       "dependencies": ["shared/performance", "types", "waypoint-store"],
       "validation": ["geometry-accuracy", "waypoint-conversion"]
     },
-    
+
     "messaging-system": {
       "type": "telemetry",
       "performance": {
@@ -43,7 +43,7 @@
       "dependencies": ["shared/performance", "types", "tauri"],
       "validation": ["message-ordering", "animation-performance"]
     },
-    
+
     "adsb-display": {
       "type": "telemetry",
       "performance": {
@@ -53,7 +53,7 @@
       "dependencies": ["shared/performance", "types", "three", "tauri"],
       "validation": ["render-capacity", "update-frequency"]
     },
-    
+
     "weather-overlay": {
       "type": "ui",
       "performance": {
@@ -63,7 +63,7 @@
       "dependencies": ["shared/performance", "types", "webgl", "particles"],
       "validation": ["animation-smoothness", "color-accuracy"]
     },
-    
+
     "audit-validator": {
       "type": "validator",
       "performance": {
@@ -75,7 +75,7 @@
       "validation": ["all"]
     }
   },
-  
+
   "sharedInfrastructure": {
     "performanceMonitor": true,
     "frameScheduler": true,
@@ -83,7 +83,7 @@
     "webWorkers": true,
     "gpuAcceleration": true
   },
-  
+
   "validationRules": {
     "nasaJpl": {
       "enabled": true,
@@ -96,7 +96,7 @@
         "error-handling"
       ]
     },
-    
+
     "performance": {
       "enabled": true,
       "blocking": false,
@@ -107,7 +107,7 @@
       }
     }
   },
-  
+
   "gitWorkflow": {
     "worktreePrefix": "claude/map-",
     "baseBranch": "main",

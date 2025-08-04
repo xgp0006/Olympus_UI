@@ -31,7 +31,7 @@ class BoundedQueue<T> {
     if (this.size >= this.capacity) {
       return false; // NASA JPL Rule 2: No dynamic allocation
     }
-    
+
     this.items[this.tail] = item;
     this.tail = (this.tail + 1) % this.capacity;
     this.size++;
@@ -42,7 +42,7 @@ class BoundedQueue<T> {
     if (this.size === 0) {
       return undefined;
     }
-    
+
     const item = this.items[this.head];
     this.head = (this.head + 1) % this.capacity;
     this.size--;
@@ -135,7 +135,11 @@ export class BoundedLRUCache<K, V> {
 class FrameBudgetMonitor implements PerformanceMonitor {
   private frameStart = 0;
   private readonly budget = 2.0; // Realistic 2ms budget for aerospace operations
-  private workQueue: BoundedQueue<{ work: () => any; resolve: (value: any) => void; reject: (error: any) => void }>;
+  private workQueue: BoundedQueue<{
+    work: () => any;
+    resolve: (value: any) => void;
+    reject: (error: any) => void;
+  }>;
   private isProcessingQueue = false;
 
   constructor() {
@@ -156,7 +160,7 @@ class FrameBudgetMonitor implements PerformanceMonitor {
   }
 
   shouldYield(): boolean {
-    return (performance.now() - this.frameStart) > this.budget;
+    return performance.now() - this.frameStart > this.budget;
   }
 
   async scheduleWork<T>(work: () => T): Promise<T> {
@@ -181,12 +185,12 @@ class FrameBudgetMonitor implements PerformanceMonitor {
     const processNextBatch = () => {
       const batchStart = performance.now();
 
-      while (this.workQueue.length > 0 && (performance.now() - batchStart) < this.budget) {
+      while (this.workQueue.length > 0 && performance.now() - batchStart < this.budget) {
         const workItem = this.workQueue.shift();
         if (!workItem) break; // NASA JPL Rule 7: Check return values
-        
+
         const { work, resolve, reject } = workItem;
-        
+
         try {
           const result = work();
           resolve(result);
@@ -212,14 +216,15 @@ export const performanceMonitor = new FrameBudgetMonitor();
 
 // Fast coordinate parsing optimizations with bounded memory
 export class FastCoordinateParser {
-  private static readonly DECIMAL_REGEX = /^(-?\d{1,3}(?:\.\d{1,8})?)[,\s]+(-?\d{1,3}(?:\.\d{1,8})?)$/;
+  private static readonly DECIMAL_REGEX =
+    /^(-?\d{1,3}(?:\.\d{1,8})?)[,\s]+(-?\d{1,3}(?:\.\d{1,8})?)$/;
   private static readonly UTM_REGEX = /^(\d{1,2})([A-Z])\s+(\d{1,7})\s+(\d{1,7})$/i;
   private static readonly MGRS_REGEX = /^(\d{1,2}[A-Z])([A-Z]{2})(\d{2,10})$/i;
-  
+
   // NASA JPL Rule 2: Bounded caches with fixed limits
   private static latCache = new BoundedLRUCache<string, number>(50);
   private static lngCache = new BoundedLRUCache<string, number>(50);
-  
+
   static parseDecimalDegrees(input: string): { lat: number; lng: number } | null {
     const match = this.DECIMAL_REGEX.exec(input);
     if (!match) return null;
@@ -248,7 +253,9 @@ export class FastCoordinateParser {
     return { lat, lng };
   }
 
-  static parseUTM(input: string): { zone: number; hemisphere: string; easting: number; northing: number } | null {
+  static parseUTM(
+    input: string
+  ): { zone: number; hemisphere: string; easting: number; northing: number } | null {
     const match = this.UTM_REGEX.exec(input);
     if (!match) return null;
 
@@ -263,7 +270,13 @@ export class FastCoordinateParser {
     return { zone, hemisphere, easting, northing };
   }
 
-  static parseMGRS(input: string): { gridZone: string; gridSquare: string; easting: number; northing: number; precision: number } | null {
+  static parseMGRS(input: string): {
+    gridZone: string;
+    gridSquare: string;
+    easting: number;
+    northing: number;
+    precision: number;
+  } | null {
     const match = this.MGRS_REGEX.exec(input);
     if (!match) return null;
 
@@ -290,9 +303,12 @@ export class FastCoordinateParser {
 // NASA JPL Rule 3: Split debounce into smaller functions
 function executeWithFrameBudget<T extends any[]>(func: (...args: T) => any, args: T): void {
   if (performanceMonitor.shouldYield()) {
-    requestIdleCallback(() => {
-      func(...args);
-    }, { timeout: 16 });
+    requestIdleCallback(
+      () => {
+        func(...args);
+      },
+      { timeout: 16 }
+    );
   } else {
     func(...args);
   }
@@ -317,7 +333,7 @@ export function createOptimizedDebounce<T extends (...args: any[]) => any>(
   const debounced = (...args: Parameters<T>) => {
     state.lastArgs = args;
     state.lastCallTime = performance.now();
-    
+
     if (state.timeoutId !== null) {
       clearTimeout(state.timeoutId);
     }
@@ -332,7 +348,7 @@ export function createOptimizedDebounce<T extends (...args: any[]) => any>(
 
     const callNow = immediate && !state.timeoutId;
     state.timeoutId = setTimeout(later, wait);
-    
+
     if (callNow && state.lastArgs !== null) {
       func(...state.lastArgs);
       state.lastArgs = null;
@@ -368,7 +384,7 @@ class StringInterner {
   private pool = new BoundedLRUCache<string, string>(200); // NASA JPL Rule 2: Bounded
 
   intern(str: string): string {
-    let interned = this.pool.get(str);
+    const interned = this.pool.get(str);
     if (interned) {
       return interned;
     }
@@ -411,27 +427,30 @@ export const MicroOpts = {
   // Fast numeric validation without regex
   isNumeric(str: string): boolean {
     if (str.length === 0) return false;
-    
+
     let hasDecimal = false;
     let start = 0;
-    
+
     // Check for negative sign
-    if (str.charCodeAt(0) === 45) { // '-'
+    if (str.charCodeAt(0) === 45) {
+      // '-'
       start = 1;
       if (str.length === 1) return false;
     }
-    
+
     for (let i = start; i < str.length; i++) {
       const code = str.charCodeAt(i);
-      
-      if (code === 46) { // '.'
+
+      if (code === 46) {
+        // '.'
         if (hasDecimal) return false;
         hasDecimal = true;
-      } else if (code < 48 || code > 57) { // Not 0-9
+      } else if (code < 48 || code > 57) {
+        // Not 0-9
         return false;
       }
     }
-    
+
     return true;
   },
 
@@ -447,7 +466,11 @@ export const MicroOpts = {
 };
 
 // Performance measurement decorator
-export function measurePerformance(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+export function measurePerformance(
+  target: any,
+  propertyKey: string,
+  descriptor: PropertyDescriptor
+) {
   const originalMethod = descriptor.value;
 
   descriptor.value = function (...args: any[]) {
@@ -455,7 +478,8 @@ export function measurePerformance(target: any, propertyKey: string, descriptor:
     const result = originalMethod.apply(this, args);
     const duration = performance.now() - start;
 
-    if (duration > 2) { // Log if over 2ms (aerospace budget)
+    if (duration > 2) {
+      // Log if over 2ms (aerospace budget)
       console.warn(`[Performance] ${propertyKey} took ${duration.toFixed(2)}ms`);
     }
 
@@ -469,15 +493,15 @@ export function measurePerformance(target: any, propertyKey: string, descriptor:
 export function enforceFrameBudget<T>(work: () => T, budget = 2.0): Promise<T> {
   return new Promise((resolve, reject) => {
     const start = performance.now();
-    
+
     try {
       const result = work();
       const duration = performance.now() - start;
-      
+
       if (duration > budget) {
         console.warn(`[FrameBudget] Work exceeded budget: ${duration.toFixed(2)}ms > ${budget}ms`);
       }
-      
+
       resolve(result);
     } catch (error) {
       reject(error);

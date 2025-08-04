@@ -91,11 +91,11 @@ import { safeInvoke } from '$lib/utils/tauri'; // REUSE EXISTING
 
 export class MAVLinkService {
   async getParameters(): Promise<DroneParameter[]> {
-    return await safeInvoke('get_drone_parameters') || [];
+    return (await safeInvoke('get_drone_parameters')) || [];
   }
-  
+
   async setParameter(paramId: string, value: number): Promise<boolean> {
-    return await safeInvoke('set_drone_parameter', { paramId, value }) || false;
+    return (await safeInvoke('set_drone_parameter', { paramId, value })) || false;
   }
 }
 ```
@@ -151,36 +151,42 @@ async fn calibrate_sensor(sensor_type: String) -> Result<CalibrationResult, Stri
 ## Component Details
 
 ### 1. DroneConfigDashboard.svelte (Main Plugin)
+
 - Plugin registration and initialization
 - Connection status display using existing notification system
 - Tab interface for different configuration areas
 - Integration with existing theme system
 
 ### 2. ParameterPanel.svelte
+
 - Hierarchical parameter tree with search/filter
 - Real-time parameter updates via WebSocket (existing pattern)
 - Parameter validation using existing form patterns
 - Backup/restore using existing file handling patterns
 
 ### 3. PIDTuningPanel.svelte
+
 - PID coefficient sliders with live preview
 - Rate profile management
 - Response curve visualization
 - Integration with existing chart libraries from mission-planner
 
 ### 4. MotorTestPanel.svelte
+
 - Progressive safety unlock system
 - Motor layout visualization
 - Real-time telemetry display
 - Emergency stop integration
 
 ### 5. CalibrationWizard.svelte
+
 - Step-by-step calibration workflows
 - 3D orientation visualization (could integrate with existing map 3D features)
 - Progress tracking using existing notification system
 - Results validation and storage
 
 ### 6. FlightModePanel.svelte
+
 - Flight mode selection and configuration
 - Switch assignment interface
 - Failsafe configuration
@@ -215,24 +221,28 @@ describe('ParameterPanel', () => {
 ## Development Phases
 
 ### Phase 1: Core Infrastructure (Week 1)
+
 - Plugin registration in existing system
 - Basic MAVLink service with Tauri commands
 - DroneConfigDashboard component
 - Integration with existing map tools
 
 ### Phase 2: Parameter Management (Week 2)
+
 - ParameterPanel with tree interface
 - Parameter validation and constraints
 - Real-time parameter streaming
 - Backup/restore using existing file patterns
 
 ### Phase 3: Configuration Interfaces (Week 3)
+
 - PIDTuningPanel with sliders and visualization
 - MotorTestPanel with safety controls
 - FlightModePanel with mode management
 - Integration testing with real hardware
 
 ### Phase 4: Advanced Features (Week 4)
+
 - CalibrationWizard with step-by-step workflows
 - Telemetry overlays on existing map
 - Performance optimization and testing

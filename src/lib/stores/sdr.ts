@@ -33,7 +33,7 @@ interface SdrDataStream {
  */
 interface SdrStoreContext {
   update: (updater: (state: SdrStoreState) => SdrStoreState) => void;
-  subscribe: (run: (value: SdrStoreState) => void) => (() => void);
+  subscribe: (run: (value: SdrStoreState) => void) => () => void;
   fftUnlisten: UnlistenFn | null;
   stateUnlisten: UnlistenFn | null;
 }
@@ -445,8 +445,8 @@ function createSdrStore() {
   const { subscribe, update } = writable<SdrStoreState>(initialState);
 
   // Event listeners
-  let fftUnlisten: UnlistenFn | null = null;
-  let stateUnlisten: UnlistenFn | null = null;
+  const fftUnlisten: UnlistenFn | null = null;
+  const stateUnlisten: UnlistenFn | null = null;
 
   // Create context for extracted functions
   const ctx = {

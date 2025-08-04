@@ -12,7 +12,7 @@
     calibrateGyroscope,
     CONNECTION_PRESETS,
     type VehicleInfo,
-    type Parameter,
+    type Parameter
   } from '$lib/api/mavlink';
 
   // State
@@ -68,12 +68,12 @@
 
   async function updateParameter() {
     if (!selectedParam) return;
-    
+
     try {
       await setDroneParameter(selectedParam.id, paramValue);
       // Update local state - null safety check for selectedParam
       if (selectedParam?.id) {
-        const index = parameters.findIndex(p => p.id === selectedParam?.id);
+        const index = parameters.findIndex((p) => p.id === selectedParam?.id);
         if (index >= 0) {
           parameters[index].value = paramValue;
           parameters = [...parameters];
@@ -88,7 +88,7 @@
   // Motor testing
   async function handleMotorTest() {
     if (motorTestActive) return;
-    
+
     try {
       motorTestActive = true;
       await testMotor(motorId, throttlePercent, testDurationMs);
@@ -115,7 +115,7 @@
   // Calibration
   async function handleAccelCalibration() {
     if (calibrationActive) return;
-    
+
     try {
       calibrationActive = true;
       const result = await calibrateAccelerometer();
@@ -133,7 +133,7 @@
 
   async function handleGyroCalibration() {
     if (calibrationActive) return;
-    
+
     try {
       calibrationActive = true;
       const result = await calibrateGyroscope();
@@ -175,7 +175,7 @@
   <!-- Connection Section -->
   <div class="card p-4 space-y-2">
     <h3 class="text-lg font-semibold">Connection</h3>
-    
+
     {#if !isConnected}
       <div class="flex gap-2">
         <select bind:value={connectionString} class="select flex-1">
@@ -190,22 +190,12 @@
           placeholder="Custom connection string"
           class="input flex-1"
         />
-        <button
-          on:click={handleConnect}
-          class="btn btn-primary"
-        >
-          Connect
-        </button>
+        <button on:click={handleConnect} class="btn btn-primary"> Connect </button>
       </div>
     {:else}
       <div class="flex justify-between items-center">
         <span class="text-green-600">Connected to {connectionString}</span>
-        <button
-          on:click={handleDisconnect}
-          class="btn btn-secondary"
-        >
-          Disconnect
-        </button>
+        <button on:click={handleDisconnect} class="btn btn-secondary"> Disconnect </button>
       </div>
     {/if}
   </div>
@@ -245,13 +235,7 @@
       <div class="grid grid-cols-3 gap-2">
         <label>
           Motor ID (1-8)
-          <input
-            type="number"
-            bind:value={motorId}
-            min="1"
-            max="8"
-            class="input w-full"
-          />
+          <input type="number" bind:value={motorId} min="1" max="8" class="input w-full" />
         </label>
         <label>
           Throttle %
@@ -322,12 +306,13 @@
             >
               <div class="font-mono text-sm">{param.id}</div>
               <div class="text-xs text-gray-600">
-                {param.value} {param.units || ''}
+                {param.value}
+                {param.units || ''}
               </div>
             </button>
           {/each}
         </div>
-        
+
         {#if selectedParam}
           <div class="space-y-2">
             <h4 class="font-semibold">{selectedParam.id}</h4>
@@ -350,10 +335,7 @@
                 Range: {selectedParam.min_value ?? '-∞'} to {selectedParam.max_value ?? '+∞'}
               </div>
             {/if}
-            <button
-              on:click={updateParameter}
-              class="btn btn-primary btn-sm"
-            >
+            <button on:click={updateParameter} class="btn btn-primary btn-sm">
               Update Parameter
             </button>
           </div>
@@ -374,59 +356,64 @@
   .card {
     background-color: white;
     border-radius: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    box-shadow:
+      0 4px 6px -1px rgb(0 0 0 / 0.1),
+      0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
-  
+
   .btn {
     padding: 0.5rem 1rem;
     border-radius: 0.25rem;
     font-weight: 500;
-    transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1), background-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition:
+      color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
   }
-  
+
   .btn-primary {
     background-color: rgb(37 99 235);
     color: white;
   }
-  
+
   .btn-primary:hover {
     background-color: rgb(29 78 216);
   }
-  
+
   .btn-secondary {
     background-color: rgb(75 85 99);
     color: white;
   }
-  
+
   .btn-secondary:hover {
     background-color: rgb(55 65 81);
   }
-  
+
   .btn-warning {
     background-color: rgb(217 119 6);
     color: white;
   }
-  
+
   .btn-warning:hover {
     background-color: rgb(180 83 9);
   }
-  
+
   .btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
-  
-  .input, .select {
+
+  .input,
+  .select {
     border: 1px solid rgb(209 213 219);
     border-radius: 0.25rem;
     padding: 0.25rem 0.5rem;
   }
-  
+
   .alert {
     padding: 0.75rem;
     border-radius: 0.25rem;
   }
-  
+
   .alert-error {
     background-color: rgb(254 226 226);
     color: rgb(153 27 27);

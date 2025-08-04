@@ -94,31 +94,37 @@ tail -f .claude-orchestrator/logs/mission-control.log
 ## Agent Types
 
 ### UI Specialist
+
 - **Focus**: Component development, Svelte, TypeScript, Tailwind
 - **Capabilities**: Responsive design, accessibility, animations
 - **Validation**: Component tests, prop types, theme consistency
 
 ### Plugin Developer
+
 - **Focus**: Plugin architecture, module systems, isolation
 - **Capabilities**: Dynamic imports, lifecycle management, sandboxing
 - **Validation**: Interface compliance, performance impact
 
 ### Telemetry Engineer
+
 - **Focus**: Real-time systems, WebSocket, data streaming
 - **Capabilities**: Binary protocols, buffering, fault tolerance
 - **Validation**: Memory bounds, latency requirements
 
 ### Test Specialist
+
 - **Focus**: Quality assurance, testing strategies
 - **Capabilities**: Unit/integration/E2E testing, coverage analysis
 - **Validation**: Test isolation, deterministic results
 
 ### Integration Expert
+
 - **Focus**: Tauri integration, cross-platform compatibility
 - **Capabilities**: IPC, native features, platform abstraction
 - **Validation**: Security boundaries, API consistency
 
 ### Validator
+
 - **Focus**: NASA JPL compliance, code quality
 - **Capabilities**: Static analysis, security audit
 - **Validation**: All Power of 10 rules
@@ -157,6 +163,7 @@ wezterm --config-file .claude-orchestrator/wezterm-mission-control.lua
 ```
 
 Key bindings:
+
 - `Ctrl+Shift+M`: Initialize Mission Control layout
 - `Ctrl+Shift+D`: Split pane horizontally
 - `Ctrl+Shift+E`: Split pane vertically
@@ -246,9 +253,7 @@ export const CUSTOM_AGENT: AgentDefinition = {
   id: 'custom-specialist',
   name: 'Custom Specialist',
   type: 'custom',
-  capabilities: [
-    { name: 'domain-specific', proficiency: 95, domains: ['custom'] }
-  ],
+  capabilities: [{ name: 'domain-specific', proficiency: 95, domains: ['custom'] }],
   focusAreas: ['src/custom'],
   validationRules: ['custom-validation']
 };
@@ -274,8 +279,14 @@ Monitor and limit agent resources:
 
 ```javascript
 const metrics = missionControl.getStatus();
-console.log('CPU Usage:', metrics.agents.map(a => a.resourceUsage.cpuPercent));
-console.log('Memory Usage:', metrics.agents.map(a => a.resourceUsage.memoryMB));
+console.log(
+  'CPU Usage:',
+  metrics.agents.map((a) => a.resourceUsage.cpuPercent)
+);
+console.log(
+  'Memory Usage:',
+  metrics.agents.map((a) => a.resourceUsage.memoryMB)
+);
 ```
 
 ## Troubleshooting

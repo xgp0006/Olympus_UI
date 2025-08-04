@@ -48,9 +48,12 @@ export class WezTermManager extends EventEmitter {
       await this.executeWezTermCommand([
         'cli',
         'adjust-pane-size',
-        '--pane-id', missionControlPane.paneId,
-        '--amount', '30',
-        '--dimension', 'height'
+        '--pane-id',
+        missionControlPane.paneId,
+        '--amount',
+        '30',
+        '--dimension',
+        'height'
       ]);
 
       this.emit('layout:initialized', this.layout);
@@ -62,22 +65,21 @@ export class WezTermManager extends EventEmitter {
   /**
    * Create a new pane for a Claude agent
    */
-  public async createAgentPane(
-    agentName: string,
-    workingDirectory: string
-  ): Promise<string> {
+  public async createAgentPane(agentName: string, workingDirectory: string): Promise<string> {
     try {
       // Create new pane below mission control
       const result = await this.executeWezTermCommand([
         'cli',
         'split-pane',
         '--bottom',
-        '--cwd', workingDirectory,
-        '--percent', '25'
+        '--cwd',
+        workingDirectory,
+        '--percent',
+        '25'
       ]);
 
       const paneId = this.extractPaneId(result);
-      
+
       // Set pane title
       await this.setPaneTitle(paneId, `Agent: ${agentName}`);
 
@@ -109,7 +111,8 @@ export class WezTermManager extends EventEmitter {
     await this.executeWezTermCommand([
       'cli',
       'send-text',
-      '--pane-id', paneId,
+      '--pane-id',
+      paneId,
       '--no-paste',
       command + '\n'
     ]);
@@ -119,12 +122,7 @@ export class WezTermManager extends EventEmitter {
    * Set pane title
    */
   private async setPaneTitle(paneId: string, title: string): Promise<void> {
-    await this.executeWezTermCommand([
-      'cli',
-      'set-tab-title',
-      '--pane-id', paneId,
-      title
-    ]);
+    await this.executeWezTermCommand(['cli', 'set-tab-title', '--pane-id', paneId, title]);
   }
 
   /**
@@ -132,11 +130,7 @@ export class WezTermManager extends EventEmitter {
    */
   public async monitorPane(paneId: string): Promise<any> {
     try {
-      const result = await this.executeWezTermCommand([
-        'cli',
-        'list-clients',
-        '--format', 'json'
-      ]);
+      const result = await this.executeWezTermCommand(['cli', 'list-clients', '--format', 'json']);
 
       const clients = JSON.parse(result);
       const paneInfo = clients.find((c: any) => c.pane_id === paneId);
@@ -160,11 +154,13 @@ export class WezTermManager extends EventEmitter {
       const result = await this.executeWezTermCommand([
         'cli',
         'get-text',
-        '--pane-id', paneId,
-        '--start-line', `-${lines}`
+        '--pane-id',
+        paneId,
+        '--start-line',
+        `-${lines}`
       ]);
 
-      return result.split('\n').filter(line => line.trim());
+      return result.split('\n').filter((line) => line.trim());
     } catch (error) {
       console.error(`Error getting pane output: ${error}`);
       return [];
@@ -182,12 +178,13 @@ export class WezTermManager extends EventEmitter {
     const result = await this.executeWezTermCommand([
       'cli',
       'spawn',
-      '--cwd', config.cwd,
+      '--cwd',
+      config.cwd,
       '--new-window'
     ]);
 
     const paneId = this.extractPaneId(result);
-    
+
     const pane: WezTermPane = {
       paneId,
       title: config.title,
@@ -207,7 +204,7 @@ export class WezTermManager extends EventEmitter {
    */
   private async executeWezTermCommand(args: string[]): Promise<string> {
     const command = `wezterm ${args.join(' ')}`;
-    
+
     try {
       const { stdout, stderr } = await exec(command);
       if (stderr && !stderr.includes('warning')) {
@@ -236,17 +233,17 @@ export class WezTermManager extends EventEmitter {
    */
   public async arrangeGrid(columns: number = 2): Promise<void> {
     const agentPaneIds = Array.from(this.layout.agentPanes.values());
-    
+
     if (agentPaneIds.length === 0) return;
 
     // Calculate grid dimensions
     const rows = Math.ceil(agentPaneIds.length / columns);
-    
+
     // Rearrange panes
     for (let i = 0; i < agentPaneIds.length; i++) {
       const row = Math.floor(i / columns);
       const col = i % columns;
-      
+
       // Move pane to grid position
       await this.movePaneToGrid(agentPaneIds[i], row, col, rows, columns);
     }
@@ -273,9 +270,12 @@ export class WezTermManager extends EventEmitter {
     await this.executeWezTermCommand([
       'cli',
       'adjust-pane-size',
-      '--pane-id', paneId,
-      '--amount', `${widthPercent}`,
-      '--dimension', 'width'
+      '--pane-id',
+      paneId,
+      '--amount',
+      `${widthPercent}`,
+      '--dimension',
+      'width'
     ]);
   }
 
@@ -283,11 +283,7 @@ export class WezTermManager extends EventEmitter {
    * Focus on a specific pane
    */
   public async focusPane(paneId: string): Promise<void> {
-    await this.executeWezTermCommand([
-      'cli',
-      'activate-pane',
-      '--pane-id', paneId
-    ]);
+    await this.executeWezTermCommand(['cli', 'activate-pane', '--pane-id', paneId]);
   }
 
   /**
@@ -295,14 +291,10 @@ export class WezTermManager extends EventEmitter {
    */
   public async closePane(paneId: string): Promise<void> {
     try {
-      await this.executeWezTermCommand([
-        'cli',
-        'kill-pane',
-        '--pane-id', paneId
-      ]);
+      await this.executeWezTermCommand(['cli', 'kill-pane', '--pane-id', paneId]);
 
       this.panes.delete(paneId);
-      
+
       // Remove from layout
       for (const [name, id] of this.layout.agentPanes.entries()) {
         if (id === paneId) {

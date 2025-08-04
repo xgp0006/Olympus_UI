@@ -4,10 +4,10 @@
 -->
 <script lang="ts">
   import type { Readable } from 'svelte/store';
-  
+
   export let isEmergencyStopping: Readable<boolean>;
   export let onEmergencyStop: () => Promise<void>;
-  
+
   // Listen for ESC key
   function handleKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
@@ -29,11 +29,7 @@
 {/if}
 
 <div class="emergency-button-container">
-  <button 
-    class="emergency-button"
-    on:click={onEmergencyStop}
-    aria-label="Emergency Stop"
-  >
+  <button class="emergency-button" on:click={onEmergencyStop} aria-label="Emergency Stop">
     <span class="emergency-text">EMERGENCY</span>
     <span class="stop-text">STOP</span>
   </button>
@@ -50,7 +46,7 @@
     justify-content: center;
     z-index: 9999;
   }
-  
+
   .emergency-message {
     background: var(--color-status_error_bg);
     padding: 2rem;
@@ -58,14 +54,14 @@
     text-align: center;
     color: var(--color-status_error);
   }
-  
+
   .emergency-button-container {
     position: absolute;
     top: 1rem;
     right: 1rem;
     text-align: center;
   }
-  
+
   .emergency-button {
     background: var(--color-status_error);
     color: white;

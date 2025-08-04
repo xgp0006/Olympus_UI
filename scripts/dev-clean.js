@@ -13,16 +13,16 @@ function killProcessOnPort(port) {
         const netstatOutput = execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf8' });
         const lines = netstatOutput.trim().split('\n');
         const pids = new Set();
-        
-        lines.forEach(line => {
+
+        lines.forEach((line) => {
           const parts = line.trim().split(/\s+/);
           const pid = parts[parts.length - 1];
           if (pid && pid !== '0') {
             pids.add(pid);
           }
         });
-        
-        pids.forEach(pid => {
+
+        pids.forEach((pid) => {
           try {
             execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' });
             console.log(`Killed process ${pid}`);
@@ -53,18 +53,18 @@ killProcessOnPort(PORT);
 // Wait a moment for processes to terminate
 setTimeout(() => {
   console.log('Starting Vite development server...');
-  
+
   // Start vite dev server
   const vite = spawn('npx', ['vite', 'dev'], {
     stdio: 'inherit',
     shell: true
   });
-  
+
   vite.on('error', (error) => {
     console.error('Failed to start Vite:', error);
     process.exit(1);
   });
-  
+
   vite.on('exit', (code) => {
     if (code !== 0) {
       console.error(`Vite exited with code ${code}`);

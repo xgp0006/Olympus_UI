@@ -6,7 +6,6 @@
 
 import { render, fireEvent, waitFor, screen } from '@testing-library/svelte';
 import { vi, describe, test, expect, beforeEach } from 'vitest';
-import { get } from 'svelte/store';
 import App from '../App.svelte';
 import { plugins, activePluginWritable } from '../../../stores/plugins';
 import { theme } from '../../../stores/theme';
@@ -244,7 +243,6 @@ describe('App Component', () => {
     render(App);
 
     // ThemeProvider should be rendered with default theme
-    const themeProvider = document.querySelector('[data-theme-provider]');
     // Note: This would need to be implemented in ThemeProvider component
     // For now, we just verify the component structure is correct
     expect(document.querySelector('.app-container')).toBeInTheDocument();

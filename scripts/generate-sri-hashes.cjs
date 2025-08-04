@@ -91,11 +91,11 @@ function generateSHA384Hash(content) {
 function updateAppHtml(hashMap) {
   try {
     let content = fs.readFileSync(APP_HTML_PATH, 'utf8');
-    
+
     for (const [placeholder, hash] of hashMap) {
       content = content.replace(placeholder, hash);
     }
-    
+
     fs.writeFileSync(APP_HTML_PATH, content, 'utf8');
     console.log('✅ Updated app.html with SRI hashes');
   } catch (error) {
@@ -109,22 +109,22 @@ function updateAppHtml(hashMap) {
  */
 async function main() {
   console.log('🚀 Generating SRI hashes for aerospace-grade security...');
-  
+
   const hashMap = new Map();
-  
+
   try {
     // Process each resource with bounded retry
     for (const resource of EXTERNAL_RESOURCES) {
       console.log(`📦 Fetching ${resource.description}...`);
-      
+
       let attempts = 0;
       const maxAttempts = 3;
-      
+
       while (attempts < maxAttempts) {
         try {
           const content = await fetchResource(resource.url);
           const hash = generateSHA384Hash(content);
-          
+
           hashMap.set(resource.placeholder, hash);
           console.log(`✅ ${resource.description}: ${hash}`);
           break;
@@ -137,13 +137,12 @@ async function main() {
         }
       }
     }
-    
+
     // Update app.html with generated hashes
     updateAppHtml(hashMap);
-    
+
     console.log('🎯 SRI hash generation completed successfully');
     console.log('🔒 Aerospace-grade subresource integrity enforced');
-    
   } catch (error) {
     console.error('❌ SRI hash generation failed:', error.message);
     process.exit(1);

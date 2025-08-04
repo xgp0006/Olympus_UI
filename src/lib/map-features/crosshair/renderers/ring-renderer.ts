@@ -5,20 +5,15 @@
  */
 
 import type { MapViewport, RingStyle } from '../../types';
-import { 
-  globalRenderPool, 
+import {
+  globalRenderPool,
   renderSuccess,
   renderError,
   ParameterValidator
 } from '../../shared/aerospace-pools';
-import type { 
-  RenderResult
-} from '../../shared/aerospace-pools';
+import type { RenderResult } from '../../shared/aerospace-pools';
 import { RenderErrorType } from '../../shared/aerospace-pools';
-import { 
-  AerospaceCanvasContext, 
-  createAerospaceContext 
-} from '../../shared/aerospace-context';
+import { AerospaceCanvasContext, createAerospaceContext } from '../../shared/aerospace-context';
 
 export class RingRenderer {
   private canvas: HTMLCanvasElement;
@@ -28,12 +23,12 @@ export class RingRenderer {
   // Pre-calculated values for performance (NASA JPL Rule 2)
   private ringRadiusPixels = 0;
   private readonly maxRenderTime = 0.2; // 0.2ms budget (NASA JPL compliance)
-  
+
   // Path caching for performance
   private ringPath: Path2D | null = null;
   private lastDistance = 0;
   private lastZoom = 0;
-  
+
   // Error recovery state
   private consecutiveErrors = 0;
   private readonly maxErrors = 3;
@@ -42,7 +37,7 @@ export class RingRenderer {
     this.canvas = canvas;
     this.initializeContext();
   }
-  
+
   /**
    * Initialize aerospace-grade canvas context (NASA JPL Rule 7)
    */
@@ -67,12 +62,12 @@ export class RingRenderer {
     const distanceInDegrees = distance * degreesPerMeter;
 
     // Calculate pixels per degree at current zoom
-    const pixelsPerDegree = 256 * Math.pow(2, viewport.zoom) / 360;
-    
+    const pixelsPerDegree = (256 * Math.pow(2, viewport.zoom)) / 360;
+
     // Adjust for latitude
-    const latRadians = viewport.center.lat * Math.PI / 180;
+    const latRadians = (viewport.center.lat * Math.PI) / 180;
     const latAdjustment = Math.cos(latRadians);
-    
+
     return distanceInDegrees * pixelsPerDegree * latAdjustment;
   }
 
@@ -93,44 +88,48 @@ export class RingRenderer {
 
     const data = imageDataResult.data.data;
     const samples = globalRenderPool.getPixelSamples();
-    
+
     // Collect samples using bounded memory (NASA JPL Rule 2)
     for (let i = 0; i < data.length && samples.length < samples.maxLength; i += 4) {
       samples.push({
         r: data[i],
-        g: data[i + 1], 
+        g: data[i + 1],
         b: data[i + 2],
         a: data[i + 3]
       });
     }
-    
+
     return this.averagePixelSamples(samples.getAll());
   }
-  
+
   /**
    * Average pixel samples for color calculation (NASA JPL Rule 4)
    */
-  private averagePixelSamples(samples: Array<{ r: number; g: number; b: number; a: number }>): RenderResult<{ r: number; g: number; b: number }> {
+  private averagePixelSamples(
+    samples: Array<{ r: number; g: number; b: number; a: number }>
+  ): RenderResult<{ r: number; g: number; b: number }> {
     if (samples.length === 0) {
       return renderError(RenderErrorType.INVALID_PARAMETERS, 'No pixel samples available');
     }
-    
-    let r = 0, g = 0, b = 0;
+
+    let r = 0,
+      g = 0,
+      b = 0;
     const count = samples.length;
-    
+
     for (const sample of samples) {
       r += sample.r;
       g += sample.g;
       b += sample.b;
     }
-    
+
     return renderSuccess({
       r: Math.floor(r / count),
-      g: Math.floor(g / count), 
+      g: Math.floor(g / count),
       b: Math.floor(b / count)
     });
   }
-  
+
   /**
    * Get inverted color for maximum visibility (NASA JPL Rule 4)
    */
@@ -140,14 +139,14 @@ export class RingRenderer {
       // Fallback to high contrast color
       return '#ffffff';
     }
-    
+
     const { r, g, b } = samplesResult.data;
-    
+
     // Invert and ensure contrast
     const invertedR = 255 - r;
     const invertedG = 255 - g;
     const invertedB = 255 - b;
-    
+
     // Ensure minimum contrast
     const brightness = (invertedR + invertedG + invertedB) / 3;
     return brightness > 127 ? '#ffffff' : '#000000';
@@ -168,11 +167,12 @@ export class RingRenderer {
       }
       return renderSuccess(undefined);
     } catch (error) {
-      return renderError(
-        RenderErrorType.CANVAS_ERROR,
-        `Path creation failed: ${error}`,
-        { centerX, centerY, radius, error }
-      );
+      return renderError(RenderErrorType.CANVAS_ERROR, `Path creation failed: ${error}`, {
+        centerX,
+        centerY,
+        radius,
+        error
+      });
     }
   }
 
@@ -181,13 +181,12 @@ export class RingRenderer {
    */
   private formatDistance(distance: number, units: string): RenderResult<string> {
     if (!ParameterValidator.validateDistance(distance)) {
-      return renderError(
-        RenderErrorType.INVALID_PARAMETERS,
-        'Invalid distance for formatting',
-        { distance, units }
-      );
+      return renderError(RenderErrorType.INVALID_PARAMETERS, 'Invalid distance for formatting', {
+        distance,
+        units
+      });
     }
-    
+
     try {
       let result: string;
       switch (units) {
@@ -198,24 +197,29 @@ export class RingRenderer {
           result = `${(distance / 1852).toFixed(2)}nm`;
           break;
         default:
-          result = distance >= 1000 ? `${(distance / 1000).toFixed(1)}km` : `${Math.round(distance)}m`;
+          result =
+            distance >= 1000 ? `${(distance / 1000).toFixed(1)}km` : `${Math.round(distance)}m`;
       }
       return renderSuccess(result);
     } catch (error) {
-      return renderError(
-        RenderErrorType.CANVAS_ERROR,
-        `Distance formatting failed: ${error}`,
-        { distance, units, error }
-      );
+      return renderError(RenderErrorType.CANVAS_ERROR, `Distance formatting failed: ${error}`, {
+        distance,
+        units,
+        error
+      });
     }
   }
 
   /**
-   * Calculate label positions using bounded memory (NASA JPL Rule 2)  
+   * Calculate label positions using bounded memory (NASA JPL Rule 2)
    */
-  private calculateLabelPositions(centerX: number, centerY: number, radius: number): RenderResult<Array<{ x: number; y: number }>> {
+  private calculateLabelPositions(
+    centerX: number,
+    centerY: number,
+    radius: number
+  ): RenderResult<Array<{ x: number; y: number }>> {
     const positions = globalRenderPool.getLabelPositions();
-    
+
     try {
       // Cardinal positions with proper spacing
       const spacing = 15;
@@ -223,7 +227,7 @@ export class RingRenderer {
       positions.push(globalRenderPool.getTempPoint(centerX + radius + spacing, centerY)); // right
       positions.push(globalRenderPool.getTempPoint(centerX, centerY + radius + spacing)); // bottom
       positions.push(globalRenderPool.getTempPoint(centerX - radius - spacing, centerY)); // left
-      
+
       return renderSuccess(positions.getAll());
     } catch (error) {
       return renderError(
@@ -233,33 +237,33 @@ export class RingRenderer {
       );
     }
   }
-  
+
   /**
    * Render single label with background (NASA JPL Rule 4)
    */
   private renderSingleLabel(
-    label: string, 
-    position: { x: number; y: number }, 
+    label: string,
+    position: { x: number; y: number },
     style: RingStyle
   ): RenderResult<void> {
     if (!this.aerospaceCtx) {
       return renderError(RenderErrorType.CONTEXT_LOST, 'No aerospace context available');
     }
-    
+
     // Measure text safely
     const metricsResult = this.aerospaceCtx.safeMeasureText(
-      label, 
+      label,
       `${style.labelSize}px ${style.labelFont}`
     );
     if (!metricsResult.success) {
       return metricsResult;
     }
-    
+
     const metrics = metricsResult.data;
     const padding = 4;
     const boxWidth = metrics.width + padding * 2;
     const boxHeight = style.labelSize + padding * 2;
-    
+
     // Draw background box
     const bgResult = this.aerospaceCtx.safeFillRect(
       position.x - boxWidth / 2,
@@ -270,19 +274,19 @@ export class RingRenderer {
     if (!bgResult.success) {
       return bgResult;
     }
-    
+
     // Draw label text
     return this.aerospaceCtx.safeFillText(label, position.x, position.y);
   }
-  
+
   /**
    * Render distance labels at cardinal points (NASA JPL Rule 4)
    */
   private renderLabels(
-    centerX: number, 
-    centerY: number, 
-    radius: number, 
-    distance: number, 
+    centerX: number,
+    centerY: number,
+    radius: number,
+    distance: number,
     units: string,
     style: RingStyle
   ): RenderResult<void> {
@@ -291,15 +295,15 @@ export class RingRenderer {
     if (!labelResult.success) {
       return labelResult;
     }
-    
+
     const label = labelResult.data;
-    
+
     // Calculate positions
     const positionsResult = this.calculateLabelPositions(centerX, centerY, radius);
     if (!positionsResult.success) {
       return positionsResult;
     }
-    
+
     // Render each label
     for (const position of positionsResult.data) {
       const renderResult = this.renderSingleLabel(label, position, style);
@@ -308,7 +312,7 @@ export class RingRenderer {
         console.warn('Label render failed:', renderResult.error.message);
       }
     }
-    
+
     return renderSuccess(undefined);
   }
 
@@ -317,29 +321,29 @@ export class RingRenderer {
    */
   private validateRenderParameters(
     viewport: MapViewport,
-    distance: number, 
+    distance: number,
     units: string,
     style: RingStyle
   ): RenderResult<void> {
     if (!ParameterValidator.validateViewport(viewport)) {
       return renderError(RenderErrorType.INVALID_PARAMETERS, 'Invalid viewport parameters');
     }
-    
+
     if (!ParameterValidator.validateDistance(distance)) {
       return renderError(RenderErrorType.INVALID_PARAMETERS, 'Invalid distance parameter');
     }
-    
+
     if (!ParameterValidator.validateCanvasDimensions(this.canvas.width, this.canvas.height)) {
       return renderError(RenderErrorType.INVALID_PARAMETERS, 'Invalid canvas dimensions');
     }
-    
+
     if (!ParameterValidator.validateStyle(style)) {
       return renderError(RenderErrorType.INVALID_PARAMETERS, 'Invalid style parameters');
     }
-    
+
     return renderSuccess(undefined);
   }
-  
+
   /**
    * Execute core rendering operations (NASA JPL Rule 4)
    */
@@ -355,13 +359,18 @@ export class RingRenderer {
     if (!this.aerospaceCtx) {
       return renderError(RenderErrorType.CONTEXT_LOST, 'No aerospace context available');
     }
-    
+
     // Clear canvas safely
-    const clearResult = this.aerospaceCtx.safeClearRect(0, 0, this.canvas.width, this.canvas.height);
+    const clearResult = this.aerospaceCtx.safeClearRect(
+      0,
+      0,
+      this.canvas.width,
+      this.canvas.height
+    );
     if (!clearResult.success) {
       return clearResult;
     }
-    
+
     // Update path if needed
     if (distance !== this.lastDistance || viewport.zoom !== this.lastZoom) {
       const pathResult = this.updateRingPath(centerX, centerY, radius);
@@ -371,28 +380,28 @@ export class RingRenderer {
       this.lastDistance = distance;
       this.lastZoom = viewport.zoom;
     }
-    
+
     // Skip if ring size is invalid
     if (radius < 10 || radius > Math.max(this.canvas.width, this.canvas.height)) {
       return renderSuccess(undefined);
     }
-    
+
     // Draw ring safely
     const strokeResult = this.aerospaceCtx.safeStroke(this.ringPath || undefined);
     if (!strokeResult.success) {
       return strokeResult;
     }
-    
+
     // Draw labels
     return this.renderLabels(centerX, centerY, radius, distance, units, style);
   }
-  
+
   /**
    * Main render method - NASA JPL compliant <60 lines (NASA JPL Rule 4)
    */
   render(
-    viewport: MapViewport, 
-    distance: number, 
+    viewport: MapViewport,
+    distance: number,
     units: 'meters' | 'feet' | 'nautical-miles' = 'meters',
     style: RingStyle = {
       color: '#00ff00',
@@ -404,35 +413,43 @@ export class RingRenderer {
     }
   ): void {
     const startTime = performance.now();
-    
+
     // Early termination for error recovery
     if (this.consecutiveErrors >= this.maxErrors) {
       console.warn('Render disabled due to consecutive errors');
       return;
     }
-    
+
     // Reset memory pools
     globalRenderPool.reset();
-    
+
     // Validate all parameters (NASA JPL Rule 5)
     const validationResult = this.validateRenderParameters(viewport, distance, units, style);
     if (!validationResult.success) {
       this.handleRenderError(validationResult.error, startTime);
       return;
     }
-    
+
     // Calculate render properties
     const centerX = this.canvas.width / 2;
     const centerY = this.canvas.height / 2;
     const radius = this.calculateRadiusPixels(distance, viewport);
-    
+
     // Execute rendering operations
-    const renderResult = this.executeRender(centerX, centerY, radius, distance, units, style, viewport);
+    const renderResult = this.executeRender(
+      centerX,
+      centerY,
+      radius,
+      distance,
+      units,
+      style,
+      viewport
+    );
     if (!renderResult.success) {
       this.handleRenderError(renderResult.error, startTime);
       return;
     }
-    
+
     // Performance monitoring
     this.checkRenderPerformance(startTime);
     this.consecutiveErrors = 0; // Reset on success
@@ -441,10 +458,13 @@ export class RingRenderer {
   /**
    * Handle render errors with recovery (NASA JPL Rule 7)
    */
-  private handleRenderError(error: { message: string; type: RenderErrorType }, startTime: number): void {
+  private handleRenderError(
+    error: { message: string; type: RenderErrorType },
+    startTime: number
+  ): void {
     this.consecutiveErrors++;
     console.error(`Render error (${this.consecutiveErrors}/${this.maxErrors}):`, error.message);
-    
+
     // Attempt context recovery if needed
     if (error.type === RenderErrorType.CONTEXT_LOST && this.consecutiveErrors < this.maxErrors) {
       try {
@@ -454,20 +474,22 @@ export class RingRenderer {
         console.error('Context recovery failed:', recoveryError);
       }
     }
-    
+
     this.checkRenderPerformance(startTime);
   }
-  
+
   /**
    * Monitor render performance (NASA JPL compliance)
    */
   private checkRenderPerformance(startTime: number): void {
     const renderTime = performance.now() - startTime;
     if (renderTime > this.maxRenderTime) {
-      console.warn(`Ring render exceeded budget: ${renderTime.toFixed(3)}ms > ${this.maxRenderTime}ms`);
+      console.warn(
+        `Ring render exceeded budget: ${renderTime.toFixed(3)}ms > ${this.maxRenderTime}ms`
+      );
     }
   }
-  
+
   /**
    * Clean up resources (aerospace-grade cleanup)
    */
@@ -476,15 +498,15 @@ export class RingRenderer {
       cancelAnimationFrame(this.animationFrame);
       this.animationFrame = null;
     }
-    
+
     this.ringPath = null;
     this.aerospaceCtx = null;
     globalRenderPool.reset();
-    
+
     // Reset error state
     this.consecutiveErrors = 0;
   }
-  
+
   /**
    * Get renderer status for diagnostics
    */

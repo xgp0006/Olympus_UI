@@ -1,7 +1,7 @@
 /**
  * Comprehensive type definitions for the drone-config plugin
  * Following aerospace-grade standards and NASA JPL compliance
- * 
+ *
  * Theme variables used by components consuming these types:
  * - --color-text-primary: Primary text color for parameter names
  * - --color-text-secondary: Secondary text color for parameter descriptions
@@ -21,7 +21,7 @@ export enum MAVComponent {
   ONBOARD_COMPUTER = 191,
   ONBOARD_COMPUTER2 = 192,
   ONBOARD_COMPUTER3 = 193,
-  ONBOARD_COMPUTER4 = 194,
+  ONBOARD_COMPUTER4 = 194
 }
 
 /**
@@ -43,7 +43,7 @@ export enum MAVMessageType {
   COMMAND_ACK = 77,
   BATTERY_STATUS = 147,
   AUTOPILOT_VERSION = 148,
-  STATUSTEXT = 253,
+  STATUSTEXT = 253
 }
 
 /**
@@ -56,7 +56,7 @@ export enum MAVResult {
   UNSUPPORTED = 3,
   FAILED = 4,
   IN_PROGRESS = 5,
-  CANCELLED = 6,
+  CANCELLED = 6
 }
 
 /**
@@ -86,7 +86,7 @@ export enum FlightMode {
   FOLLOW = 23,
   ZIGZAG = 24,
   SYSTEMID = 25,
-  AUTOROTATE = 26,
+  AUTOROTATE = 26
 }
 
 /**
@@ -101,7 +101,7 @@ export enum ESCProtocol {
   DSHOT300 = 5,
   DSHOT600 = 6,
   DSHOT1200 = 7,
-  PROSHOT1000 = 8,
+  PROSHOT1000 = 8
 }
 
 /**
@@ -119,7 +119,7 @@ export enum ParameterType {
   FLOAT = 'float',
   DOUBLE = 'double',
   ENUM = 'enum',
-  STRING = 'string',
+  STRING = 'string'
 }
 
 /**
@@ -362,7 +362,7 @@ export enum DroneErrorType {
   TIMEOUT = 'TIMEOUT',
   INVALID_PARAMETER = 'INVALID_PARAMETER',
   PERMISSION_DENIED = 'PERMISSION_DENIED',
-  UNKNOWN = 'UNKNOWN',
+  UNKNOWN = 'UNKNOWN'
 }
 
 /**
@@ -440,5 +440,5 @@ export const DEFAULT_PARAMETER_CONSTRAINTS: Record<ParameterType, ParameterConst
   [ParameterType.FLOAT]: { min: -Number.MAX_VALUE, max: Number.MAX_VALUE },
   [ParameterType.DOUBLE]: { min: -Number.MAX_VALUE, max: Number.MAX_VALUE },
   [ParameterType.ENUM]: {}, // No numeric constraints for enum types
-  [ParameterType.STRING]: {}, // No numeric constraints for string types
+  [ParameterType.STRING]: {} // No numeric constraints for string types
 };

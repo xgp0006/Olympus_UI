@@ -5,7 +5,7 @@
 <script lang="ts">
   import DraggableContainer from '$lib/components/ui/DraggableContainer.svelte';
   import CalibrationWizardContent from './CalibrationWizardContent.svelte';
-  
+
   export let onComplete: ((results: Record<string, any>) => void) | null = null;
 </script>
 

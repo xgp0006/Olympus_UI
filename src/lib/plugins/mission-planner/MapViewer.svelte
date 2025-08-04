@@ -49,8 +49,14 @@
   }>();
 
   // ===== REACTIVE STATEMENTS =====
+  // NASA JPL Rule 5: Debounce theme updates to prevent redundant operations
+  let themeUpdateTimeout: number | null = null;
   $: if (map && mapLoaded && $theme) {
-    updateMapTheme();
+    if (themeUpdateTimeout) clearTimeout(themeUpdateTimeout);
+    themeUpdateTimeout = window.setTimeout(() => {
+      updateMapTheme();
+      themeUpdateTimeout = null;
+    }, 100); // 100ms debounce
   }
 
   $: if (map && mapLoaded && missionItems) {
@@ -622,6 +628,7 @@
 
   /**
    * Validate mission item position
+   * NASA JPL Rule 5: Enhanced validation for mission items
    */
   function isValidPosition(position: any): position is { lng: number; lat: number } {
     return (
@@ -630,6 +637,8 @@
       typeof position.lat === 'number' &&
       !isNaN(position.lng) &&
       !isNaN(position.lat) &&
+      isFinite(position.lng) &&
+      isFinite(position.lat) &&
       position.lng >= -180 &&
       position.lng <= 180 &&
       position.lat >= -90 &&
@@ -638,24 +647,66 @@
   }
 
   /**
+   * Extract valid position from mission item
+   * NASA JPL Rule 5: Flexible position extraction with fallbacks
+   */
+  function extractPosition(item: MissionItem): { lng: number; lat: number } | null {
+    // Try position object first (preferred structure)
+    if (item.position && isValidPosition(item.position)) {
+      return { lng: item.position.lng, lat: item.position.lat };
+    }
+    
+    // Try params object
+    if (item.params?.lat !== undefined && item.params?.lng !== undefined) {
+      const pos = { lng: item.params.lng, lat: item.params.lat };
+      if (isValidPosition(pos)) {
+        return pos;
+      }
+    }
+    
+    // Try root level coordinates (legacy support)
+    if (item.lat !== undefined && item.lng !== undefined) {
+      const pos = { lng: item.lng, lat: item.lat };
+      if (isValidPosition(pos)) {
+        return pos;
+      }
+    }
+    
+    return null;
+  }
+
+  /**
    * Convert mission items to GeoJSON features
+   * NASA JPL Rule 5: Enhanced mission item processing with better validation
    */
   function missionItemsToFeatures() {
-    return missionItems
-      .filter((item) => isValidPosition(item.position))
-      .map((item) => ({
-        type: 'Feature' as const,
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [item.position!.lng, item.position!.lat]
-        },
-        properties: {
-          id: item.id || 'unknown',
-          name: item.name || 'Unnamed',
-          type: item.type || 'waypoint',
-          selected: item.id === selectedItemId
-        }
-      }));
+    const validFeatures = [];
+    
+    for (const item of missionItems) {
+      const position = extractPosition(item);
+      if (position) {
+        validFeatures.push({
+          type: 'Feature' as const,
+          geometry: {
+            type: 'Point' as const,
+            coordinates: [position.lng, position.lat]
+          },
+          properties: {
+            id: item.id || 'unknown',
+            name: item.name || 'Unnamed',
+            type: item.type || 'waypoint',
+            sequence: item.sequence || 0,
+            selected: item.id === selectedItemId,
+            altitude: item.altitude || item.params?.alt || 0
+          }
+        });
+      } else {
+        console.warn(`Mission item ${item.id} has invalid coordinates, skipping`, item);
+      }
+    }
+    
+    console.log(`Converted ${validFeatures.length} of ${missionItems.length} mission items to valid features`);
+    return validFeatures;
   }
 
   /**
@@ -731,6 +782,7 @@
 
   /**
    * Highlight the selected mission item
+   * NASA JPL Rule 5: Enhanced item highlighting with better position handling
    */
   function highlightSelectedItem(): void {
     if (!map || !mapLoaded || !selectedItemId) return;
@@ -738,19 +790,23 @@
     try {
       // Find the selected item
       const selectedItem = missionItems.find((item) => item.id === selectedItemId);
-      if (selectedItem && selectedItem.position) {
-        // Pan to the selected item
-        map.flyTo({
-          center: [selectedItem.position.lng, selectedItem.position.lat],
-          zoom: Math.max(map.getZoom(), 15),
-          duration: 1000
-        });
+      if (selectedItem) {
+        const position = extractPosition(selectedItem);
+        if (position) {
+          // Pan to the selected item
+          map.flyTo({
+            center: [position.lng, position.lat],
+            zoom: Math.max(map.getZoom(), 15),
+            duration: 1000
+          });
+          console.log(`Highlighted selected item: ${selectedItemId} at ${position.lat.toFixed(4)}, ${position.lng.toFixed(4)}`);
+        } else {
+          console.warn(`Selected item ${selectedItemId} has no valid position`);
+        }
       }
 
       // Update the selected state in the data
       updateMissionItems();
-
-      console.log(`Highlighted selected item: ${selectedItemId}`);
     } catch (err) {
       console.error('Failed to highlight selected item:', err);
     }
@@ -761,14 +817,14 @@
    */
   export function getViewport(): MapViewport | null {
     if (!map) return null;
-    
+
     const bounds = map.getBounds();
     const center = map.getCenter();
     const zoom = map.getZoom();
     const bearing = map.getBearing();
     const pitch = map.getPitch();
     const container = map.getContainer();
-    
+
     return {
       center: { lng: center.lng, lat: center.lat },
       zoom,
@@ -789,6 +845,12 @@
    * Cleanup map resources - NASA JPL Rule 2: Bounded memory
    */
   function cleanup(): void {
+    // Clear theme update timeout
+    if (themeUpdateTimeout) {
+      clearTimeout(themeUpdateTimeout);
+      themeUpdateTimeout = null;
+    }
+
     // Remove all event listeners first
     if (map) {
       map.off('load', handleMapLoad);
@@ -815,11 +877,13 @@
 
     // Clear any error state
     error = null;
-    
+
     // Force garbage collection hint
     if (typeof window !== 'undefined' && 'gc' in window) {
       (window as any).gc();
     }
+
+    console.log('MapViewer cleanup completed');
   }
 
   // ===== LIFECYCLE =====

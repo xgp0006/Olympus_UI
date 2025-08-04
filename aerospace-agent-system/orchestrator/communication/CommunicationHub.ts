@@ -18,7 +18,7 @@ export interface AgentMessage {
   correlationId?: string;
 }
 
-export type MessageType = 
+export type MessageType =
   | 'task-assignment'
   | 'task-update'
   | 'validation-request'
@@ -57,22 +57,22 @@ export class CommunicationHub extends EventEmitter {
       try {
         // Create HTTP server
         this.server = createServer();
-        
+
         // Create WebSocket server
         this.wss = new WebSocket.Server({ server: this.server });
-        
+
         // Set up WebSocket handlers
         this.wss.on('connection', this.handleConnection.bind(this));
-        
+
         // Start heartbeat monitoring
         this.startHeartbeatMonitoring();
-        
+
         // Start server
         this.server.listen(this.port, () => {
           console.log(`Communication Hub started on port ${this.port}`);
           resolve();
         });
-        
+
         this.server.on('error', reject);
       } catch (error) {
         reject(error);
@@ -90,7 +90,7 @@ export class CommunicationHub extends EventEmitter {
     }
 
     // Close all connections
-    this.connections.forEach(conn => {
+    this.connections.forEach((conn) => {
       conn.ws.close();
     });
 
@@ -138,10 +138,7 @@ export class CommunicationHub extends EventEmitter {
   /**
    * Send validation feedback to agent
    */
-  public async sendValidationFeedback(
-    agentId: string,
-    result: ValidationResult
-  ): Promise<void> {
+  public async sendValidationFeedback(agentId: string, result: ValidationResult): Promise<void> {
     const message: AgentMessage = {
       id: this.generateMessageId(),
       timestamp: new Date(),
@@ -157,11 +154,7 @@ export class CommunicationHub extends EventEmitter {
   /**
    * Broadcast message to all agents
    */
-  public async broadcast(
-    type: MessageType,
-    payload: any,
-    excludeAgent?: string
-  ): Promise<void> {
+  public async broadcast(type: MessageType, payload: any, excludeAgent?: string): Promise<void> {
     const message: AgentMessage = {
       id: this.generateMessageId(),
       timestamp: new Date(),
@@ -181,13 +174,9 @@ export class CommunicationHub extends EventEmitter {
   /**
    * Request synchronization between agents
    */
-  public async requestSync(
-    fromAgent: string,
-    toAgent: string,
-    data: any
-  ): Promise<any> {
+  public async requestSync(fromAgent: string, toAgent: string, data: any): Promise<any> {
     const correlationId = this.generateMessageId();
-    
+
     const message: AgentMessage = {
       id: this.generateMessageId(),
       timestamp: new Date(),
@@ -201,18 +190,17 @@ export class CommunicationHub extends EventEmitter {
     return new Promise((resolve, reject) => {
       // Set up response handler
       const responseHandler = (response: AgentMessage) => {
-        if (response.correlationId === correlationId && 
-            response.type === 'sync-response') {
+        if (response.correlationId === correlationId && response.type === 'sync-response') {
           this.off('message', responseHandler);
           resolve(response.payload);
         }
       };
 
       this.on('message', responseHandler);
-      
+
       // Send request
       this.sendMessage(message).catch(reject);
-      
+
       // Timeout after 30 seconds
       setTimeout(() => {
         this.off('message', responseHandler);
@@ -226,7 +214,7 @@ export class CommunicationHub extends EventEmitter {
    */
   private handleConnection(ws: WebSocket, req: any): void {
     const agentId = this.extractAgentId(req);
-    
+
     if (!agentId) {
       ws.close(1002, 'Agent ID required');
       return;
@@ -262,7 +250,7 @@ export class CommunicationHub extends EventEmitter {
     try {
       const message = JSON.parse(data.toString()) as AgentMessage;
       message.from = agentId; // Ensure from field is correct
-      
+
       // Validate message
       if (!this.validateMessage(message)) {
         console.error(`Invalid message from ${agentId}:`, message);
@@ -323,7 +311,7 @@ export class CommunicationHub extends EventEmitter {
    */
   private async sendMessage(message: AgentMessage): Promise<void> {
     const connection = this.connections.get(message.to);
-    
+
     if (connection && connection.status === 'connected') {
       this.sendToConnection(connection, message);
     } else {
@@ -361,7 +349,7 @@ export class CommunicationHub extends EventEmitter {
     if (queue && queue.length > 0) {
       const connection = this.connections.get(agentId);
       if (connection) {
-        queue.forEach(message => this.sendToConnection(connection, message));
+        queue.forEach((message) => this.sendToConnection(connection, message));
         this.messageQueue.delete(agentId);
       }
     }
@@ -375,10 +363,10 @@ export class CommunicationHub extends EventEmitter {
       this.connections.forEach((conn, agentId) => {
         if (conn.status === 'connected') {
           // Check last heartbeat
-          const timeSinceLastHeartbeat = 
-            Date.now() - conn.lastHeartbeat.getTime();
-          
-          if (timeSinceLastHeartbeat > 60000) { // 1 minute timeout
+          const timeSinceLastHeartbeat = Date.now() - conn.lastHeartbeat.getTime();
+
+          if (timeSinceLastHeartbeat > 60000) {
+            // 1 minute timeout
             console.warn(`Agent ${agentId} heartbeat timeout`);
             conn.status = 'disconnected';
             this.emit('agent:timeout', agentId);
@@ -410,9 +398,7 @@ export class CommunicationHub extends EventEmitter {
   private extractAgentId(req: any): string | null {
     // Extract from URL query parameter or header
     const url = new URL(req.url, `http://${req.headers.host}`);
-    return url.searchParams.get('agentId') || 
-           req.headers['x-agent-id'] || 
-           null;
+    return url.searchParams.get('agentId') || req.headers['x-agent-id'] || null;
   }
 
   /**

@@ -46,9 +46,12 @@
       <span class="status-dot"></span>
       {connectionStatus}
     </div>
-    
+
     {#if !connected}
-      <button class="connect-btn" on:click={() => droneConnectionStore.connect('udp:127.0.0.1:14550')}>
+      <button
+        class="connect-btn"
+        on:click={() => droneConnectionStore.connect('udp:127.0.0.1:14550')}
+      >
         Connect Drone
       </button>
     {/if}
@@ -56,19 +59,35 @@
 
   <!-- Tab navigation following existing UI patterns -->
   <div class="tabs">
-    <button class="tab" class:active={activeTab === 'parameters'} on:click={() => activeTab = 'parameters'}>
+    <button
+      class="tab"
+      class:active={activeTab === 'parameters'}
+      on:click={() => (activeTab = 'parameters')}
+    >
       Parameters
     </button>
-    <button class="tab" class:active={activeTab === 'pid'} on:click={() => activeTab = 'pid'}>
+    <button class="tab" class:active={activeTab === 'pid'} on:click={() => (activeTab = 'pid')}>
       PID Tuning
     </button>
-    <button class="tab" class:active={activeTab === 'motors'} on:click={() => activeTab = 'motors'}>
+    <button
+      class="tab"
+      class:active={activeTab === 'motors'}
+      on:click={() => (activeTab = 'motors')}
+    >
       Motor Test
     </button>
-    <button class="tab" class:active={activeTab === 'calibration'} on:click={() => activeTab = 'calibration'}>
+    <button
+      class="tab"
+      class:active={activeTab === 'calibration'}
+      on:click={() => (activeTab = 'calibration')}
+    >
       Calibration
     </button>
-    <button class="tab" class:active={activeTab === 'flight-modes'} on:click={() => activeTab = 'flight-modes'}>
+    <button
+      class="tab"
+      class:active={activeTab === 'flight-modes'}
+      on:click={() => (activeTab = 'flight-modes')}
+    >
       Flight Modes
     </button>
   </div>

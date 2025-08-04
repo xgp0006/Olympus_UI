@@ -23,7 +23,7 @@ export const themeError = derived(themeState, ($state) => $state.error);
  */
 function applyThemeToDOM(themeData: Theme): void {
   if (typeof document === 'undefined') return;
-  
+
   const root = document.documentElement;
 
   // Apply colors
@@ -61,7 +61,7 @@ async function fetchThemeData(themeName: string): Promise<Theme> {
 
   const themeData = await response.json();
   console.log('[ThemeFix] Theme loaded:', themeData.name);
-  
+
   return themeData;
 }
 
@@ -83,7 +83,7 @@ export async function loadThemeFixed(
 
   try {
     const themeData = await fetchThemeData(themeName);
-    
+
     // Apply to DOM
     applyThemeToDOM(themeData);
 

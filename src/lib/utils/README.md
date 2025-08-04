@@ -1,50 +1,129 @@
-# Safe API Invocation Utilities
+# Utility Functions
+
+This directory contains shared utility functions used throughout the Modular C2 Frontend application.
+
+## Aerospace-grade Assertion Infrastructure
+
+The assertion system provides NASA JPL Power of 10 compliant runtime validation with minimal performance overhead.
+
+### Key Features
+
+- **Production-safe**: Logs errors without crashing in production
+- **Type-safe**: TypeScript type narrowing support
+- **Telemetry integration**: Automatic failure tracking
+- **Performance monitoring**: Sub-millisecond overhead tracking
+- **Categorized errors**: Structured error classification
+
+### Quick Start
+
+```typescript
+import { assert, assertParam, assertDefined, assertState } from '$lib/utils/assert';
+
+// Basic assertion
+assert(condition, 'Error message');
+
+// Parameter validation
+assertParam(value > 0, 'Value must be positive');
+
+// Non-null assertion with type narrowing
+assertDefined(data, 'Data is required');
+// data is now typed as non-nullable
+
+// State validation
+assertState(isValidState(), 'Invalid state transition');
+
+// Performance assertion
+assertPerformance(() => {
+  // Critical operation
+}, PERFORMANCE_BUDGETS.FRAME_144FPS);
+```
+
+### Assertion Categories
+
+- **PARAMETER**: Input validation
+- **STATE**: State machine validation
+- **BOUNDS**: Array/range checking
+- **INVARIANT**: System invariants
+- **MEMORY**: Memory limit validation
+- **PERFORMANCE**: Timing constraints
+
+### Configuration
+
+```typescript
+import { assertionSystem } from '$lib/utils/assert';
+
+assertionSystem.updateConfig({
+  enableInProduction: true,
+  enableTelemetry: true,
+  consoleOutput: 'warn',
+  maxHistorySize: 1000
+});
+```
+
+### Performance Considerations
+
+- Assertions have ~0.01ms overhead on average
+- Stack traces are limited to 10 frames
+- History is bounded to prevent memory growth
+- Production mode logs but doesn't throw
+
+### NASA JPL Compliance
+
+The assertion system helps enforce several NASA JPL rules:
+
+1. **Rule 5**: Runtime assertions at all data transformations
+2. **Rule 2**: Bounded memory allocation (history limited)
+3. **Rule 4**: Short functions through assertion extraction
+4. **Rule 7**: Check all error conditions
+5. **Rule 8**: Maintain data validity at all times
+
+## Safe API Invocation Utilities
 
 This module provides comprehensive utilities for safe Tauri command invocation with error handling, retry logic, circuit breaker protection, and notification integration.
 
-## Requirements
+### Requirements
 
 Implements requirement **6.1**: "WHEN interacting with plugins THEN the system SHALL use defined Tauri commands and events."
 
-## Core Features
+### Core Features
 
-### 1. Enhanced Error Handling
+#### 1. Enhanced Error Handling
 
 - Structured error parsing and reporting
 - User-friendly error notifications
 - Comprehensive logging for debugging
 - Graceful degradation on failures
 
-### 2. Retry Logic
+#### 2. Retry Logic
 
 - Configurable retry attempts with exponential backoff
 - Automatic recovery notifications
 - Timeout protection for long-running operations
 
-### 3. Circuit Breaker Protection
+#### 3. Circuit Breaker Protection
 
 - Prevents cascading failures
 - Automatic recovery after cooldown periods
 - Per-category circuit breakers (plugin, cli, mission, sdr)
 - Manual reset capabilities
 
-### 4. Event Handling
+#### 4. Event Handling
 
 - Resilient event listeners with error tracking
 - Automatic disable/re-enable on repeated failures
 - Configurable error thresholds and cooldown periods
 
-### 5. Health Monitoring
+#### 5. Health Monitoring
 
 - Backend connectivity health checks
 - Performance monitoring and alerting
 - Comprehensive API status reporting
 
-## API Reference
+### API Reference
 
-### Core Functions
+#### Core Functions
 
-#### `invokeTauriCommand<T>(command, args?, options?)`
+##### `invokeTauriCommand<T>(command, args?, options?)`
 
 Enhanced Tauri command wrapper with comprehensive error handling.
 
@@ -56,7 +135,7 @@ const result = await invokeTauriCommand<Plugin[]>('get_loaded_plugins', undefine
 });
 ```
 
-#### `safeTauriInvoke<T>(command, args?, options?)`
+##### `safeTauriInvoke<T>(command, args?, options?)`
 
 Safe command invocation that returns `null` on error instead of throwing.
 
@@ -64,7 +143,7 @@ Safe command invocation that returns `null` on error instead of throwing.
 const plugins = (await safeTauriInvoke<Plugin[]>('get_loaded_plugins')) || [];
 ```
 
-#### `protectedTauriInvoke<T>(command, args?, category?, options?)`
+##### `protectedTauriInvoke<T>(command, args?, category?, options?)`
 
 Command invocation with circuit breaker protection.
 
@@ -77,7 +156,7 @@ const result = await protectedTauriInvoke<void>(
 );
 ```
 
-#### `batchTauriInvoke<T>(commands, globalOptions?)`
+##### `batchTauriInvoke<T>(commands, globalOptions?)`
 
 Execute multiple commands in parallel with error handling.
 
@@ -167,9 +246,9 @@ const devices = await SdrCommands.getAvailableDevices();
 await SdrCommands.setCenterFrequency(100000000);
 ```
 
-## Configuration Options
+### Configuration Options
 
-### ApiInvocationOptions
+#### ApiInvocationOptions
 
 ```typescript
 interface ApiInvocationOptions {
@@ -182,7 +261,7 @@ interface ApiInvocationOptions {
 }
 ```
 
-### EventListenerOptions
+#### EventListenerOptions
 
 ```typescript
 interface EventListenerOptions {
@@ -194,9 +273,9 @@ interface EventListenerOptions {
 }
 ```
 
-## Error Recovery
+### Error Recovery
 
-### Circuit Breaker Management
+#### Circuit Breaker Management
 
 ```typescript
 // Reset specific category
@@ -207,7 +286,7 @@ const status = getCircuitBreakerStatus();
 console.log('Plugin circuit breaker:', status.get('plugin'));
 ```
 
-### Event Error Recovery
+#### Event Error Recovery
 
 ```typescript
 // Reset event error tracking
@@ -217,22 +296,22 @@ resetEventErrorTracking('cli-output');
 resetAllEventErrorTracking();
 ```
 
-### Complete API Reset
+#### Complete API Reset
 
 ```typescript
 // Reset all error tracking and circuit breakers
 resetAllApiErrorTracking();
 ```
 
-## Best Practices
+### Best Practices
 
-### 1. Use Appropriate Methods
+#### 1. Use Appropriate Methods
 
 - Use `safeTauriInvoke` for non-critical operations where null return is acceptable
 - Use `protectedTauriInvoke` for operations that need circuit breaker protection
 - Use regular `invokeTauriCommand` when you need to handle errors explicitly
 
-### 2. Configure Timeouts
+#### 2. Configure Timeouts
 
 ```typescript
 // Short timeout for frequent operations
@@ -242,7 +321,7 @@ await SdrCommands.setCenterFrequency(freq, { timeout: 1000 });
 await PluginCommands.loadPlugin('complex-plugin', { timeout: 30000 });
 ```
 
-### 3. Handle Batch Operations
+#### 3. Handle Batch Operations
 
 ```typescript
 // Process results with proper error handling
@@ -256,7 +335,7 @@ results.forEach((result, index) => {
 });
 ```
 
-### 4. Monitor API Health
+#### 4. Monitor API Health
 
 ```typescript
 // Initialize monitoring in your main app component
@@ -266,7 +345,7 @@ onMount(() => {
 });
 ```
 
-### 5. Graceful Error Handling
+#### 5. Graceful Error Handling
 
 ```typescript
 // Always provide fallback values for safe methods
@@ -274,7 +353,7 @@ const plugins = (await PluginCommands.safeGetLoadedPlugins()) || [];
 const missions = (await MissionCommands.safeGetMissionData()) || [];
 ```
 
-## Testing
+### Testing
 
 The utilities include comprehensive tests covering:
 
@@ -291,6 +370,6 @@ Run tests with:
 pnpm test src/lib/utils/__tests__/tauri.test.ts
 ```
 
-## Example Usage
+### Example Usage
 
 See `src/lib/utils/examples/SafeApiUsage.svelte` for a complete example component demonstrating all features of the safe API invocation utilities.

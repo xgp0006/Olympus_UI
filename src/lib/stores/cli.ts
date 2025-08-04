@@ -48,7 +48,7 @@ const initialState: CliState = {
  */
 interface CliStoreContext {
   update: (updater: (state: CliState) => CliState) => void;
-  subscribe: (run: (value: CliState) => void) => (() => void);
+  subscribe: (run: (value: CliState) => void) => () => void;
   cliOutputUnlisten: UnlistenFn | null;
   cliTerminatedUnlisten: UnlistenFn | null;
 }
@@ -107,10 +107,7 @@ async function initializeCliListeners(ctx: CliStoreContext): Promise<void> {
 /**
  * NASA JPL Rule 4: Split - Execute CLI command
  */
-async function executeCliCommand(
-  ctx: CliStoreContext,
-  command: string
-): Promise<void> {
+async function executeCliCommand(ctx: CliStoreContext, command: string): Promise<void> {
   if (!command.trim()) {
     return;
   }
@@ -164,7 +161,10 @@ function cleanupCliListeners(ctx: CliStoreContext): void {
 /**
  * NASA JPL Rule 4: Split function - Create CLI core methods
  */
-function createCliCoreMethods(ctx: CliStoreContext, subscribe: (run: (value: CliState) => void) => (() => void)) {
+function createCliCoreMethods(
+  ctx: CliStoreContext,
+  subscribe: (run: (value: CliState) => void) => () => void
+) {
   return {
     subscribe,
 
@@ -185,7 +185,12 @@ function createCliCoreMethods(ctx: CliStoreContext, subscribe: (run: (value: Cli
 /**
  * NASA JPL Rule 4: Split function - Create CLI utility methods
  */
-function createCliUtilityMethods(ctx: CliStoreContext, update: (updater: (state: CliState) => CliState) => void, set: (value: CliState) => void, subscribe: (run: (value: CliState) => void) => (() => void)) {
+function createCliUtilityMethods(
+  ctx: CliStoreContext,
+  update: (updater: (state: CliState) => CliState) => void,
+  set: (value: CliState) => void,
+  subscribe: (run: (value: CliState) => void) => () => void
+) {
   return {
     /**
      * Clear command history
@@ -246,7 +251,12 @@ function createCliUtilityMethods(ctx: CliStoreContext, update: (updater: (state:
  * NASA JPL Rule 4: Split function - Create CLI store methods
  * Function refactored to be ≤60 lines (69 → 15 lines)
  */
-function createCliStoreMethods(ctx: CliStoreContext, update: (updater: (state: CliState) => CliState) => void, set: (value: CliState) => void, subscribe: (run: (value: CliState) => void) => (() => void)) {
+function createCliStoreMethods(
+  ctx: CliStoreContext,
+  update: (updater: (state: CliState) => CliState) => void,
+  set: (value: CliState) => void,
+  subscribe: (run: (value: CliState) => void) => () => void
+) {
   return {
     ...createCliCoreMethods(ctx, subscribe),
     ...createCliUtilityMethods(ctx, update, set, subscribe)
@@ -261,8 +271,8 @@ function createCliStore() {
   const { subscribe, set, update } = writable<CliState>(initialState);
 
   // Event listeners
-  let cliOutputUnlisten: UnlistenFn | null = null;
-  let cliTerminatedUnlisten: UnlistenFn | null = null;
+  const cliOutputUnlisten: UnlistenFn | null = null;
+  const cliTerminatedUnlisten: UnlistenFn | null = null;
 
   // Create context for extracted functions
   const ctx = {

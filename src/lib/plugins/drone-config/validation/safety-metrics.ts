@@ -18,10 +18,10 @@ export class SafetyMetrics {
 
     for (let i = 0; i < iterations; i++) {
       const startTime = performance.now();
-      
+
       // Simulate emergency stop trigger
       await this.simulateEmergencyStop();
-      
+
       const responseTime = performance.now() - startTime;
       responseTimes.push(responseTime);
     }
@@ -92,7 +92,7 @@ export class SafetyMetrics {
 
   private static async simulateEmergencyStop(): Promise<void> {
     // Simulate motor stop commands
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       setTimeout(resolve, 0.5); // Simulate 0.5ms response
     });
   }

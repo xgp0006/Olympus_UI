@@ -21,7 +21,8 @@
   export let overscan: number = 2; // Additional items for smooth scrolling
   export const estimatedItemHeight: number = itemHeight; // External reference for dynamic heights
   export let getItemKey: (item: any, index: number) => string = (_, i) => String(i);
-  export let renderItem: ((item: any, index: number, isVisible: boolean) => any) | undefined = undefined;
+  export let renderItem: ((item: any, index: number, isVisible: boolean) => any) | undefined =
+    undefined;
 
   // Performance monitoring
   export let enablePerformanceMonitoring: boolean = false;
@@ -69,10 +70,10 @@
 
     rafId = requestAnimationFrame(() => {
       const startTime = performance.now();
-      
+
       if (scrollContainer) {
         scrollTop = scrollContainer.scrollTop;
-        
+
         // Dispatch scroll event
         dispatch('scroll', {
           scrollTop,
@@ -81,12 +82,15 @@
 
         // Dispatch visibility change if indices changed
         const newStartIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - bufferSize);
-        const newEndIndex = Math.min(items.length, newStartIndex + visibleCount + bufferSize * 2 + overscan);
-        
+        const newEndIndex = Math.min(
+          items.length,
+          newStartIndex + visibleCount + bufferSize * 2 + overscan
+        );
+
         if (newStartIndex !== startIndex || newEndIndex !== endIndex) {
-          dispatch('visibilityChange', { 
-            startIndex: newStartIndex, 
-            endIndex: newEndIndex 
+          dispatch('visibilityChange', {
+            startIndex: newStartIndex,
+            endIndex: newEndIndex
           });
         }
 
@@ -102,7 +106,7 @@
           updatePerformanceMetrics(performance.now() - startTime);
         }
       }
-      
+
       rafId = null;
     });
   }
@@ -119,22 +123,23 @@
     }
 
     const elapsedTime = currentTime - performanceStartTime;
-    
-    if (elapsedTime >= 1000) { // Update every second
+
+    if (elapsedTime >= 1000) {
+      // Update every second
       const fps = (frameCount / elapsedTime) * 1000;
       const scrollSpeed = Math.abs(scrollTop - (scrollContainer?.scrollTop || 0));
-      
+
       const metrics: PerformanceMetrics = {
         renderTime,
         visibleItems: visibleItems.length,
         scrollSpeed,
         fps,
-        memoryUsage: browser && 'memory' in performance ? 
-          (performance as any).memory?.usedJSHeapSize || 0 : 0
+        memoryUsage:
+          browser && 'memory' in performance ? (performance as any).memory?.usedJSHeapSize || 0 : 0
       };
 
       onPerformanceUpdate?.(metrics);
-      
+
       // Reset counters
       frameCount = 0;
       performanceStartTime = currentTime;
@@ -153,12 +158,12 @@
    */
   export function scrollToIndex(index: number, behavior: ScrollBehavior = 'smooth') {
     if (!scrollContainer) return;
-    
-    const targetScrollTop = Math.max(0, Math.min(
-      index * itemHeight,
-      totalHeight - containerHeight
-    ));
-    
+
+    const targetScrollTop = Math.max(
+      0,
+      Math.min(index * itemHeight, totalHeight - containerHeight)
+    );
+
     scrollContainer.scrollTo({
       top: targetScrollTop,
       behavior
@@ -170,7 +175,7 @@
    */
   export function scrollToPosition(position: number, behavior: ScrollBehavior = 'smooth') {
     if (!scrollContainer) return;
-    
+
     scrollContainer.scrollTo({
       top: Math.max(0, Math.min(position, totalHeight - containerHeight)),
       behavior
@@ -211,23 +216,17 @@
 </script>
 
 <!-- Virtual scroll container -->
-<div 
+<div
   class="virtual-scroll-container"
   style="height: {containerHeight}px;"
   bind:this={scrollContainer}
 >
   <!-- Total height spacer for proper scrollbar -->
-  <div 
-    class="virtual-scroll-spacer"
-    style="height: {totalHeight}px;"
-  >
+  <div class="virtual-scroll-spacer" style="height: {totalHeight}px;">
     <!-- Visible items container -->
-    <div 
-      class="virtual-scroll-viewport"
-      style="transform: translateY({offsetY}px);"
-    >
+    <div class="virtual-scroll-viewport" style="transform: translateY({offsetY}px);">
       {#each visibleItems as item, index (getItemKey(item, startIndex + index))}
-        <button 
+        <button
           class="virtual-scroll-item"
           style="height: {itemHeight}px;"
           on:click={() => handleItemClick(item, index)}
@@ -236,9 +235,9 @@
           {#if $$slots.item}
             <slot name="item" {item} index={startIndex + index} isVisible={!isScrolling} />
           {:else if renderItem}
-            <svelte:component 
-              this={renderItem} 
-              {item} 
+            <svelte:component
+              this={renderItem}
+              {item}
               index={startIndex + index}
               isVisible={!isScrolling}
             />

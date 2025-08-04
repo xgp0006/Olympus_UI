@@ -12,7 +12,6 @@ import { BoundedArray } from '$lib/utils/bounded-array';
 import type { DroneParameter } from '../types/drone-types';
 import { ParameterType } from '../types/drone-types';
 
-
 /**
  * Parameter store state - following mission.ts pattern
  */
@@ -31,70 +30,15 @@ const MAX_PARAMETERS = 500; // Aerospace-grade limit
 const parametersPool = new BoundedArray<DroneParameter>(MAX_PARAMETERS);
 
 /**
- * Mock parameter data for development/fallback
+ * Empty parameter state - all data must come from backend
+ * NASA JPL Rule 5: No mock data generation in frontend
  */
-const MOCK_PARAMETERS: DroneParameter[] = [
-  {
-    id: 'INS_ACCOFFS_X_0',
-    name: 'INS_ACCOFFS_X',
-    value: 0,
-    type: ParameterType.FLOAT,
-    index: 0,
-    lastUpdated: Date.now(),
-    isDirty: false,
-    isModified: false,
-    // Direct access properties
-    group: 'Calibration',
-    advanced: false,
-    description: 'Accelerometer X-axis offset',
-    min: -3.5,
-    max: 3.5,
-    increment: 0.01,
-    units: 'm/s²'
-  },
-  {
-    id: 'MOT_PWM_MIN_1',
-    name: 'MOT_PWM_MIN',
-    value: 1000,
-    type: ParameterType.INT16,
-    index: 1,
-    lastUpdated: Date.now(),
-    isDirty: false,
-    isModified: false,
-    // Direct access properties
-    group: 'Motors',
-    advanced: false,
-    description: 'Minimum PWM value sent to ESCs',
-    min: 800,
-    max: 1300,
-    increment: 1,
-    units: 'µs'
-  },
-  {
-    id: 'RC1_TRIM_2',
-    name: 'RC1_TRIM',
-    value: 1500,
-    type: ParameterType.INT16,
-    index: 2,
-    lastUpdated: Date.now(),
-    isDirty: false,
-    isModified: false,
-    // Direct access properties
-    group: 'Radio Control',
-    advanced: false,
-    description: 'Roll channel center/trim position',
-    min: 800,
-    max: 2200,
-    increment: 1,
-    units: 'µs'
-  }
-];
 
 /**
  * Internal drone state store with bounded allocations
  */
 const droneState: Writable<DroneState> = writable({
-  parameters: parametersPool.toArray(), // NASA JPL Rule 2: Bounded
+  parameters: [], // Initialize as empty array instead of parametersPool.toArray()
   selectedParameterId: null,
   loading: false,
   error: null,
@@ -127,7 +71,11 @@ export const parameterError = derived(droneState, ($state) => $state.error);
 /**
  * NASA JPL Rule 4: Split function - Update parameter state with data
  */
-function updateParameterState(parameters: DroneParameter[], loading: boolean, error: string | null = null): void {
+function updateParameterState(
+  parameters: DroneParameter[],
+  loading: boolean,
+  error: string | null = null
+): void {
   droneState.update((state) => ({
     ...state,
     parameters,
@@ -146,11 +94,13 @@ async function loadFromTauriBackend(): Promise<DroneParameter[] | null> {
   }
 
   try {
-    const params = await safeInvoke<Array<{
-      id: string;
-      value: number;
-      type: ParameterType;
-    }>>('get_all_parameters');
+    const params = await safeInvoke<
+      Array<{
+        id: string;
+        value: number;
+        type: ParameterType;
+      }>
+    >('get_drone_parameters');
 
     if (params && params.length > 0) {
       console.log(`Loaded ${params.length} parameters from backend`);
@@ -164,10 +114,14 @@ async function loadFromTauriBackend(): Promise<DroneParameter[] | null> {
         lastUpdated: Date.now(),
         isDirty: false,
         isModified: false,
-        // Direct access properties
-        group: 'Miscellaneous',
-        advanced: false,
-        description: 'Drone parameter loaded from backend'
+        // Direct access properties - backend should provide these
+        group: (p as any).group || 'Miscellaneous',
+        advanced: (p as any).advanced || false,
+        description: (p as any).description || `Parameter: ${p.id}`,
+        min: (p as any).min,
+        max: (p as any).max,
+        increment: (p as any).increment,
+        units: (p as any).units
       }));
     }
   } catch (error) {
@@ -180,6 +134,7 @@ async function loadFromTauriBackend(): Promise<DroneParameter[] | null> {
 /**
  * Load parameter data from backend
  * NASA JPL Rule 4: Function refactored to be ≤60 lines
+ * NASA JPL Rule 5: No mock data fallback - frontend displays only backend data
  * @returns Promise resolving to parameters
  */
 export async function loadParameterData(): Promise<DroneParameter[]> {
@@ -187,35 +142,31 @@ export async function loadParameterData(): Promise<DroneParameter[]> {
   updateParameterState([], true);
 
   try {
-    // Try to load from Tauri backend
+    // Load from Tauri backend only
     const backendParams = await loadFromTauriBackend();
-    
-    if (backendParams) {
+
+    if (backendParams && backendParams.length > 0) {
       // Clear and repopulate bounded array
       parametersPool.clear();
-      backendParams.forEach(p => parametersPool.push(p));
-      
+      backendParams.forEach((p) => parametersPool.push(p));
+
       updateParameterState(parametersPool.toArray(), false);
       return backendParams;
     }
 
-    // Fall back to mock data
-    console.log('Using mock parameter data');
+    // No data available - show empty state
+    console.log('No parameter data available from backend');
     parametersPool.clear();
-    MOCK_PARAMETERS.forEach(p => parametersPool.push(p));
-    
-    updateParameterState(MOCK_PARAMETERS, false);
-    return MOCK_PARAMETERS;
+    updateParameterState([], false, 'No parameters available. Please connect to drone.');
+    return [];
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to load parameter data';
-    console.warn('Parameter data loading failed, falling back to mock data:', errorMessage);
+    console.error('Parameter data loading failed:', errorMessage);
 
-    // Fallback to mock data on error (don't set error when we have fallback)
+    // Set error state - no fallback to mock data
     parametersPool.clear();
-    MOCK_PARAMETERS.forEach(p => parametersPool.push(p));
-    
-    updateParameterState(MOCK_PARAMETERS, false, null);
-    return MOCK_PARAMETERS;
+    updateParameterState([], false, errorMessage);
+    return [];
   }
 }
 
@@ -224,10 +175,7 @@ export async function loadParameterData(): Promise<DroneParameter[]> {
  * @param parameterId - ID of the parameter to update
  * @param value - New value
  */
-export async function updateParameterValue(
-  parameterId: string,
-  value: number
-): Promise<void> {
+export async function updateParameterValue(parameterId: string, value: number): Promise<void> {
   try {
     await safeInvoke<void>('set_parameter', {
       id: parameterId,
@@ -331,37 +279,31 @@ export function getDroneState(): DroneState {
 /**
  * Derived stores for specific parameter groups
  */
-export const calibrationParameters = derived(
-  droneState,
-  $state => $state.parameters.filter(p => p.group === 'Calibration')
+export const calibrationParameters = derived(droneState, ($state) =>
+  $state.parameters.filter((p) => p.group === 'Calibration')
 );
 
-export const pidParameters = derived(
-  droneState,
-  $state => $state.parameters.filter(p => p.group === 'PID')
+export const pidParameters = derived(droneState, ($state) =>
+  $state.parameters.filter((p) => p.group === 'PID')
 );
 
-export const modifiedParameters = derived(
-  droneState,
-  $state => $state.parameters.filter(p => p.isModified)
+export const modifiedParameters = derived(droneState, ($state) =>
+  $state.parameters.filter((p) => p.isModified)
 );
 
-export const parametersByGroup = derived(
-  droneState,
-  $state => {
-    const groups = new Map<string, DroneParameter[]>();
-    
-    $state.parameters.forEach(param => {
-      const group = param.group || 'Miscellaneous';
-      if (!groups.has(group)) {
-        groups.set(group, []);
-      }
-      groups.get(group)!.push(param);
-    });
-    
-    return groups;
-  }
-);
+export const parametersByGroup = derived(droneState, ($state) => {
+  const groups = new Map<string, DroneParameter[]>();
+
+  $state.parameters.forEach((param) => {
+    const group = param.group || 'Miscellaneous';
+    if (!groups.has(group)) {
+      groups.set(group, []);
+    }
+    groups.get(group)!.push(param);
+  });
+
+  return groups;
+});
 
 // Export the drone state store for advanced use cases
 export { droneState };

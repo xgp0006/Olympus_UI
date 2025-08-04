@@ -3,7 +3,7 @@
   import { theme, themeError, themeLoading } from '../../lib/stores/theme';
   import { BoundedArray } from '$lib/utils/bounded-array';
 
-  let logs = new BoundedArray<string>(50);
+  const logs = new BoundedArray<string>(50);
 
   function addLog(message: string) {
     logs.push(`${new Date().toISOString()}: ${message}`);

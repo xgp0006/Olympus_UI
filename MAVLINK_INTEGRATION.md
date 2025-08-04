@@ -13,6 +13,7 @@ The MAVLink integration provides aerospace-grade drone communication capabilitie
 **File:** `src-tauri/src/mavlink.rs`
 
 The backend module provides:
+
 - Connection management (Serial, UDP, TCP)
 - Parameter read/write operations
 - Motor testing with safety checks
@@ -25,6 +26,7 @@ The backend module provides:
 **File:** `src/lib/api/mavlink.ts`
 
 TypeScript API wrapper providing:
+
 - Type-safe interfaces matching Rust structs
 - Async command invocation via Tauri
 - Connection string formatting utilities
@@ -35,6 +37,7 @@ TypeScript API wrapper providing:
 **File:** `src/lib/components/drone/DroneControl.svelte`
 
 Full-featured drone control panel with:
+
 - Connection management UI
 - Real-time vehicle status display
 - Parameter configuration interface
@@ -94,6 +97,7 @@ The current implementation provides mock functionality. To enable actual MAVLink
 ## Testing
 
 The implementation includes comprehensive error handling and can be tested with:
+
 - SITL (Software In The Loop) simulators
 - MAVProxy connections
 - Direct serial connections to flight controllers
@@ -101,6 +105,7 @@ The implementation includes comprehensive error handling and can be tested with:
 ## Compliance
 
 The implementation follows NASA JPL Power of 10 rules:
+
 - Functions under 60 lines
 - No dynamic memory allocation in critical paths
 - Bounded loops

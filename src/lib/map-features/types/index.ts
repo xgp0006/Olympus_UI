@@ -70,14 +70,7 @@ export interface MapIcon {
 }
 
 // Waypoint Types
-export type WaypointType = 
-  | 'orbit'
-  | 'mapping'
-  | 'attack'
-  | 'loiter'
-  | 'hold'
-  | 'rth'
-  | 'waypoint';
+export type WaypointType = 'orbit' | 'mapping' | 'attack' | 'loiter' | 'hold' | 'rth' | 'waypoint';
 
 export interface Waypoint {
   id: string;
@@ -90,13 +83,7 @@ export interface Waypoint {
 }
 
 // Measurement Types
-export type MeasurementType = 
-  | 'line'
-  | 'box'
-  | 'circle'
-  | 'triangle'
-  | 'polygon'
-  | 'spline';
+export type MeasurementType = 'line' | 'box' | 'circle' | 'triangle' | 'polygon' | 'spline';
 
 export interface MeasurementNode {
   id: string;
@@ -124,12 +111,7 @@ export interface Measurement {
 }
 
 // Message System Types
-export type MessageCategory = 
-  | 'notam'
-  | 'adsb-warning'
-  | 'faa-alert'
-  | 'weather-warning'
-  | 'system';
+export type MessageCategory = 'notam' | 'adsb-warning' | 'faa-alert' | 'weather-warning' | 'system';
 
 export type MessagePriority = 'low' | 'medium' | 'high' | 'critical';
 
@@ -270,7 +252,7 @@ export interface MapEvent<T = any> {
   source: string;
 }
 
-export type MapEventType = 
+export type MapEventType =
   | 'viewport:change'
   | 'waypoint:create'
   | 'waypoint:update'

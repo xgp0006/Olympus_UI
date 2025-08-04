@@ -86,9 +86,9 @@ button:not(.emergency-stop) {
 }
 
 /* Input field transitions */
-input[type="text"],
-input[type="number"],
-input[type="range"],
+input[type='text'],
+input[type='number'],
+input[type='range'],
 select,
 textarea {
   transition-property: background-color, border-color, color;
@@ -182,7 +182,7 @@ textarea {
 
 /* Batch transitions for better performance */
 .theme-batch-transition {
-  transition: 
+  transition:
     background-color var(--theme-transition-duration) var(--theme-transition-timing),
     color var(--theme-transition-duration) var(--theme-transition-timing),
     border-color var(--theme-transition-duration) var(--theme-transition-timing),

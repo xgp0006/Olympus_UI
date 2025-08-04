@@ -1,4 +1,5 @@
 # Aerospace Agent System
+
 ## Portable Multi-Agent Claude Orchestration System
 
 This system allows any Claude Code instance to spawn specialized aerospace-grade agents for parallel development tasks.
@@ -6,9 +7,11 @@ This system allows any Claude Code instance to spawn specialized aerospace-grade
 ## 🚀 Quick Start
 
 ### 1. Installation
+
 Copy this entire `aerospace-agent-system` folder to a location accessible by all Claude instances:
 
 **Recommended locations:**
+
 - `C:\Tools\aerospace-agent-system\` (Windows)
 - `~/tools/aerospace-agent-system/` (macOS/Linux)
 - Or any path in your system PATH
@@ -16,10 +19,13 @@ Copy this entire `aerospace-agent-system` folder to a location accessible by all
 ### 2. Global Access Setup
 
 #### Option A: Add to PATH
+
 Add the system directory to your PATH environment variable so any Claude instance can access it.
 
 #### Option B: Symlink (Advanced)
+
 Create symlinks in common locations:
+
 ```bash
 # Windows (as Administrator)
 mklink /D "C:\Tools\aerospace-agent-system" "path\to\this\folder"
@@ -31,6 +37,7 @@ ln -s "path/to/this/folder" "~/tools/aerospace-agent-system"
 ### 3. Usage from any Claude Code instance
 
 #### Method 1: Direct execution
+
 ```bash
 # Navigate to any project directory
 cd /path/to/your/project
@@ -40,6 +47,7 @@ path/to/aerospace-agent-system/spawn-agents.ps1 -Mode map-features -AutoLaunch
 ```
 
 #### Method 2: Slash command (Recommended)
+
 Create a `.claude-code/` directory in your project and add `aerospace-agents.md`:
 
 ```markdown
@@ -50,11 +58,13 @@ Launch specialized aerospace-grade agents for parallel development.
 Usage: /aerospace-agents [mode] [options]
 
 Available modes:
+
 - map-features: Location entry, crosshair, measuring tools, messaging, ADS-B, weather
 - telemetry-systems: Telemetry parsing, data visualization
 - mission-planning: Route optimization, waypoint management
 
 Options:
+
 - -AutoLaunch: Immediately spawn agents in WezTerm grid
 - -ShowCommands: Display commands without launching
 
@@ -86,8 +96,9 @@ Examples:
 ### Sub-Agent Specialists
 
 Each agent automatically uses specialized sub-agents:
+
 - **webdesign-ui-architect**: UI/UX components & layouts
-- **motion-graphics-specialist**: 144fps animations & effects  
+- **motion-graphics-specialist**: 144fps animations & effects
 - **aerospace-innovation-lead**: Architecture & algorithms
 - **aerospace-debugger-v2**: Performance optimization
 - **aerospace-code-auditor-v4**: NASA JPL compliance
@@ -161,6 +172,7 @@ The system is designed to be:
 ## 🤝 Integration Examples
 
 ### With VS Code
+
 ```json
 {
   "tasks": [
@@ -175,14 +187,17 @@ The system is designed to be:
 ```
 
 ### With CLion/IntelliJ
+
 Add as External Tool with working directory set to project root.
 
 ### With Cursor
+
 Create custom command in settings pointing to the system.
 
 ## 📊 Performance Monitoring
 
 Each agent reports:
+
 - Frame budget utilization
 - Memory usage
 - Task completion status

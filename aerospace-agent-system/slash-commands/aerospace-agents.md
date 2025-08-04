@@ -3,6 +3,7 @@
 Launch specialized aerospace-grade agents for parallel development.
 
 ## Usage
+
 ```
 /aerospace-agents [mode] [options]
 ```
@@ -10,7 +11,9 @@ Launch specialized aerospace-grade agents for parallel development.
 ## Modes
 
 ### map-features (6 agents, 6.8ms budget)
+
 Complete map feature development suite:
+
 - **Location Entry** (0.5ms): Multi-format coordinate input (MGRS, UTM, Lat/Long, What3Words)
 - **Map Crosshair** (1.5ms): Dynamic crosshair with distance rings and NATO icons
 - **Measuring Tools** (1.0ms): Shape drawing and spline-based flight paths
@@ -19,12 +22,16 @@ Complete map feature development suite:
 - **Weather Overlay** (1.5ms): AccuWeather-style WebGL weather visualization
 
 ### telemetry-systems (2 agents)
+
 High-performance data processing:
+
 - **Telemetry Parser**: MAVLink, CCSDS, and custom protocol parsing
 - **Data Visualizer**: Real-time telemetry visualization with WebGL
 
 ### mission-planning (2 agents)
+
 Flight planning and optimization:
+
 - **Route Optimizer**: Terrain-following route optimization algorithms
 - **Waypoint Manager**: Drag-and-drop waypoint editing interface
 
@@ -78,6 +85,7 @@ Each agent automatically deploys specialized sub-agents:
 ## Integration
 
 This command works from any Claude Code instance. The system automatically:
+
 1. Creates git worktrees for agent isolation
 2. Sets up performance monitoring
 3. Establishes inter-agent communication
@@ -87,6 +95,7 @@ This command works from any Claude Code instance. The system automatically:
 ## Troubleshooting
 
 If agents fail to launch:
+
 1. Verify WezTerm installation: `wezterm --version`
 2. Check git worktree support: `git worktree list`
 3. Ensure project has `.claude-orchestrator/` directory

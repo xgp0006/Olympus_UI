@@ -29,9 +29,9 @@ export function notify(notification: Omit<Notification, 'id' | 'timestamp'>) {
     timestamp: Date.now(),
     duration: notification.duration || 5000
   };
-  
-  notifications.update(n => [...n, newNotification]);
-  
+
+  notifications.update((n) => [...n, newNotification]);
+
   // Auto-remove after duration
   const duration = newNotification.duration;
   if (duration && duration > 0) {
@@ -43,7 +43,7 @@ export function notify(notification: Omit<Notification, 'id' | 'timestamp'>) {
 
 // Remove notification
 export function removeNotification(id: string) {
-  notifications.update(n => n.filter(notification => notification.id !== id));
+  notifications.update((n) => n.filter((notification) => notification.id !== id));
 }
 
 // Clear all notifications
@@ -53,5 +53,5 @@ export function clearNotifications() {
 
 // Clear notifications by type
 export function clearNotificationsByType(type: Notification['type']) {
-  notifications.update(n => n.filter(notification => notification.type !== type));
+  notifications.update((n) => n.filter((notification) => notification.type !== type));
 }

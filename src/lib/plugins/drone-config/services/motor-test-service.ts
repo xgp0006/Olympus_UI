@@ -14,7 +14,7 @@ export class MotorTestService {
   private audioContext: AudioContext | null = null;
   private countdownInterval: number | null = null;
   private telemetryInterval: number | null = null;
-  
+
   /**
    * NASA JPL compliant: Initialize service
    */
@@ -23,7 +23,7 @@ export class MotorTestService {
     this.initializeMotors();
     this.startTelemetryPolling();
   }
-  
+
   /**
    * NASA JPL compliant: Shutdown service
    */
@@ -34,7 +34,7 @@ export class MotorTestService {
       this.audioContext.close();
     }
   }
-  
+
   /**
    * NASA JPL compliant: Initialize audio context
    */
@@ -45,21 +45,21 @@ export class MotorTestService {
       console.warn('Audio context not available:', error);
     }
   }
-  
+
   /**
    * NASA JPL compliant: Initialize motors based on config
    */
   private initializeMotors(): void {
     this.changeMotorConfig('quad');
   }
-  
+
   /**
    * NASA JPL compliant: Start telemetry polling
    */
   private startTelemetryPolling(): void {
     this.telemetryInterval = window.setInterval(async () => {
       if (!get(isConnected)) return;
-      
+
       try {
         const telemetry = await safeTauriInvoke<any>('get_motor_telemetry');
         if (telemetry?.motors) {
@@ -70,7 +70,7 @@ export class MotorTestService {
       }
     }, 100);
   }
-  
+
   /**
    * NASA JPL compliant: Stop telemetry polling
    */
@@ -80,14 +80,14 @@ export class MotorTestService {
       this.telemetryInterval = null;
     }
   }
-  
+
   /**
    * NASA JPL compliant: Update telemetry data
    */
   private updateTelemetry(telemetryData: any[]): void {
-    motorTestStore.motors.update(motors => 
-      motors.map(motor => {
-        const telem = telemetryData.find(t => t.id === motor.id);
+    motorTestStore.motors.update((motors) =>
+      motors.map((motor) => {
+        const telem = telemetryData.find((t) => t.id === motor.id);
         if (telem) {
           this.checkMotorSafety(motor.id, telem);
           return {
@@ -101,7 +101,7 @@ export class MotorTestService {
       })
     );
   }
-  
+
   /**
    * NASA JPL compliant: Check motor safety conditions
    */
@@ -114,7 +114,7 @@ export class MotorTestService {
       });
       this.setMotorThrottle(motorId, 0);
     }
-    
+
     if (telem.current > 30) {
       showNotification({
         type: 'warning',
@@ -123,7 +123,7 @@ export class MotorTestService {
       });
     }
   }
-  
+
   /**
    * NASA JPL compliant: Emergency stop
    */
@@ -131,14 +131,14 @@ export class MotorTestService {
     motorTestStore.isEmergencyStopping.set(true);
     motorTestStore.testActive.set(false);
     this.stopCountdown();
-    
-    motorTestStore.motors.update(m => m.map(motor => ({ ...motor, throttle: 0 })));
-    
+
+    motorTestStore.motors.update((m) => m.map((motor) => ({ ...motor, throttle: 0 })));
+
     try {
       await safeTauriInvoke('emergency_stop_motors');
       motorTestStore.currentStage.set(SafetyStage.LOCKED);
       this.playWarningSound(880, 500);
-      
+
       showNotification({
         type: 'warning',
         message: 'EMERGENCY STOP ACTIVATED',
@@ -155,54 +155,54 @@ export class MotorTestService {
       motorTestStore.isEmergencyStopping.set(false);
     }
   }
-  
+
   /**
    * NASA JPL compliant: Play warning sound
    */
   playWarningSound(frequency: number, duration: number): void {
     if (!this.audioContext) return;
-    
+
     try {
       const oscillator = this.audioContext.createOscillator();
       const gainNode = this.audioContext.createGain();
-      
+
       oscillator.connect(gainNode);
       gainNode.connect(this.audioContext.destination);
-      
+
       oscillator.frequency.value = frequency;
       gainNode.gain.value = 0.3;
-      
+
       oscillator.start();
       oscillator.stop(this.audioContext.currentTime + duration / 1000);
     } catch (error) {
       console.warn('Could not play warning sound:', error);
     }
   }
-  
+
   /**
    * NASA JPL compliant: Progress safety stage
    */
   progressStage(targetStage: SafetyStage): void {
     if (!this.validateStageTransition(targetStage)) return;
-    
+
     this.playWarningSound(440 + targetStage * 100, 200);
     motorTestStore.currentStage.set(targetStage);
     this.startCountdown();
-    
+
     showNotification({
       type: 'info',
       message: `Entered Safety Stage ${targetStage}`,
       timeout: 3000
     });
   }
-  
+
   /**
    * NASA JPL compliant: Validate stage transition
    */
   private validateStageTransition(targetStage: SafetyStage): boolean {
     const currentStage = get(motorTestStore.currentStage);
     const propellerRemoved = get(motorTestStore.propellerRemoved);
-    
+
     if (!propellerRemoved) {
       showNotification({
         type: 'error',
@@ -211,7 +211,7 @@ export class MotorTestService {
       });
       return false;
     }
-    
+
     if (targetStage > currentStage + 1) {
       showNotification({
         type: 'warning',
@@ -220,19 +220,19 @@ export class MotorTestService {
       });
       return false;
     }
-    
+
     return true;
   }
-  
+
   /**
    * NASA JPL compliant: Start countdown timer
    */
   private startCountdown(): void {
     this.stopCountdown();
     motorTestStore.countdownTime.set(10);
-    
+
     this.countdownInterval = window.setInterval(() => {
-      motorTestStore.countdownTime.update(t => {
+      motorTestStore.countdownTime.update((t) => {
         if (t <= 1) {
           motorTestStore.currentStage.set(SafetyStage.LOCKED);
           this.stopCountdown();
@@ -244,16 +244,16 @@ export class MotorTestService {
           });
           return 0;
         }
-        
+
         if (t <= 3) {
           this.playWarningSound(660, 50);
         }
-        
+
         return t - 1;
       });
     }, 1000);
   }
-  
+
   /**
    * NASA JPL compliant: Stop countdown timer
    */
@@ -264,7 +264,7 @@ export class MotorTestService {
     }
     motorTestStore.countdownTime.set(0);
   }
-  
+
   /**
    * NASA JPL compliant: Get max throttle for stage
    */
@@ -278,7 +278,7 @@ export class MotorTestService {
     };
     return STAGE_LIMITS[stage];
   }
-  
+
   /**
    * NASA JPL compliant: Change motor configuration
    */
@@ -288,7 +288,7 @@ export class MotorTestService {
     motorTestStore.motors.set([...layouts[config]]);
     motorTestStore.selectedMotors.set(new Set());
   }
-  
+
   /**
    * NASA JPL compliant: Get motor layouts
    */
@@ -320,12 +320,12 @@ export class MotorTestService {
       ]
     };
   }
-  
+
   /**
    * NASA JPL compliant: Toggle motor selection
    */
   toggleMotorSelection(motorId: number): void {
-    motorTestStore.selectedMotors.update(selected => {
+    motorTestStore.selectedMotors.update((selected) => {
       const newSelected = new Set(selected);
       if (newSelected.has(motorId)) {
         newSelected.delete(motorId);
@@ -335,7 +335,7 @@ export class MotorTestService {
       return newSelected;
     });
   }
-  
+
   /**
    * NASA JPL compliant: Set motor throttle
    */
@@ -343,23 +343,21 @@ export class MotorTestService {
     const currentStage = get(motorTestStore.currentStage);
     const canTest = get(motorTestStore.canTest);
     const maxThrottle = this.getMaxThrottle(currentStage);
-    
+
     if (!canTest) return;
-    
+
     const clampedThrottle = Math.min(throttle, maxThrottle);
-    
+
     try {
       await safeTauriInvoke('set_motor_throttle', {
         motorId,
         throttle: clampedThrottle / 100
       });
-      
-      motorTestStore.motors.update(m => m.map(motor => 
-        motor.id === motorId 
-          ? { ...motor, throttle: clampedThrottle }
-          : motor
-      ));
-      
+
+      motorTestStore.motors.update((m) =>
+        m.map((motor) => (motor.id === motorId ? { ...motor, throttle: clampedThrottle } : motor))
+      );
+
       this.startCountdown();
     } catch (error) {
       console.error('Motor control error:', error);
@@ -370,46 +368,44 @@ export class MotorTestService {
       });
     }
   }
-  
+
   /**
    * NASA JPL compliant: Set all motors throttle
    */
   async setAllMotorsThrottle(throttle: number): Promise<void> {
     const selectedMotors = get(motorTestStore.selectedMotors);
     const motors = get(motorTestStore.motors);
-    
-    const motorIds = selectedMotors.size > 0 
-      ? Array.from(selectedMotors)
-      : motors.map(m => m.id);
-    
+
+    const motorIds = selectedMotors.size > 0 ? Array.from(selectedMotors) : motors.map((m) => m.id);
+
     for (const motorId of motorIds) {
       await this.setMotorThrottle(motorId, throttle);
     }
   }
-  
+
   /**
    * NASA JPL compliant: Run direction test
    */
   async runDirectionTest(): Promise<void> {
     if (!get(motorTestStore.canTest)) return;
-    
+
     motorTestStore.testActive.set(true);
     showNotification({
       type: 'info',
       message: 'Running direction test - 2 seconds per motor',
       timeout: 3000
     });
-    
+
     try {
       const motors = get(motorTestStore.motors);
-      
+
       for (const motor of motors) {
         if (!get(motorTestStore.testActive)) break;
-        
+
         await this.setMotorThrottle(motor.id, 10);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
         await this.setMotorThrottle(motor.id, 0);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
     } catch (error) {
       console.error('Direction test error:', error);
@@ -423,38 +419,38 @@ export class MotorTestService {
       await this.setAllMotorsThrottle(0);
     }
   }
-  
+
   /**
    * NASA JPL compliant: Run ramp test
    */
   async runRampTest(): Promise<void> {
     const currentStage = get(motorTestStore.currentStage);
     const maxThrottle = this.getMaxThrottle(currentStage);
-    
+
     if (!get(motorTestStore.canTest)) return;
-    
+
     motorTestStore.testActive.set(true);
     showNotification({
       type: 'info',
       message: 'Running ramp test',
       timeout: 3000
     });
-    
+
     try {
       // Ramp up
       for (let throttle = 0; throttle <= maxThrottle; throttle += 5) {
         if (!get(motorTestStore.testActive)) break;
         await this.setAllMotorsThrottle(throttle);
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Ramp down
       for (let throttle = maxThrottle; throttle >= 0; throttle -= 5) {
         if (!get(motorTestStore.testActive)) break;
         await this.setAllMotorsThrottle(throttle);
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
     } catch (error) {
       console.error('Ramp test error:', error);

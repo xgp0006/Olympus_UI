@@ -23,7 +23,7 @@
 
   // ===== EVENT DISPATCHER =====
   const dispatch = createEventDispatcher<{
-    select: { itemId: string };
+    select: { itemId: string | null };
     minimize: { itemId: string };
     expand: { itemId: string };
     update: { itemId: string; params: WaypointParams };
@@ -33,6 +33,7 @@
     undock: void;
     minimizeComponent: void;
     expandComponent: void;
+    createWaypointCard: { itemId: string };
   }>();
 
   // ===== STATE =====
@@ -42,6 +43,8 @@
   let touchGestureCleanup: (() => void) | null = null;
   let componentPosition: { x: number; y: number } = { x: 0, y: 0 };
   let isDragging = false;
+  let minimizedItems: Set<string> = new Set();
+  let itemPositions: Map<string, { x: number; y: number }> = new Map();
 
   /**
    * Calculate a good default position for the MinimizedCoin
@@ -62,6 +65,7 @@
 
   // ===== REACTIVE STATEMENTS =====
   $: accordionItems = items.map((item) => ({ ...item, id: item.id }));
+  $: visibleAccordionItems = accordionItems.filter((item) => !minimizedItems.has(item.id));
 
   // ===== FUNCTIONS =====
 
@@ -74,7 +78,12 @@
       console.warn('DND consider event missing items:', e.detail);
       return;
     }
-    accordionItems = e.detail.items;
+    // Update only the visible items order
+    const newVisibleItems = e.detail.items;
+
+    // Reconstruct full accordion items maintaining hidden items
+    const hiddenItems = accordionItems.filter((item) => minimizedItems.has(item.id));
+    accordionItems = [...newVisibleItems, ...hiddenItems];
   }
 
   /**
@@ -86,7 +95,12 @@
       console.warn('DND finalize event missing items:', e.detail);
       return;
     }
-    accordionItems = e.detail.items;
+    // Update only the visible items order
+    const newVisibleItems = e.detail.items;
+
+    // Reconstruct full accordion items maintaining hidden items
+    const hiddenItems = accordionItems.filter((item) => minimizedItems.has(item.id));
+    accordionItems = [...newVisibleItems, ...hiddenItems];
 
     // Only reorder if the event was triggered by pointer (user drag)
     if (e.detail.info.source === SOURCES.POINTER) {
@@ -106,11 +120,17 @@
   }
 
   /**
-   * Handle item selection
+   * Handle item selection with toggle behavior
    */
-  function handleItemSelect(itemId: string): void {
-    selectMissionItem(itemId);
-    dispatch('select', { itemId });
+  async function handleItemSelect(itemId: string): Promise<void> {
+    // Toggle behavior: if already selected, deselect; otherwise select
+    if (selectedItemId === itemId) {
+      await selectMissionItem(null);
+      dispatch('select', { itemId: null });
+    } else {
+      await selectMissionItem(itemId);
+      dispatch('select', { itemId });
+    }
   }
 
   /**
@@ -171,6 +191,91 @@
    */
   function handleItemUpdate(event: CustomEvent<{ itemId: string; params: WaypointParams }>): void {
     dispatch('update', event.detail);
+  }
+
+  /**
+   * Handle individual item minimize
+   */
+  function handleItemMinimize(itemId: string): void {
+    minimizedItems.add(itemId);
+
+    // Calculate a good position for the minimized coin
+    const existingCoins = minimizedItems.size;
+    const baseX = typeof window !== 'undefined' ? window.innerWidth - 100 : 200;
+    const baseY = 100;
+
+    // Arrange coins in a grid pattern
+    const cols = 5;
+    const row = Math.floor(existingCoins / cols);
+    const col = existingCoins % cols;
+
+    const x = baseX - col * 70;
+    const y = baseY + row * 70;
+
+    itemPositions.set(itemId, { x, y });
+    minimizedItems = minimizedItems; // Trigger reactivity
+
+    console.log(`Minimized waypoint item: ${itemId} to position ${x}, ${y}`);
+  }
+
+  /**
+   * Handle individual item expand
+   */
+  async function handleItemExpand(itemId: string): Promise<void> {
+    minimizedItems.delete(itemId);
+    itemPositions.delete(itemId);
+    minimizedItems = minimizedItems; // Trigger reactivity
+
+    // Select the item when it's expanded
+    await handleItemSelect(itemId);
+
+    console.log(`Expanded waypoint item: ${itemId}`);
+  }
+
+  /**
+   * Handle minimized coin move
+   */
+  function handleCoinMove(itemId: string, position: { x: number; y: number }): void {
+    itemPositions.set(itemId, position);
+  }
+
+  /**
+   * Handle minimized coin pin
+   */
+  function handleCoinPin(itemId: string, position: { x: number; y: number }): void {
+    itemPositions.set(itemId, position);
+    console.log(`Pinned waypoint coin: ${itemId} at ${position.x}, ${position.y}`);
+  }
+
+  /**
+   * Get snap points for minimized coins
+   */
+  function getSnapPoints(): Array<{ x: number; y: number; id: string }> {
+    const points: Array<{ x: number; y: number; id: string }> = [];
+
+    // Add snap points for other minimized items
+    minimizedItems.forEach((id) => {
+      const pos = itemPositions.get(id);
+      if (pos) {
+        points.push({ ...pos, id });
+      }
+    });
+
+    // Add snap points for grid positions
+    const baseX = typeof window !== 'undefined' ? window.innerWidth - 100 : 200;
+    const baseY = 100;
+
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 5; col++) {
+        points.push({
+          x: baseX - col * 70,
+          y: baseY + row * 70,
+          id: `grid-${row}-${col}`
+        });
+      }
+    }
+
+    return points;
   }
 
   /**
@@ -397,6 +502,20 @@
         </button>
         <div class="item-count">
           {accordionItems.length} item{accordionItems.length !== 1 ? 's' : ''}
+          {#if minimizedItems.size > 0}
+            <span class="minimized-count">({minimizedItems.size} minimized)</span>
+            <button
+              class="restore-all-button"
+              on:click={() => {
+                minimizedItems.clear();
+                itemPositions.clear();
+                minimizedItems = minimizedItems; // Trigger reactivity
+              }}
+              title="Restore all minimized items"
+            >
+              Restore All
+            </button>
+          {/if}
         </div>
       </div>
     </div>
@@ -411,7 +530,7 @@
       <div
         class="accordion-content"
         use:dndzone={{
-          items: accordionItems,
+          items: visibleAccordionItems,
           dragDisabled: dragDisabled || $isMobile,
           dropTargetStyle: {},
           morphDisabled: true,
@@ -421,7 +540,7 @@
         on:consider={handleDndConsider}
         on:finalize={handleDndFinalize}
       >
-        {#each accordionItems as item (item.id)}
+        {#each visibleAccordionItems as item (item.id)}
           <div
             class="accordion-item"
             class:selected={selectedItemId === item.id}
@@ -461,11 +580,28 @@
                   {/if}
                 </div>
               </button>
+
+              <div class="item-actions">
+                <button
+                  class="action-button card-button"
+                  on:click|stopPropagation={() =>
+                    dispatch('createWaypointCard', { itemId: item.id })}
+                  title="Open as individual card"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M2 3h12v10H2V3zm1 1v8h10V4H3zm2 2h6v1H5V6zm0 2h4v1H5V8z" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {#if selectedItemId === item.id}
               <div class="item-details">
-                <WaypointItem {item} on:update={handleItemUpdate} />
+                <WaypointItem
+                  {item}
+                  on:update={handleItemUpdate}
+                  on:minimize={() => handleItemMinimize(item.id)}
+                />
               </div>
             {/if}
           </div>
@@ -474,6 +610,27 @@
     {/if}
   </div>
 {/if}
+
+<!-- Render minimized waypoint coins -->
+{#each accordionItems as item (item.id)}
+  {#if minimizedItems.has(item.id)}
+    <MinimizedCoin
+      {item}
+      isPinned={false}
+      snapPoints={getSnapPoints()}
+      initialPosition={itemPositions.get(item.id) || { x: 0, y: 0 }}
+      on:expand={() => handleItemExpand(item.id)}
+      on:move={(e) => handleCoinMove(item.id, e.detail.position)}
+      on:pin={(e) => handleCoinPin(item.id, e.detail.position)}
+      on:unpin={() => console.log('Unpin waypoint:', item.id)}
+      on:snap={(e) => {
+        handleCoinMove(item.id, e.detail.position);
+        console.log(`Snapped waypoint ${item.id} to ${e.detail.snapToId}`);
+      }}
+      on:error={(e) => dispatch('error', e.detail)}
+    />
+  {/if}
+{/each}
 
 <style>
   /* Mission Accordion Styles */
@@ -607,6 +764,31 @@
     background-color: var(--color-background_tertiary);
     padding: calc(var(--layout-spacing_unit) / 2) var(--layout-spacing_unit);
     border-radius: calc(var(--layout-border_radius) * 2);
+    display: flex;
+    gap: calc(var(--layout-spacing_unit) / 2);
+    align-items: center;
+  }
+
+  .minimized-count {
+    color: var(--color-accent_yellow);
+    font-weight: 600;
+  }
+
+  .restore-all-button {
+    font-size: var(--typography-font_size_sm);
+    padding: calc(var(--layout-spacing_unit) / 4) calc(var(--layout-spacing_unit) / 2);
+    background: var(--color-accent_yellow);
+    color: var(--color-background_primary);
+    border: none;
+    border-radius: var(--layout-border_radius);
+    cursor: pointer;
+    font-weight: 600;
+    transition: all var(--animation-transition_duration) var(--animation-easing_function);
+  }
+
+  .restore-all-button:hover {
+    background: var(--color-accent_green);
+    transform: scale(1.05);
   }
 
   .accordion-content {
@@ -645,6 +827,37 @@
     align-items: center;
     padding: var(--layout-spacing_unit);
     gap: var(--layout-spacing_unit);
+  }
+
+  .item-actions {
+    display: flex;
+    gap: calc(var(--layout-spacing_unit) / 2);
+    align-items: center;
+  }
+
+  .action-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text_secondary);
+    border-radius: var(--layout-border_radius);
+    padding: calc(var(--layout-spacing_unit) / 2);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    transition: all var(--animation-transition_duration) var(--animation-easing_function);
+  }
+
+  .action-button:hover {
+    border-color: var(--color-accent_blue);
+    color: var(--color-accent_blue);
+    background-color: rgba(0, 191, 255, 0.1);
+  }
+
+  .action-button:active {
+    transform: scale(0.95);
   }
 
   .drag-handle {

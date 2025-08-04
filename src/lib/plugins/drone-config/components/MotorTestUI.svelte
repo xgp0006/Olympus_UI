@@ -4,11 +4,11 @@
 -->
 <script lang="ts">
   import type { Readable } from 'svelte/store';
-  
+
   export let isConnected: Readable<boolean>;
   export let countdownTime: Readable<number>;
   export let currentStage: number;
-  
+
   const stageDescriptions: Record<number, string> = {
     0: 'LOCKED - Enable safety features to proceed',
     1: 'Stage 1 - Motor spin test (max 25%)',
@@ -20,11 +20,9 @@
 
 <div class="motor-test-ui">
   {#if !$isConnected}
-    <div class="warning-message">
-      ⚠ No drone connection - connect to enable motor testing
-    </div>
+    <div class="warning-message">⚠ No drone connection - connect to enable motor testing</div>
   {/if}
-  
+
   <div class="status-bar">
     <div class="stage-indicator">
       <span class="stage-label">Current Stage:</span>
@@ -32,7 +30,7 @@
         {stageDescriptions[currentStage]}
       </span>
     </div>
-    
+
     {#if $countdownTime > 0}
       <div class="countdown-timer">
         <span class="countdown-label">Time remaining:</span>
@@ -50,7 +48,7 @@
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   .warning-message {
     padding: 0.75rem;
     background: var(--color-status_warning_bg);
@@ -59,7 +57,7 @@
     color: var(--color-status_warning);
     text-align: center;
   }
-  
+
   .status-bar {
     display: flex;
     justify-content: space-between;
@@ -68,7 +66,7 @@
     background: var(--color-surface_secondary);
     border-radius: 4px;
   }
-  
+
   .countdown-value.urgent {
     color: var(--color-status_error);
     font-weight: bold;

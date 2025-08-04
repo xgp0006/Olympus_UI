@@ -33,19 +33,19 @@
     <div class="slider-group">
       <label>
         <span>P</span>
-        <input 
-          type="range" 
-          min="0" 
-          max="200" 
+        <input
+          type="range"
+          min="0"
+          max="200"
           step="1"
           value={springValues.p}
           on:input={(e) => updateValue('p', Number(e.currentTarget.value))}
           {disabled}
         />
-        <input 
-          type="number" 
-          min="0" 
-          max="200" 
+        <input
+          type="number"
+          min="0"
+          max="200"
           step="1"
           value={springValues.p}
           on:input={(e) => updateValue('p', Number(e.currentTarget.value))}
@@ -57,19 +57,19 @@
     <div class="slider-group">
       <label>
         <span>I</span>
-        <input 
-          type="range" 
-          min="0" 
-          max="200" 
+        <input
+          type="range"
+          min="0"
+          max="200"
           step="1"
           value={springValues.i}
           on:input={(e) => updateValue('i', Number(e.currentTarget.value))}
           {disabled}
         />
-        <input 
-          type="number" 
-          min="0" 
-          max="200" 
+        <input
+          type="number"
+          min="0"
+          max="200"
           step="1"
           value={springValues.i}
           on:input={(e) => updateValue('i', Number(e.currentTarget.value))}
@@ -81,19 +81,19 @@
     <div class="slider-group">
       <label>
         <span>D</span>
-        <input 
-          type="range" 
-          min="0" 
-          max="100" 
+        <input
+          type="range"
+          min="0"
+          max="100"
           step="0.1"
           value={springValues.d}
           on:input={(e) => updateValue('d', Number(e.currentTarget.value))}
           {disabled}
         />
-        <input 
-          type="number" 
-          min="0" 
-          max="100" 
+        <input
+          type="number"
+          min="0"
+          max="100"
           step="0.1"
           value={springValues.d}
           on:input={(e) => updateValue('d', Number(e.currentTarget.value))}
@@ -103,7 +103,7 @@
       </label>
     </div>
   </div>
-  
+
   <!-- Display original values for reference -->
   {#if values.p !== springValues.p || values.i !== springValues.i || values.d !== springValues.d}
     <div class="original-values">

@@ -48,8 +48,8 @@
 
 <div class="profile-section">
   <div class="profile-controls">
-    <select 
-      bind:value={selectedProfile} 
+    <select
+      bind:value={selectedProfile}
       on:change={handleProfileChange}
       class="profile-select"
       disabled={isLoading}
@@ -58,27 +58,23 @@
         <option value={profile.id}>{profile.name}</option>
       {/each}
     </select>
-    
+
     <div class="profile-actions">
-      <button 
+      <button
         class="btn-small"
         on:click={() => copyProfile(0)}
         disabled={selectedProfile === 0 || isLoading}
       >
         Copy 1
       </button>
-      <button 
+      <button
         class="btn-small"
         on:click={() => copyProfile(1)}
         disabled={selectedProfile === 1 || isLoading}
       >
         Copy 2
       </button>
-      <button 
-        class="btn-small btn-warning"
-        on:click={resetToDefaults}
-        disabled={isLoading}
-      >
+      <button class="btn-small btn-warning" on:click={resetToDefaults} disabled={isLoading}>
         Reset
       </button>
     </div>

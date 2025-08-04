@@ -9,11 +9,9 @@
   export let themeName: string = 'super_amoled_black_responsive';
   export let showError: boolean = true;
 
-  let mounted = false;
   let loadAttempted = false;
 
   onMount(() => {
-    mounted = true;
     console.log('[ThemeProviderFixed] Mounted, browser:', browser);
 
     // Load theme after mount

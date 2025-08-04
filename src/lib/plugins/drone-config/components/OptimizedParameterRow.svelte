@@ -41,7 +41,7 @@
   function handleInputChange(event: Event): void {
     const target = event.target as HTMLInputElement;
     const newValue = parseFloat(target.value);
-    
+
     // Validate input
     if (isNaN(newValue)) {
       validationError = 'Invalid number';
@@ -80,7 +80,7 @@
       }
       isDirty = false;
     }
-    
+
     dispatch('blur', { parameter });
   }
 
@@ -97,7 +97,7 @@
   function handleSelectChange(event: Event): void {
     const target = event.target as HTMLSelectElement;
     const newValue = parseFloat(target.value);
-    
+
     inputValue = newValue;
     dispatch('update', { parameter, value: newValue });
   }
@@ -116,12 +116,14 @@
    * Get input step value for precise control
    */
   function getInputStep(): number {
-    return parameter.increment || (parameter.type === 'float' || parameter.type === 'double' ? 0.1 : 1);
+    return (
+      parameter.increment || (parameter.type === 'float' || parameter.type === 'double' ? 0.1 : 1)
+    );
   }
 </script>
 
 <!-- Parameter row container -->
-<div 
+<div
   class="parameter-row"
   class:dirty={isDirty}
   class:error={validationError !== null}
@@ -136,7 +138,7 @@
         <span class="advanced-badge" title="Advanced parameter">ADV</span>
       {/if}
     </div>
-    
+
     {#if parameter.description && parameter.description !== parameter.name}
       <div class="parameter-description" title={parameter.description}>
         {parameter.description}
@@ -196,11 +198,7 @@
 
   <!-- Validation error -->
   {#if validationError}
-    <div 
-      class="validation-error" 
-      id="{parameter.id}-error"
-      role="alert"
-    >
+    <div class="validation-error" id="{parameter.id}-error" role="alert">
       <span class="error-icon">⚠</span>
       {validationError}
     </div>
@@ -272,7 +270,7 @@
     color: var(--color-text_secondary, #cccccc);
     margin-top: 0.25rem;
     line-height: 1.3;
-    
+
     /* Truncate long descriptions */
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -298,7 +296,9 @@
     font-size: 0.9rem;
     min-width: 80px;
     max-width: 120px;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
   }
 
   .parameter-input:focus,
@@ -339,8 +339,12 @@
   }
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 
   .validation-error {
@@ -369,7 +373,7 @@
     .parameter-row {
       border-bottom: 2px solid var(--color-border_primary, #ffffff);
     }
-    
+
     .parameter-input,
     .parameter-select {
       border: 2px solid var(--color-border_primary, #ffffff);
@@ -383,7 +387,7 @@
     .parameter-select {
       transition: none;
     }
-    
+
     .spinner {
       animation: none;
     }
@@ -396,7 +400,7 @@
       background: white !important;
       color: black !important;
     }
-    
+
     .loading-indicator,
     .spinner {
       display: none;

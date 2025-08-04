@@ -40,10 +40,35 @@ const config = {
       directives: {
         'default-src': ['self'],
         'script-src': ['self'], // Hash mode automatically adds hashes
-        'style-src': ['self', 'unsafe-inline', 'https://unpkg.com', 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com', 'https://cdn.jsdelivr.net'],
-        'font-src': ['self', 'https://fonts.gstatic.com', 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com', 'https://cdn.jsdelivr.net', 'data:'],
+        'style-src': [
+          'self',
+          'unsafe-inline',
+          'https://unpkg.com',
+          'https://fonts.googleapis.com',
+          'https://cdnjs.cloudflare.com',
+          'https://cdn.jsdelivr.net'
+        ],
+        'font-src': [
+          'self',
+          'https://fonts.gstatic.com',
+          'https://fonts.googleapis.com',
+          'https://cdnjs.cloudflare.com',
+          'https://cdn.jsdelivr.net',
+          'data:'
+        ],
         'img-src': ['self', 'data:', 'blob:', 'https:'],
-        'connect-src': ['self', 'ws:', 'wss:', 'https://a.tile.openstreetmap.org', 'https://b.tile.openstreetmap.org', 'https://c.tile.openstreetmap.org', 'https://fonts.openmaptiles.org', 'https://asset.localhost', 'asset:', 'tauri:'],
+        'connect-src': [
+          'self',
+          'ws:',
+          'wss:',
+          'https://a.tile.openstreetmap.org',
+          'https://b.tile.openstreetmap.org',
+          'https://c.tile.openstreetmap.org',
+          'https://fonts.openmaptiles.org',
+          'https://asset.localhost',
+          'asset:',
+          'tauri:'
+        ],
         'media-src': ['self'],
         'object-src': ['none'],
         'frame-src': ['none'],

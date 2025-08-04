@@ -1,12 +1,36 @@
-# Ignore TypeScript configuration files
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+
+# Build outputs
+build/
+dist/
+.svelte-kit/
+.vercel/
+.netlify/
+
+# Tauri
+src-tauri/target/
+
+# IDE
+.vscode/
+.idea/
+
+# TypeScript configuration files
 tsconfig.json
 .svelte-kit/tsconfig.json
 
-# Build output
-build/
-.svelte-kit/
-node_modules/
-src-tauri/target/
+# Generated files
+*.min.js
+*.min.css
+coverage/
+*.log
 
-# Other files to ignore
-pnpm-lock.yaml
+# Specific files
+CHANGELOG.md
+src/lib/utils/examples/
+
+# Git worktrees
+.claude-orchestrator/worktrees/
+aerospace-agent-system/templates/.claude-orchestrator/worktrees/

@@ -431,7 +431,9 @@ function handleEventError(
     tracking.disabled = true;
 
     if (opts.enableLogging) {
-      console.error(`Event handler for '${eventName}' disabled after ${tracking.errorCount} errors`);
+      console.error(
+        `Event handler for '${eventName}' disabled after ${tracking.errorCount} errors`
+      );
     }
 
     if (opts.showErrorNotifications) {
@@ -1295,27 +1297,24 @@ export const safeInvoke = safeTauriInvoke;
  * Safe filesystem operations
  */
 export async function writeTextFile(
-  filePath: string, 
-  contents: string, 
+  filePath: string,
+  contents: string,
   options?: { dir?: unknown }
 ): Promise<void> {
-  const result = await safeTauriInvoke<void>('plugin:fs|write_text_file', { 
-    path: filePath, 
+  const result = await safeTauriInvoke<void>('plugin:fs|write_text_file', {
+    path: filePath,
     contents,
-    options 
+    options
   });
   if (result === null) {
     throw new Error(`Failed to write file: ${filePath}`);
   }
 }
 
-export async function readTextFile(
-  filePath: string, 
-  options?: { dir?: unknown }
-): Promise<string> {
-  const result = await safeTauriInvoke<string>('plugin:fs|read_text_file', { 
+export async function readTextFile(filePath: string, options?: { dir?: unknown }): Promise<string> {
+  const result = await safeTauriInvoke<string>('plugin:fs|read_text_file', {
     path: filePath,
-    options 
+    options
   });
   if (result === null) {
     throw new Error(`Failed to read file: ${filePath}`);
@@ -1329,7 +1328,7 @@ export async function readTextFile(
 export const listen = setupEventListener;
 
 /**
- * Event emitter wrapper  
+ * Event emitter wrapper
  */
 export async function emit(event: string, payload?: unknown): Promise<void> {
   return TauriApi.emit(event, payload).then(() => {});

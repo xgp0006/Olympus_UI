@@ -186,8 +186,7 @@ Object.defineProperty(window.document, 'documentElement', {
   configurable: true
 });
 
-const originalGetComputedStyle = window.getComputedStyle;
-window.getComputedStyle = vi.fn((element) => {
+window.getComputedStyle = vi.fn((_element) => {
   // Create a proper mock style object
   const mockStyle = {
     getPropertyValue: vi.fn((property) => {

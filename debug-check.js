@@ -6,11 +6,12 @@ import { globSync } from 'glob';
 function getSourceFiles() {
   const allFiles = [...globSync('src/**/*.ts'), ...globSync('src/**/*.svelte')];
   // Exclude test files and utility implementations from NASA JPL validation
-  return allFiles.filter(file => 
-    !file.includes('__tests__') && 
-    !file.includes('test.ts') && 
-    !file.includes('bounded-array.ts') &&
-    !file.includes('test-utils')
+  return allFiles.filter(
+    (file) =>
+      !file.includes('__tests__') &&
+      !file.includes('test.ts') &&
+      !file.includes('bounded-array.ts') &&
+      !file.includes('test-utils')
   );
 }
 
@@ -58,10 +59,10 @@ function checkFunctionLength() {
 
   console.log('=== FUNCTION LENGTH VIOLATIONS ===');
   console.log(`Found ${longFunctions.length} functions over 60 lines:`);
-  longFunctions.forEach(f => {
+  longFunctions.forEach((f) => {
     console.log(`${f.file}:${f.start}-${f.end} (${f.length} lines)`);
   });
-  
+
   return longFunctions.length === 0;
 }
 
@@ -79,7 +80,11 @@ function checkBoundedMemory() {
         const context = lines
           .slice(Math.max(0, index - 15), Math.min(lines.length, index + 5))
           .join('\n');
-        if (!context.match(/length\s*[<>=]|slice|shift|splice|BoundedArray|MAX_.*|\.length\s*>=|bounded\s*array|limit\s*reached|bounded\s*storage|errors:\s*BoundedArray|warnings:\s*BoundedArray|new\s+BoundedArray|const\s+\w+\s*=\s*new\s+BoundedArray|dismissedIds\s*=\s*new\s+BoundedArray/i)) {
+        if (
+          !context.match(
+            /length\s*[<>=]|slice|shift|splice|BoundedArray|MAX_.*|\.length\s*>=|bounded\s*array|limit\s*reached|bounded\s*storage|errors:\s*BoundedArray|warnings:\s*BoundedArray|new\s+BoundedArray|const\s+\w+\s*=\s*new\s+BoundedArray|dismissedIds\s*=\s*new\s+BoundedArray/i
+          )
+        ) {
           unboundedOps.push({
             file,
             line: index + 1,
@@ -93,12 +98,12 @@ function checkBoundedMemory() {
 
   console.log('\n=== BOUNDED MEMORY VIOLATIONS ===');
   console.log(`Found ${unboundedOps.length} unbounded operations:`);
-  unboundedOps.forEach(op => {
+  unboundedOps.forEach((op) => {
     console.log(`${op.file}:${op.line} - ${op.content}`);
     console.log(`  Context: ${op.context.replace(/\n/g, ' ')}`);
     console.log('');
   });
-  
+
   return unboundedOps.length === 0;
 }
 

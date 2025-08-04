@@ -39,7 +39,7 @@
       {parameter.description || 'No description available'}
     </div>
   </div>
-  
+
   <div class="parameter-value">
     {#if parameter.type === 'enum' || parameter.options}
       <select
@@ -64,7 +64,7 @@
         class="parameter-input"
       />
     {/if}
-    
+
     <span class="parameter-unit">{parameter.units || ''}</span>
   </div>
 </div>

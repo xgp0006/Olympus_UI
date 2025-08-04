@@ -22,21 +22,16 @@ export class WorktreeManager {
   /**
    * Create a new worktree for an agent
    */
-  public async createWorktree(
-    worktreeId: string,
-    branchName: string
-  ): Promise<GitWorktree> {
+  public async createWorktree(worktreeId: string, branchName: string): Promise<GitWorktree> {
     const worktreePath = path.join(this.basePath, worktreeId);
-    
+
     try {
       // Ensure base path exists
       await fs.mkdir(this.basePath, { recursive: true });
-      
+
       // Create worktree with new branch
-      await execAsync(
-        `git worktree add -b ${branchName} "${worktreePath}" HEAD`
-      );
-      
+      await execAsync(`git worktree add -b ${branchName} "${worktreePath}" HEAD`);
+
       const worktree: GitWorktree = {
         id: worktreeId,
         path: worktreePath,
@@ -51,7 +46,7 @@ export class WorktreeManager {
         },
         lastSync: new Date()
       };
-      
+
       this.worktrees.set(worktreeId, worktree);
       return worktree;
     } catch (error) {
@@ -70,24 +65,23 @@ export class WorktreeManager {
 
     try {
       // Get git status
-      const { stdout: statusOut } = await execAsync(
-        'git status --porcelain',
-        { cwd: worktree.path }
-      );
-      
+      const { stdout: statusOut } = await execAsync('git status --porcelain', {
+        cwd: worktree.path
+      });
+
       const modifiedFiles = statusOut
         .split('\n')
-        .filter(line => line.trim())
-        .map(line => line.substring(3));
-      
+        .filter((line) => line.trim())
+        .map((line) => line.substring(3));
+
       // Check ahead/behind
       const { stdout: revList } = await execAsync(
         `git rev-list --left-right --count ${worktree.baseBranch}...${worktree.branch}`,
         { cwd: worktree.path }
       );
-      
+
       const [behind, ahead] = revList.trim().split('\t').map(Number);
-      
+
       const status: WorktreeStatus = {
         clean: modifiedFiles.length === 0,
         ahead,
@@ -95,7 +89,7 @@ export class WorktreeManager {
         conflicts: [],
         modifiedFiles
       };
-      
+
       worktree.status = status;
       return status;
     } catch (error) {
@@ -115,20 +109,20 @@ export class WorktreeManager {
     try {
       // Fetch latest changes
       await execAsync('git fetch origin', { cwd: worktree.path });
-      
+
       // Merge base branch
       const { stdout, stderr } = await execAsync(
         `git merge origin/${worktree.baseBranch} --no-edit`,
         { cwd: worktree.path }
       );
-      
+
       if (stderr.includes('CONFLICT')) {
         // Handle merge conflicts
         const conflicts = await this.detectConflicts(worktree.path);
         worktree.status.conflicts = conflicts;
         throw new Error(`Merge conflicts detected: ${conflicts.join(', ')}`);
       }
-      
+
       worktree.lastSync = new Date();
     } catch (error) {
       throw new Error(`Failed to sync worktree: ${error.message}`);
@@ -146,7 +140,7 @@ export class WorktreeManager {
     try {
       // Checkout target branch in main worktree
       await execAsync(`git checkout ${targetBranch}`);
-      
+
       if (strategy.type === 'octopus') {
         return await this.octopusMerge(worktrees, targetBranch);
       } else if (strategy.type === 'sequential') {
@@ -157,12 +151,14 @@ export class WorktreeManager {
     } catch (error) {
       return {
         success: false,
-        conflicts: [{
-          file: 'merge',
-          conflictType: 'content',
-          branches: worktrees.map(w => w.branch),
-          resolution: error.message
-        }]
+        conflicts: [
+          {
+            file: 'merge',
+            conflictType: 'content',
+            branches: worktrees.map((w) => w.branch),
+            resolution: error.message
+          }
+        ]
       };
     }
   }
@@ -170,29 +166,26 @@ export class WorktreeManager {
   /**
    * Perform octopus merge
    */
-  private async octopusMerge(
-    worktrees: GitWorktree[],
-    targetBranch: string
-  ): Promise<MergeResult> {
-    const branches = worktrees.map(w => w.branch).join(' ');
-    
+  private async octopusMerge(worktrees: GitWorktree[], targetBranch: string): Promise<MergeResult> {
+    const branches = worktrees.map((w) => w.branch).join(' ');
+
     try {
       const { stdout, stderr } = await execAsync(
         `git merge ${branches} --no-ff -m "Octopus merge from Mission Control"`
       );
-      
+
       if (stderr.includes('CONFLICT')) {
         const conflicts = await this.detectConflicts(process.cwd());
         return {
           success: false,
-          conflicts: conflicts.map(file => ({
+          conflicts: conflicts.map((file) => ({
             file,
             conflictType: 'content',
-            branches: worktrees.map(w => w.branch)
+            branches: worktrees.map((w) => w.branch)
           }))
         };
       }
-      
+
       return {
         success: true,
         mergedBranch: targetBranch
@@ -222,22 +215,24 @@ export class WorktreeManager {
             };
           }
         }
-        
+
         // Merge branch
         const { stderr } = await execAsync(
           `git merge ${worktree.branch} --no-ff -m "Merge ${worktree.branch} from Mission Control"`
         );
-        
+
         if (stderr.includes('CONFLICT')) {
           if (strategy.conflictResolution === 'abort') {
             await execAsync('git merge --abort');
             return {
               success: false,
-              conflicts: [{
-                file: 'merge',
-                conflictType: 'content',
-                branches: [worktree.branch]
-              }]
+              conflicts: [
+                {
+                  file: 'merge',
+                  conflictType: 'content',
+                  branches: [worktree.branch]
+                }
+              ]
             };
           }
           // Handle AI-assisted resolution here
@@ -245,16 +240,18 @@ export class WorktreeManager {
       } catch (error) {
         return {
           success: false,
-          conflicts: [{
-            file: 'merge',
-            conflictType: 'content',
-            branches: [worktree.branch],
-            resolution: error.message
-          }]
+          conflicts: [
+            {
+              file: 'merge',
+              conflictType: 'content',
+              branches: [worktree.branch],
+              resolution: error.message
+            }
+          ]
         };
       }
     }
-    
+
     return {
       success: true,
       mergedBranch: targetBranch
@@ -264,20 +261,19 @@ export class WorktreeManager {
   /**
    * Perform rebase merge
    */
-  private async rebaseMerge(
-    worktrees: GitWorktree[],
-    targetBranch: string
-  ): Promise<MergeResult> {
+  private async rebaseMerge(worktrees: GitWorktree[], targetBranch: string): Promise<MergeResult> {
     // Implement rebase strategy
     // This is more complex and would need careful handling
     return {
       success: false,
-      conflicts: [{
-        file: 'rebase',
-        conflictType: 'content',
-        branches: worktrees.map(w => w.branch),
-        resolution: 'Rebase merge not implemented'
-      }]
+      conflicts: [
+        {
+          file: 'rebase',
+          conflictType: 'content',
+          branches: worktrees.map((w) => w.branch),
+          resolution: 'Rebase merge not implemented'
+        }
+      ]
     };
   }
 
@@ -285,12 +281,9 @@ export class WorktreeManager {
    * Detect merge conflicts
    */
   private async detectConflicts(workDir: string): Promise<string[]> {
-    const { stdout } = await execAsync(
-      'git diff --name-only --diff-filter=U',
-      { cwd: workDir }
-    );
-    
-    return stdout.split('\n').filter(file => file.trim());
+    const { stdout } = await execAsync('git diff --name-only --diff-filter=U', { cwd: workDir });
+
+    return stdout.split('\n').filter((file) => file.trim());
   }
 
   /**
@@ -298,11 +291,8 @@ export class WorktreeManager {
    */
   private async runTests(workDir: string): Promise<any> {
     try {
-      const { stdout, stderr } = await execAsync(
-        'npm test',
-        { cwd: workDir }
-      );
-      
+      const { stdout, stderr } = await execAsync('npm test', { cwd: workDir });
+
       return {
         suite: 'all',
         passed: !stderr.includes('failed'),
@@ -349,7 +339,7 @@ export class WorktreeManager {
    */
   public async cleanupAll(): Promise<void> {
     const worktreeIds = Array.from(this.worktrees.keys());
-    
+
     for (const id of worktreeIds) {
       await this.removeWorktree(id);
     }

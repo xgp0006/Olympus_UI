@@ -44,7 +44,10 @@
   };
 
   // Plugin component registry
-  const PLUGIN_COMPONENTS: Record<string, typeof MissionPlanner | typeof SdrDashboard | typeof DroneConfigDashboard> = {
+  const PLUGIN_COMPONENTS: Record<
+    string,
+    typeof MissionPlanner | typeof SdrDashboard | typeof DroneConfigDashboard
+  > = {
     'mission-planner': MissionPlanner,
     'sdr-suite': SdrDashboard,
     'drone-config': DroneConfigDashboard
@@ -80,7 +83,7 @@
    */
   function handleLoadSuccess(id: string, plugin: Plugin): void {
     const PluginComponent = PLUGIN_COMPONENTS[id];
-    
+
     state = {
       ...state,
       loading: false,

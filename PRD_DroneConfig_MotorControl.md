@@ -11,6 +11,7 @@ This PRD defines the motor control UI components for the Drone Configuration Plu
 **Purpose**: Safe motor testing with progressive safety unlocks and real-time monitoring
 
 **Key Features**:
+
 - Multi-stage safety confirmation system
 - Individual motor control sliders with visual feedback
 - Master slider for synchronized motor testing
@@ -19,6 +20,7 @@ This PRD defines the motor control UI components for the Drone Configuration Plu
 - Visual motor layout display with status indicators
 
 **Safety Systems**:
+
 - Stage 1: Propeller removal confirmation checkbox
 - Stage 2: Battery connection verification
 - Stage 3: Motor testing unlock with timeout
@@ -26,6 +28,7 @@ This PRD defines the motor control UI components for the Drone Configuration Plu
 - Stage 5: Full power unlock with additional confirmation
 
 **Interface Design**:
+
 ```typescript
 interface MotorTestPanelProps {
   frameType: 'quad' | 'hex' | 'octo' | 'custom';
@@ -49,6 +52,7 @@ interface MotorTelemetry {
 ```
 
 **Safety Features**:
+
 - Automatic timeout after 30 seconds of inactivity
 - Progressive throttle limiting (25% → 50% → 75% → 100%)
 - Visual safety indicators (red/yellow/green status)
@@ -60,6 +64,7 @@ interface MotorTelemetry {
 **Purpose**: Comprehensive ESC protocol selection and parameter configuration
 
 **Key Features**:
+
 - Protocol selection with automatic capability detection
 - DShot configuration (150/300/600/1200)
 - Bidirectional DShot setup for telemetry
@@ -68,6 +73,7 @@ interface MotorTelemetry {
 - Telemetry configuration options
 
 **Interface Design**:
+
 ```typescript
 interface ESCConfiguratorProps {
   currentProtocol: ESCProtocol;
@@ -80,7 +86,15 @@ interface ESCConfiguratorProps {
 
 interface ESCProtocol {
   name: string;
-  type: 'PWM' | 'ONESHOT125' | 'ONESHOT42' | 'MULTISHOT' | 'DSHOT150' | 'DSHOT300' | 'DSHOT600' | 'DSHOT1200';
+  type:
+    | 'PWM'
+    | 'ONESHOT125'
+    | 'ONESHOT42'
+    | 'MULTISHOT'
+    | 'DSHOT150'
+    | 'DSHOT300'
+    | 'DSHOT600'
+    | 'DSHOT1200';
   requiresCalibration: boolean;
   supportsTelemetry: boolean;
   maxUpdateRate: number;
@@ -104,6 +118,7 @@ interface ESCCapabilities {
 **Purpose**: Interactive visual motor layout with drag-and-drop configuration
 
 **Key Features**:
+
 - Dynamic frame type selection (quad/hex/octo/custom)
 - Drag-and-drop motor positioning
 - Real-time motor status overlay
@@ -112,6 +127,7 @@ interface ESCCapabilities {
 - Visual health indicators
 
 **Interface Design**:
+
 ```typescript
 interface MotorLayoutVisualizerProps {
   frameType: FrameType;
@@ -144,6 +160,7 @@ interface FrameType {
 **Purpose**: Step-by-step ESC calibration with guided workflow
 
 **Key Features**:
+
 - Multi-step calibration process
 - Visual progress indicator
 - Automatic ESC detection
@@ -152,6 +169,7 @@ interface FrameType {
 - Rollback capability
 
 **Calibration Steps**:
+
 1. Pre-calibration safety check
 2. ESC protocol verification
 3. Battery disconnection confirmation
@@ -162,6 +180,7 @@ interface FrameType {
 8. Results summary
 
 **Interface Design**:
+
 ```typescript
 interface MotorCalibrationWizardProps {
   onCalibrationComplete: (results: CalibrationResults) => void;
@@ -197,6 +216,7 @@ interface CalibrationStep {
 **Purpose**: Multi-level confirmation system for motor operations
 
 **Key Features**:
+
 - Hierarchical safety levels
 - Time-based confirmations
 - Visual countdown timers
@@ -205,6 +225,7 @@ interface CalibrationStep {
 - Gesture-based confirmations for mobile
 
 **Safety Levels**:
+
 - **Level 1**: Basic prop removal confirmation
 - **Level 2**: Battery connection verification
 - **Level 3**: Motor testing unlock with timer
@@ -212,6 +233,7 @@ interface CalibrationStep {
 - **Level 5**: Full power operation with continuous monitoring
 
 **Interface Design**:
+
 ```typescript
 interface SafetyInterlocksProps {
   currentLevel: SafetyLevel;
@@ -245,6 +267,7 @@ interface SafetyRequirement {
 **Purpose**: Real-time ESC telemetry monitoring and diagnostics
 
 **Key Features**:
+
 - Real-time telemetry streaming
 - Health status indicators
 - Temperature monitoring with alerts
@@ -254,6 +277,7 @@ interface SafetyRequirement {
 - Predictive maintenance alerts
 
 **Interface Design**:
+
 ```typescript
 interface MotorHealthMonitorProps {
   telemetryData: MotorTelemetry[];
@@ -286,6 +310,7 @@ interface HistoricalTelemetry {
 **Purpose**: Motor rotation verification and automatic correction
 
 **Key Features**:
+
 - Individual motor spin testing
 - Visual rotation direction indicators
 - Automatic direction detection
@@ -294,6 +319,7 @@ interface HistoricalTelemetry {
 - Sound analysis for direction verification
 
 **Interface Design**:
+
 ```typescript
 interface DirectionTesterProps {
   frameType: FrameType;
@@ -325,6 +351,7 @@ interface AudioAnalysis {
 **Purpose**: Real-time motor output visualization and analysis
 
 **Key Features**:
+
 - Real-time motor output graphs
 - Multi-motor overlay view
 - Zoom and pan capabilities
@@ -333,6 +360,7 @@ interface AudioAnalysis {
 - Performance analysis tools
 
 **Interface Design**:
+
 ```typescript
 interface OutputGraphsProps {
   telemetryData: MotorTelemetry[];
@@ -365,21 +393,25 @@ interface Threshold {
 ## Integration Requirements
 
 ### Plugin System Integration
+
 - Implements standard Plugin interface from `src/lib/types/plugin.ts`
 - Category: `PLUGIN_CATEGORIES.MONITORING`
 - Requires permissions for hardware access
 
 ### State Management
+
 - Uses Svelte stores for component state
 - Integrates with existing plugin store system
 - Persistent configuration storage
 
 ### Tauri Integration
+
 - Native hardware access for motor control
 - System notifications for critical alerts
 - File system access for configuration export/import
 
 ### Testing Requirements
+
 - Comprehensive unit tests for all components
 - Integration tests for safety systems
 - E2E tests for complete calibration workflows
@@ -388,18 +420,21 @@ interface Threshold {
 ## Safety and Compliance
 
 ### Aerospace-Grade Standards
+
 - NASA JPL Power of 10 compliance
 - Fail-safe operation in all conditions
 - Comprehensive error handling
 - Audit trail for all motor operations
 
 ### Mobile Safety
+
 - Touch-safe interfaces with confirmation delays
 - Gesture-based confirmations for critical operations
 - Screen lock detection and auto-disable
 - Orientation-aware safety features
 
 ### Emergency Procedures
+
 - Always-accessible emergency stop
 - Automatic shutdown on connection loss
 - Battery monitoring with low-voltage protection
@@ -408,12 +443,14 @@ interface Threshold {
 ## Performance Requirements
 
 ### Real-time Telemetry
+
 - Sub-10ms telemetry update rates
 - GPU-accelerated graph rendering
 - Efficient memory management for historical data
 - WebGPU optimization for high-frequency updates
 
 ### Responsive Design
+
 - Mobile-first responsive layout
 - Touch-optimized controls with safety margins
 - Keyboard navigation support

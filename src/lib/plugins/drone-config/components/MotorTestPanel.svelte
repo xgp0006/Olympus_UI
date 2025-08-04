@@ -8,9 +8,9 @@
   import { motorTestStore } from '../stores/motor-test';
   import { getMotorTestService } from '../services/motor-test-service';
   import MotorTestContent from './MotorTestContent.svelte';
-  
+
   const service = getMotorTestService();
-  
+
   onMount(() => {
     service.initialize();
     return () => service.shutdown();

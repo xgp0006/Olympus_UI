@@ -31,17 +31,17 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log('Starting Mission Control...');
     const config = await loadConfig();
     const missionControl = new MissionControl(config);
-    
+
     try {
       await missionControl.start();
-      
+
       // Keep process alive
       process.on('SIGTERM', async () => {
         console.log('Shutting down Mission Control...');
         await missionControl.shutdown();
         process.exit(0);
       });
-      
+
       // Prevent process from exiting
       setInterval(() => {}, 1000);
     } catch (error) {
@@ -54,26 +54,26 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     const agentConfig = JSON.parse(configJson);
     const config = await loadConfig();
     const missionControl = new MissionControl(config);
-    
+
     // Get agent profile
     const profileKey = `${agentConfig.type.toUpperCase()}_SPECIALIST`;
     const profile = AGENT_PROFILES[profileKey] || AGENT_PROFILES.UI_SPECIALIST;
-    
+
     // Customize with provided options
     const agentDef: AgentDefinition = {
       ...profile,
       name: agentConfig.name || profile.name,
       id: `${agentConfig.type}-${Date.now()}`
     };
-    
+
     try {
       await missionControl.start();
       const agent = await missionControl.launchAgent(agentDef);
-      
+
       console.log(`Agent launched: ${agent.id}`);
       console.log(`Worktree: ${agent.worktree.path}`);
       console.log(`Pane ID: ${agent.paneId}`);
-      
+
       // If task provided, assign it
       if (agentConfig.task) {
         await missionControl.assignTask({
@@ -87,7 +87,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
           validationCriteria: []
         });
       }
-      
+
       await missionControl.shutdown();
     } catch (error) {
       console.error('Failed to launch agent:', error);
@@ -98,7 +98,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
   async status(): Promise<void> {
     const config = await loadConfig();
     const missionControl = new MissionControl(config);
-    
+
     try {
       // Connect to running instance via IPC or API
       const status = {
@@ -110,12 +110,14 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
         completedTasks: 5,
         uptime: '2h 15m'
       };
-      
+
       console.log('\n📊 Mission Control Status\n');
       console.log('Agents:');
-      status.agents.forEach(agent => {
+      status.agents.forEach((agent) => {
         const statusIcon = agent.status === 'active' ? '🟢' : '⚪';
-        console.log(`  ${statusIcon} ${agent.id}: ${agent.status} ${agent.task ? `(${agent.task})` : ''}`);
+        console.log(
+          `  ${statusIcon} ${agent.id}: ${agent.status} ${agent.task ? `(${agent.task})` : ''}`
+        );
       });
       console.log(`\nTasks: ${status.activeTasks} active, ${status.completedTasks} completed`);
       console.log(`Uptime: ${status.uptime}`);
@@ -128,20 +130,20 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
   async validate(): Promise<void> {
     const config = await loadConfig();
     const missionControl = new MissionControl(config);
-    
+
     try {
       await missionControl.start();
       const results = await missionControl.validateAllChanges();
-      
+
       console.log('\n🔍 Validation Results\n');
-      
+
       results.forEach((result, index) => {
         const icon = result.passed ? '✅' : '❌';
         console.log(`${icon} Worktree ${index + 1}: ${result.passed ? 'PASSED' : 'FAILED'}`);
-        
+
         if (!result.passed) {
           console.log(`   Violations: ${result.violations.length}`);
-          result.violations.slice(0, 3).forEach(v => {
+          result.violations.slice(0, 3).forEach((v) => {
             console.log(`   - ${v.file}:${v.line} - ${v.message}`);
           });
           if (result.violations.length > 3) {
@@ -149,7 +151,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
           }
         }
       });
-      
+
       await missionControl.shutdown();
     } catch (error) {
       console.error('Validation failed:', error);
@@ -160,14 +162,14 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
   async merge(target: string): Promise<void> {
     const config = await loadConfig();
     const missionControl = new MissionControl(config);
-    
+
     try {
       await missionControl.start();
-      
+
       console.log(`\n🔀 Merging to ${target}...\n`);
-      
+
       const result = await missionControl.mergeAllWorktrees(target);
-      
+
       if (result.success) {
         console.log('✅ Merge successful!');
         console.log(`Merged branch: ${result.mergedBranch}`);
@@ -175,18 +177,18 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
         console.log('❌ Merge failed');
         if (result.conflicts) {
           console.log('\nConflicts:');
-          result.conflicts.forEach(c => {
+          result.conflicts.forEach((c) => {
             console.log(`  - ${c.file} (${c.conflictType})`);
           });
         }
         if (result.validationResults) {
           console.log('\nValidation failures:');
-          result.validationResults.violations.forEach(v => {
+          result.validationResults.violations.forEach((v) => {
             console.log(`  - ${v.file}:${v.line} - ${v.message}`);
           });
         }
       }
-      
+
       await missionControl.shutdown();
     } catch (error) {
       console.error('Merge failed:', error);
@@ -197,14 +199,14 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
 
 // Main CLI entry point
 async function main(): Promise<void> {
-  const [,, command, ...args] = process.argv;
-  
+  const [, , command, ...args] = process.argv;
+
   if (!command || !(command in commands)) {
     console.error(`Unknown command: ${command}`);
     console.log('Available commands: start, launch-agent, status, validate, merge');
     process.exit(1);
   }
-  
+
   try {
     await commands[command](...args);
   } catch (error) {
@@ -215,7 +217,7 @@ async function main(): Promise<void> {
 }
 
 // Run CLI
-main().catch(error => {
+main().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

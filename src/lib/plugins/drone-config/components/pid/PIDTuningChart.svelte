@@ -24,24 +24,24 @@
   // NASA JPL compliant function: Draw response graph
   function drawResponseGraph(): void {
     if (!graphCanvas) return;
-    
+
     const ctx = graphCanvas.getContext('2d');
     if (!ctx) return;
-    
+
     const width = graphCanvas.width;
     const height = graphCanvas.height;
-    
+
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
-    
+
     // Draw grid
     drawGrid(ctx, width, height);
-    
+
     // Draw response data
     if (responseHistory.length > 1) {
       drawResponseLines(ctx, width, height);
     }
-    
+
     // Draw oscillation indicator
     drawOscillationIndicator(ctx);
   }
@@ -51,7 +51,7 @@
     ctx.strokeStyle = 'var(--color-border_primary)';
     ctx.lineWidth = 0.5;
     ctx.setLineDash([2, 2]);
-    
+
     // Draw grid lines
     for (let i = 0; i <= 10; i++) {
       const y = (height / 10) * i;
@@ -60,7 +60,7 @@
       ctx.lineTo(width, y);
       ctx.stroke();
     }
-    
+
     ctx.setLineDash([]);
   }
 
@@ -68,14 +68,14 @@
   function drawResponseLines(ctx: CanvasRenderingContext2D, width: number, height: number): void {
     const scaleX = width / responseHistory.length;
     const scaleY = height / 200;
-    
+
     // Draw setpoint line
     ctx.strokeStyle = 'var(--color-accent_cyan)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     responseHistory.forEach((point, i) => {
       const x = i * scaleX;
-      const y = height - (point.setpoint * scaleY);
+      const y = height - point.setpoint * scaleY;
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     });
@@ -86,7 +86,8 @@
   function drawOscillationIndicator(ctx: CanvasRenderingContext2D): void {
     const oscillation = detectOscillation();
     if (oscillation > 0.1) {
-      ctx.fillStyle = oscillation > 0.3 ? 'var(--color-status_error)' : 'var(--color-status_warning)';
+      ctx.fillStyle =
+        oscillation > 0.3 ? 'var(--color-status_error)' : 'var(--color-status_warning)';
       ctx.font = '12px var(--typography-font_family_sans)';
       ctx.fillText(`Oscillation: ${(oscillation * 100).toFixed(0)}%`, 10, 20);
     }
@@ -95,16 +96,16 @@
   // NASA JPL compliant function: Detect oscillation
   function detectOscillation(): number {
     if (responseHistory.length < 10) return 0;
-    
+
     let crossings = 0;
     let prevError = responseHistory[0].error;
-    
+
     for (let i = 1; i < responseHistory.length; i++) {
       const currentError = responseHistory[i].error;
       if (prevError * currentError < 0) crossings++;
       prevError = currentError;
     }
-    
+
     return Math.min(crossings / responseHistory.length, 1);
   }
 

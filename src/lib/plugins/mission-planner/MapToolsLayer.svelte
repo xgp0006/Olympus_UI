@@ -11,16 +11,16 @@
   import WeatherOverlay from '$lib/map-features/weather/WeatherOverlay.svelte';
   import type { MapViewport, CrosshairSettings } from '$lib/map-features/types';
   import { globalScheduler, performanceStore } from '$lib/map-features/shared/performance';
-  
+
   export let viewport: MapViewport;
   export const mapRef: any = null; // Used by parent components
-  
+
   // Feature visibility
   export let showCrosshair = false;
   export let showMeasuring = false;
   export let showADSB = false;
   export let showWeather = false;
-  
+
   // Feature settings
   export let crosshairSettings: Partial<CrosshairSettings> = {};
   export let showRing = false;
@@ -39,37 +39,42 @@
     wind: false
   };
   export let weatherOpacity = 0.7;
-  
+
   // Component references
   let measuringComponent: MeasuringTools;
-  
+
   // Performance monitoring
   let performanceMonitor: HTMLDivElement;
   let showPerformance = false;
-  
+
   onMount(() => {
     // Schedule performance monitoring
-    globalScheduler.schedule('map-tools-monitor', (delta) => {
-      // Monitor overall frame budget usage
-      const budget = globalScheduler.getBudgetReport();
-      let totalUsed = 0;
-      budget.forEach(time => totalUsed += time);
-      
-      if (totalUsed > 6.94) { // 144fps target
-        console.warn(`Frame budget exceeded: ${totalUsed.toFixed(2)}ms`);
-      }
-    }, -1); // Low priority
-    
+    globalScheduler.schedule(
+      'map-tools-monitor',
+      (delta) => {
+        // Monitor overall frame budget usage
+        const budget = globalScheduler.getBudgetReport();
+        let totalUsed = 0;
+        budget.forEach((time) => (totalUsed += time));
+
+        if (totalUsed > 6.94) {
+          // 144fps target
+          console.warn(`Frame budget exceeded: ${totalUsed.toFixed(2)}ms`);
+        }
+      },
+      -1
+    ); // Low priority
+
     return () => {
       globalScheduler.unschedule('map-tools-monitor');
     };
   });
-  
+
   // Handle measurement complete events
   function handleMeasurementComplete(event: CustomEvent<any>) {
     console.log('Measurement complete:', event.detail);
   }
-  
+
   // Clear all measurements
   export function clearMeasurements() {
     measuringComponent?.clear();
@@ -79,15 +84,9 @@
 <div class="map-tools-layer">
   <!-- Crosshair overlay (1.5ms budget) -->
   {#if showCrosshair && viewport}
-    <MapCrosshair
-      {viewport}
-      {showRing}
-      {ringDistance}
-      settings={crosshairSettings}
-      icons={[]}
-    />
+    <MapCrosshair {viewport} {showRing} {ringDistance} settings={crosshairSettings} />
   {/if}
-  
+
   <!-- Measuring tools (1.0ms budget) -->
   {#if showMeasuring && viewport}
     <MeasuringTools
@@ -98,7 +97,7 @@
       on:measurementComplete={handleMeasurementComplete}
     />
   {/if}
-  
+
   <!-- ADS-B display (2.0ms budget) -->
   {#if showADSB && viewport}
     <ADSBDisplay
@@ -108,16 +107,12 @@
       maxAircraft={adsbSettings.maxAircraft}
     />
   {/if}
-  
+
   <!-- Weather overlay (1.5ms budget) -->
   {#if showWeather && viewport}
-    <WeatherOverlay
-      {viewport}
-      layers={weatherLayers}
-      opacity={weatherOpacity}
-    />
+    <WeatherOverlay {viewport} layers={weatherLayers} opacity={weatherOpacity} />
   {/if}
-  
+
   <!-- Performance monitor -->
   {#if showPerformance}
     <div class="performance-monitor" bind:this={performanceMonitor}>
@@ -153,7 +148,7 @@
     pointer-events: none;
     z-index: 95;
   }
-  
+
   .performance-monitor {
     position: absolute;
     bottom: 10px;
@@ -166,20 +161,20 @@
     font-size: 12px;
     pointer-events: none;
   }
-  
+
   .perf-item {
     display: flex;
     justify-content: space-between;
     gap: 10px;
     margin: 2px 0;
   }
-  
+
   .perf-item span:last-child {
     font-weight: bold;
     min-width: 50px;
     text-align: right;
   }
-  
+
   .perf-item span.warning {
     color: #ff6b6b;
   }

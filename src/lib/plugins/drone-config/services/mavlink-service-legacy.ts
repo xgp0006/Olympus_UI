@@ -4,6 +4,7 @@
  */
 
 import { MAVLinkService } from './mavlink-service-refactored';
+import { MAVLinkAssertions } from './mavlink-assertions';
 import type { MAVResult } from '../types/drone-types';
 
 // Singleton instance
@@ -28,7 +29,7 @@ export const MAVCommands = {
    */
   async armDisarm(arm: boolean): Promise<MAVResult> {
     const service = getMAVLinkService();
-    
+
     return service.sendCommand({
       command: 400,
       confirmation: 0,
@@ -43,13 +44,13 @@ export const MAVCommands = {
       targetComponent: 0
     });
   },
-  
+
   /**
    * Set flight mode
    */
   async setMode(mode: number): Promise<MAVResult> {
     const service = getMAVLinkService();
-    
+
     return service.sendCommand({
       command: 176,
       confirmation: 0,
@@ -64,13 +65,18 @@ export const MAVCommands = {
       targetComponent: 0
     });
   },
-  
+
   /**
    * Takeoff
    */
   async takeoff(altitude: number): Promise<MAVResult> {
+    // NASA JPL Rule 5: Validate altitude before sending command
+    if (!Number.isFinite(altitude)) {
+      throw new Error(`Takeoff altitude must be a finite number, got: ${altitude}`);
+    }
+
     const service = getMAVLinkService();
-    
+
     return service.sendCommand({
       command: 22,
       confirmation: 0,
@@ -85,13 +91,13 @@ export const MAVCommands = {
       targetComponent: 0
     });
   },
-  
+
   /**
    * Return to launch
    */
   async returnToLaunch(): Promise<MAVResult> {
     const service = getMAVLinkService();
-    
+
     return service.sendCommand({
       command: 20,
       confirmation: 0,
@@ -106,13 +112,13 @@ export const MAVCommands = {
       targetComponent: 0
     });
   },
-  
+
   /**
    * Reboot autopilot
    */
   async rebootAutopilot(): Promise<MAVResult> {
     const service = getMAVLinkService();
-    
+
     return service.sendCommand({
       command: 246,
       confirmation: 0,

@@ -50,12 +50,12 @@ describe('CLI Store', () => {
 
     // Should set up two event listeners
     expect(setupEventListener).toHaveBeenCalledTimes(2);
-    
+
     // Check first call (cli-output)
     const firstCall = vi.mocked(setupEventListener).mock.calls[0];
     expect(firstCall[0]).toBe('cli-output');
     expect(typeof firstCall[1]).toBe('function');
-    
+
     // Check second call (cli-terminated)
     const secondCall = vi.mocked(setupEventListener).mock.calls[1];
     expect(secondCall[0]).toBe('cli-terminated');

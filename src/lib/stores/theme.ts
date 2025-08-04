@@ -89,7 +89,7 @@ function validateThemeTypography(typography: Record<string, unknown>): boolean {
     'font_family_sans',
     'font_family_mono',
     'font_size_base',
-    'font_size_lg', 
+    'font_size_lg',
     'font_size_sm'
   ];
   for (const typo of requiredTypography) {
@@ -127,7 +127,7 @@ function validateThemeComponents(components: Record<string, unknown>): boolean {
     console.error('Theme validation failed: invalid components structure');
     return false;
   }
-  
+
   const requiredComponents = ['cli', 'map', 'button', 'plugin_card', 'accordion', 'hex_coin'];
   const optionalComponents = ['sdr', 'dashboard'];
 
@@ -147,7 +147,7 @@ function validateThemeComponents(components: Record<string, unknown>): boolean {
       }
     }
   }
-  
+
   return true;
 }
 
@@ -174,11 +174,13 @@ function validateTheme(themeData: unknown): themeData is Theme {
   }
 
   // Validate each section using helper functions
-  return validateThemeMetadata(data.metadata as Record<string, unknown>) &&
-         validateThemeColors(data.colors as Record<string, unknown>) &&
-         validateThemeTypography(data.typography as Record<string, unknown>) &&
-         validateThemeLayout(data.layout as Record<string, unknown>) &&
-         validateThemeComponents(data.components as Record<string, unknown>);
+  return (
+    validateThemeMetadata(data.metadata as Record<string, unknown>) &&
+    validateThemeColors(data.colors as Record<string, unknown>) &&
+    validateThemeTypography(data.typography as Record<string, unknown>) &&
+    validateThemeLayout(data.layout as Record<string, unknown>) &&
+    validateThemeComponents(data.components as Record<string, unknown>)
+  );
 }
 
 /**
@@ -359,7 +361,15 @@ async function loadDefaultTheme(): Promise<Theme> {
  * NASA JPL Rule 4: Split function - Load theme from Tauri context
  */
 async function loadThemeFromTauri(themePath: string): Promise<string | null> {
-  if (!('__TAURI__' in window)) return null;
+  // Import Tauri context detection
+  const { detectTauriContext } = await import('../utils/tauri-context');
+  const context = detectTauriContext();
+  
+  // Only attempt Tauri loading if actually in Tauri environment
+  if (!context.isAvailable || context.isMockMode) {
+    console.debug('[loadThemeFromTauri] Skipping - not in Tauri environment');
+    return null;
+  }
 
   try {
     const tauriModule = await import('@tauri-apps/api/tauri');
@@ -368,15 +378,25 @@ async function loadThemeFromTauri(themePath: string): Promise<string | null> {
     }
 
     const assetUrl = tauriModule.convertFileSrc(themePath);
-    const response = await fetch(assetUrl);
+    console.log(`[loadThemeFromTauri] Loading via asset protocol: ${assetUrl}`);
     
+    const response = await fetch(assetUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
+    });
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch theme via asset protocol: ${response.statusText}`);
+      throw new Error(`Asset protocol fetch failed: ${response.status} ${response.statusText}`);
     }
-    
-    return await response.text();
+
+    const content = await response.text();
+    console.log(`[loadThemeFromTauri] Successfully loaded theme via asset protocol`);
+    return content;
   } catch (error) {
-    console.warn('Tauri asset protocol failed:', error);
+    console.warn('[loadThemeFromTauri] Asset protocol failed:', error);
     return null;
   }
 }
@@ -402,9 +422,13 @@ function generateThemePaths(themeName: string): string[] {
  */
 async function tryFallbackPaths(fallbackPaths: string[]): Promise<string | null> {
   let lastError: Error | null = null;
+  
+  console.log(`[tryFallbackPaths] Attempting ${fallbackPaths.length} paths:`, fallbackPaths);
 
   for (let i = 0; i < fallbackPaths.length; i++) {
     const fallbackPath = fallbackPaths[i];
+    console.log(`[tryFallbackPaths] Trying path ${i + 1}/${fallbackPaths.length}: ${fallbackPath}`);
+    
     try {
       const response = await fetch(fallbackPath, {
         method: 'GET',
@@ -417,15 +441,18 @@ async function tryFallbackPaths(fallbackPaths: string[]): Promise<string | null>
       });
 
       if (response.ok) {
-        console.log(`Theme loaded successfully from: ${fallbackPath}`);
+        console.log(`[tryFallbackPaths] ✅ Successfully loaded from: ${fallbackPath}`);
         return await response.text();
       }
-      
+
       lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+      console.debug(`[tryFallbackPaths] ❌ Failed: ${fallbackPath} - ${lastError.message}`);
     } catch (fetchError) {
       lastError = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
+      console.debug(`[tryFallbackPaths] ❌ Error: ${fallbackPath} - ${lastError.message}`);
+      
       if (i === fallbackPaths.length - 1) {
-        console.debug(`All theme fetch attempts failed. Last error: ${lastError.message}`);
+        console.debug(`[tryFallbackPaths] All ${fallbackPaths.length} fetch attempts failed. Last error: ${lastError.message}`);
       }
     }
   }
@@ -436,7 +463,11 @@ async function tryFallbackPaths(fallbackPaths: string[]): Promise<string | null>
 /**
  * NASA JPL Rule 4: Split function - Build error details for debugging
  */
-function buildErrorDetails(themeName: string, fallbackPaths: string[], lastError: Error | null): string {
+function buildErrorDetails(
+  themeName: string,
+  fallbackPaths: string[],
+  lastError: Error | null
+): string {
   const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'unknown';
   const windowHref = typeof window !== 'undefined' ? window.location.href : 'unknown';
@@ -458,7 +489,25 @@ function buildErrorDetails(themeName: string, fallbackPaths: string[], lastError
 }
 
 /**
- * Loads theme from file system
+ * NASA JPL Rule 4: Split function - Smart theme loading strategy
+ */
+async function determineLoadingStrategy(): Promise<'tauri' | 'browser'> {
+  // Import Tauri context detection
+  const { detectTauriContext } = await import('../utils/tauri-context');
+  const context = detectTauriContext();
+  
+  // Use Tauri loading only if actually in Tauri environment
+  if (context.isAvailable && !context.isMockMode) {
+    console.log('[determineLoadingStrategy] Using Tauri asset protocol');
+    return 'tauri';
+  }
+  
+  console.log('[determineLoadingStrategy] Using browser fetch');
+  return 'browser';
+}
+
+/**
+ * Loads theme from file system with smart environment detection
  * NASA JPL Rule 4: Function refactored to be ≤60 lines
  * @param themeName - Name of the theme to load
  * @returns Promise resolving to the loaded theme
@@ -467,42 +516,47 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
   const themePath = `${THEME_PATH_PREFIX}${themeName}.json`;
 
   try {
-    console.log(`Loading theme from: ${themePath}`);
-    console.log(`Browser environment: ${browser}`);
+    console.log(`[loadThemeFromFile] Loading theme: ${themeName}`);
+    console.log(`[loadThemeFromFile] Browser environment: ${browser}`);
 
     if (!browser) {
       throw new Error('Theme loading is only supported in browser context');
     }
 
-    // Add initial delay for dev server readiness
+    // Add initial delay for dev server readiness only in development
     const win = window as any;
-    if (typeof window !== 'undefined' && !win.__theme_init_delay__) {
+    const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+    if (isDev && !win.__theme_init_delay__) {
       win.__theme_init_delay__ = true;
-      console.log('[loadThemeFromFile] Adding initial delay for dev server readiness');
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      console.log('[loadThemeFromFile] Adding dev server readiness delay');
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
     let themeContent: string | undefined;
+    const strategy = await determineLoadingStrategy();
 
-    // Try Tauri context first
-    themeContent = await loadThemeFromTauri(themePath) || undefined;
-
-    // Fall back to browser fetch if Tauri failed
-    if (!themeContent && browser && typeof window !== 'undefined') {
-      const fallbackPaths = generateThemePaths(themeName);
-      const fetchResult = await tryFallbackPaths(fallbackPaths);
+    if (strategy === 'tauri') {
+      // Try Tauri asset protocol first
+      themeContent = (await loadThemeFromTauri(themePath)) || undefined;
       
-      if (!fetchResult) {
-        const errorDetails = buildErrorDetails(themeName, fallbackPaths, null);
-        console.error(errorDetails);
-        throw new Error('Failed to fetch theme');
+      // If Tauri failed, fall back to browser fetch
+      if (!themeContent) {
+        console.log('[loadThemeFromFile] Tauri failed, falling back to browser fetch');
+        const fallbackPaths = generateThemePaths(themeName);
+        themeContent = (await tryFallbackPaths(fallbackPaths)) || undefined;
       }
-      
-      themeContent = fetchResult;
+    } else {
+      // Use browser fetch directly (no asset protocol attempts)
+      console.log('[loadThemeFromFile] Using direct browser fetch');
+      const fallbackPaths = generateThemePaths(themeName);
+      themeContent = (await tryFallbackPaths(fallbackPaths)) || undefined;
     }
 
     if (!themeContent) {
-      throw new Error('No theme content loaded');
+      const fallbackPaths = generateThemePaths(themeName);
+      const errorDetails = buildErrorDetails(themeName, fallbackPaths, null);
+      console.error(errorDetails);
+      throw new Error('Failed to fetch theme from all sources');
     }
 
     const themeData = JSON.parse(themeContent);
@@ -511,9 +565,10 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
       throw new Error(`Invalid theme structure in ${themePath}`);
     }
 
+    console.log(`[loadThemeFromFile] Successfully loaded theme: ${themeData.name}`);
     return themeData;
   } catch (error) {
-    console.error(`Failed to load theme from ${themePath}:`, error);
+    console.error(`[loadThemeFromFile] Failed to load theme '${themeName}':`, error);
     throw error;
   }
 }
@@ -521,10 +576,7 @@ async function loadThemeFromFile(themeName: string): Promise<Theme> {
 /**
  * NASA JPL Rule 4: Split function - Attempt to load theme with fallbacks
  */
-async function attemptThemeLoad(
-  themeName: string,
-  fallbackTheme: string
-): Promise<Theme> {
+async function attemptThemeLoad(themeName: string, fallbackTheme: string): Promise<Theme> {
   try {
     // Try to load the requested theme
     console.log(`[loadTheme] Attempting to load primary theme: ${themeName}`);
@@ -536,7 +588,8 @@ async function attemptThemeLoad(
       try {
         return await loadThemeFromFile(fallbackTheme);
       } catch (fallbackError) {
-        const errorMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+        const errorMsg =
+          fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
         console.log('Loading hardcoded default theme...');
         try {
           return await loadDefaultTheme();
@@ -613,9 +666,7 @@ export async function loadTheme(options: ThemeLoadOptions = {}): Promise<Theme> 
 
     // Additional validation if requested
     if (shouldValidate && !validateTheme(themeData)) {
-      throw new Error(
-        `Theme validation failed for '${(themeData as any)?.name || 'unknown'}'`
-      );
+      throw new Error(`Theme validation failed for '${(themeData as any)?.name || 'unknown'}'`);
     }
 
     // Apply theme to DOM
@@ -628,7 +679,7 @@ export async function loadTheme(options: ThemeLoadOptions = {}): Promise<Theme> 
     return themeData;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown theme loading error';
-    
+
     // Update error state
     updateThemeStateError(errorMessage);
 

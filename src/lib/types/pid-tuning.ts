@@ -164,11 +164,25 @@ export interface FilterConfiguration {
 /**
  * Available flight modes
  */
-export type FlightModeType = 
-  | 'angle' | 'horizon' | 'acro' | 'air' | 'arm' | 'beeper'
-  | 'blackbox' | 'failsafe' | 'flipoveraftercrash' | 'gps'
-  | 'headfree' | 'mag' | 'osd' | 'paralyze' | 'servo'
-  | 'telemetry' | 'user1' | 'user2';
+export type FlightModeType =
+  | 'angle'
+  | 'horizon'
+  | 'acro'
+  | 'air'
+  | 'arm'
+  | 'beeper'
+  | 'blackbox'
+  | 'failsafe'
+  | 'flipoveraftercrash'
+  | 'gps'
+  | 'headfree'
+  | 'mag'
+  | 'osd'
+  | 'paralyze'
+  | 'servo'
+  | 'telemetry'
+  | 'user1'
+  | 'user2';
 
 /**
  * Flight mode configuration
@@ -336,9 +350,13 @@ export interface PresetReview {
 /**
  * Tuning wizard step types
  */
-export type TuningStepType = 
-  | 'setup' | 'safety' | 'baseline' | 'autotune' 
-  | 'validation' | 'finalization';
+export type TuningStepType =
+  | 'setup'
+  | 'safety'
+  | 'baseline'
+  | 'autotune'
+  | 'validation'
+  | 'finalization';
 
 /**
  * Individual tuning step configuration
@@ -398,8 +416,7 @@ export interface StepResults {
 /**
  * Validation rule types
  */
-export type ValidationRuleType = 
-  | 'range' | 'required' | 'pattern' | 'custom' | 'dependency';
+export type ValidationRuleType = 'range' | 'required' | 'pattern' | 'custom' | 'dependency';
 
 /**
  * Generic validation rule
@@ -661,7 +678,7 @@ export interface TelemetryStore {
  */
 export function isPIDConfiguration(obj: unknown): obj is PIDConfiguration {
   if (!obj || typeof obj !== 'object') return false;
-  
+
   const config = obj as Partial<PIDConfiguration>;
   return !!(
     config.pitch &&
@@ -677,7 +694,7 @@ export function isPIDConfiguration(obj: unknown): obj is PIDConfiguration {
  */
 export function isFlightProfile(obj: unknown): obj is FlightProfile {
   if (!obj || typeof obj !== 'object') return false;
-  
+
   const profile = obj as Partial<FlightProfile>;
   return !!(
     typeof profile.id === 'string' &&

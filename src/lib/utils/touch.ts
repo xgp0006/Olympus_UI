@@ -67,7 +67,7 @@ export class TouchGestureRecognizer {
   private readonly startPointsPool = new BoundedArray<TouchPoint>(this.MAX_TOUCH_POINTS);
   private readonly currentPointsPool = new BoundedArray<TouchPoint>(this.MAX_TOUCH_POINTS);
   private readonly lastPointsPool = new BoundedArray<TouchPoint>(this.MAX_TOUCH_POINTS);
-  
+
   private gestureState: GestureState = {
     isActive: false,
     startTime: 0,
@@ -76,8 +76,8 @@ export class TouchGestureRecognizer {
     lastPoints: this.lastPointsPool.toArray() // NASA JPL Rule 2: Bounded
   };
 
-  private tapTimeout: number | null = null;
-  private longPressTimeout: number | null = null;
+  private tapTimeout: ReturnType<typeof setTimeout> | null = null;
+  private longPressTimeout: ReturnType<typeof setTimeout> | null = null;
   private tapCount = 0;
   private lastTapTime = 0;
 
@@ -502,7 +502,7 @@ export function enhanceButtonTouch(
   } = {}
 ): () => void {
   let isPressed = false;
-  let pressTimeout: number | null = null;
+  let pressTimeout: ReturnType<typeof setTimeout> | null = null;
 
   const handleTouchStart = () => {
     if (isPressed) return;

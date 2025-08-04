@@ -41,22 +41,14 @@
       class="search-input"
     />
   </div>
-  
+
   <div class="controls">
     <label class="checkbox-label">
-      <input
-        type="checkbox"
-        checked={showAdvanced}
-        on:change={handleAdvancedToggle}
-      />
+      <input type="checkbox" checked={showAdvanced} on:change={handleAdvancedToggle} />
       Show Advanced
     </label>
-    
-    <button
-      class="refresh-btn"
-      on:click={handleRefresh}
-      disabled={loading}
-    >
+
+    <button class="refresh-btn" on:click={handleRefresh} disabled={loading}>
       {loading ? 'Loading...' : 'Refresh'}
     </button>
   </div>

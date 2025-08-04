@@ -32,14 +32,12 @@
   }
 
   // Filter parameters based on advanced setting
-  $: visibleParameters = parameters.filter(param => 
-    showAdvanced || !param.advanced
-  );
+  $: visibleParameters = parameters.filter((param) => showAdvanced || !param.advanced);
 </script>
 
 <div class="parameter-group">
   <!-- Group header -->
-  <div 
+  <div
     class="group-header"
     class:expanded
     on:click={toggleGroup}
@@ -58,7 +56,7 @@
   {#if expanded}
     <div class="group-parameters" transition:slide>
       {#each visibleParameters as parameter}
-        <ParameterEditor 
+        <ParameterEditor
           {parameter}
           {readonly}
           {loading}

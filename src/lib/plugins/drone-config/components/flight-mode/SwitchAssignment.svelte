@@ -46,7 +46,7 @@
   // NASA JPL compliant function: Handle drag over
   function handleDragOver(event: DragEvent, positionId: string): void {
     if (readonly) return;
-    
+
     event.preventDefault();
     event.dataTransfer!.dropEffect = 'copy';
     dispatch('dragOver', { positionId });
@@ -60,7 +60,7 @@
   // NASA JPL compliant function: Handle drop
   function handleDrop(event: DragEvent, position: SwitchPosition): void {
     if (readonly) return;
-    
+
     event.preventDefault();
     dispatch('drop', { position });
   }
@@ -84,11 +84,14 @@
   }
 
   // Group positions by channel
-  $: groupedPositions = switchPositions.reduce((acc, pos) => {
-    if (!acc[pos.channelId]) acc[pos.channelId] = [];
-    acc[pos.channelId].push(pos);
-    return acc;
-  }, {} as Record<string, SwitchPosition[]>);
+  $: groupedPositions = switchPositions.reduce(
+    (acc, pos) => {
+      if (!acc[pos.channelId]) acc[pos.channelId] = [];
+      acc[pos.channelId].push(pos);
+      return acc;
+    },
+    {} as Record<string, SwitchPosition[]>
+  );
 </script>
 
 <div class="switches-section">
@@ -118,7 +121,7 @@
                   ⚙️
                 </button>
               </div>
-              
+
               <!-- PWM Range Editor -->
               {#if editingSwitch === position.id}
                 <div class="pwm-editor" transition:slide>
@@ -129,7 +132,8 @@
                       min="900"
                       max="2100"
                       value={position.pwmMin}
-                      on:input={(e) => updatePwmRange(position.id, 'pwmMin', parseInt(e.currentTarget.value))}
+                      on:input={(e) =>
+                        updatePwmRange(position.id, 'pwmMin', parseInt(e.currentTarget.value))}
                       disabled={readonly}
                     />
                   </label>
@@ -140,17 +144,18 @@
                       min="900"
                       max="2100"
                       value={position.pwmMax}
-                      on:input={(e) => updatePwmRange(position.id, 'pwmMax', parseInt(e.currentTarget.value))}
+                      on:input={(e) =>
+                        updatePwmRange(position.id, 'pwmMax', parseInt(e.currentTarget.value))}
                       disabled={readonly}
                     />
                   </label>
                 </div>
               {/if}
-              
+
               <!-- Assigned Modes -->
               <div class="assigned-modes">
-                {#each position.assignedModes.filter(modeId => flightModes.find(m => m.id === modeId)) as modeId (modeId)}
-                  {@const mode = flightModes.find(m => m.id === modeId)}
+                {#each position.assignedModes.filter( (modeId) => flightModes.find((m) => m.id === modeId) ) as modeId (modeId)}
+                  {@const mode = flightModes.find((m) => m.id === modeId)}
                   <div
                     class="assigned-mode"
                     style="background-color: {categoryColors[mode?.category || 'default']}"

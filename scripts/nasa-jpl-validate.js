@@ -55,11 +55,12 @@ function checkRule(ruleNum, ruleName, checkFn, expected) {
 function getSourceFiles() {
   const allFiles = [...globSync('src/**/*.ts'), ...globSync('src/**/*.svelte')];
   // Exclude test files and utility implementations from NASA JPL validation
-  return allFiles.filter(file => 
-    !file.includes('__tests__') && 
-    !file.includes('test.ts') && 
-    !file.includes('bounded-array.ts') &&
-    !file.includes('test-utils')
+  return allFiles.filter(
+    (file) =>
+      !file.includes('__tests__') &&
+      !file.includes('test.ts') &&
+      !file.includes('bounded-array.ts') &&
+      !file.includes('test-utils')
   );
 }
 
@@ -123,7 +124,11 @@ function checkBoundedMemory() {
         const context = lines
           .slice(Math.max(0, index - 20), Math.min(lines.length, index + 10))
           .join('\n');
-        if (!context.match(/length\s*[<>=]|slice|shift|splice|BoundedArray|MAX_.*|limit\s*reached|bounded\s*storage|errors:\s*BoundedArray|warnings:\s*BoundedArray|new\s+BoundedArray|const\s+\w+\s*=\s*new\s+BoundedArray|dismissedIds\s*=\s*new\s+BoundedArray/i)) {
+        if (
+          !context.match(
+            /length\s*[<>=]|slice|shift|splice|BoundedArray|MAX_.*|limit\s*reached|bounded\s*storage|errors:\s*BoundedArray|warnings:\s*BoundedArray|new\s+BoundedArray|const\s+\w+\s*=\s*new\s+BoundedArray|dismissedIds\s*=\s*new\s+BoundedArray/i
+          )
+        ) {
           unboundedOps++;
         }
       }

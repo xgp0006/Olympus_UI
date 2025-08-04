@@ -7,7 +7,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { spring, tweened } from 'svelte/motion';
   import { BoundedArray } from '../BoundedArray';
-  
+
   import FlightModeSelector from './FlightModeSelector.svelte';
   import SwitchAssignment from './SwitchAssignment.svelte';
   import ChannelMonitor from './ChannelMonitor.svelte';
@@ -51,7 +51,19 @@
     center: number;
     reversed: boolean;
     failsafeValue: number;
-    mapping?: 'roll' | 'pitch' | 'yaw' | 'throttle' | 'aux1' | 'aux2' | 'aux3' | 'aux4' | 'aux5' | 'aux6' | 'aux7' | 'aux8';
+    mapping?:
+      | 'roll'
+      | 'pitch'
+      | 'yaw'
+      | 'throttle'
+      | 'aux1'
+      | 'aux2'
+      | 'aux3'
+      | 'aux4'
+      | 'aux5'
+      | 'aux6'
+      | 'aux7'
+      | 'aux8';
   }
 
   interface ReceiverConfig {
@@ -93,16 +105,74 @@
 
   // Default flight modes
   const defaultFlightModes: FlightMode[] = [
-    { id: 'angle', name: 'ANGLE', description: 'Self-leveling mode with angle limits', icon: '📐', category: 'primary' },
-    { id: 'horizon', name: 'HORIZON', description: 'Self-leveling with acrobatic capability', icon: '🌅', category: 'primary' },
-    { id: 'acro', name: 'ACRO', description: 'Full manual control, no stabilization', icon: '🎯', category: 'primary' },
-    { id: 'stabilize', name: 'STABILIZE', description: 'Manual throttle with self-leveling', icon: '⚖️', category: 'primary' },
-    { id: 'althold', name: 'ALT HOLD', description: 'Maintains current altitude', icon: '📊', category: 'auxiliary', requirements: [{ type: 'gps', condition: 'min', value: 6 }] },
-    { id: 'poshold', name: 'POS HOLD', description: 'GPS position hold', icon: '📍', category: 'auxiliary', requirements: [{ type: 'gps', condition: 'min', value: 8 }] },
-    { id: 'rtl', name: 'RTL', description: 'Return to launch', icon: '🏠', category: 'safety', requirements: [{ type: 'gps', condition: 'min', value: 8 }] },
+    {
+      id: 'angle',
+      name: 'ANGLE',
+      description: 'Self-leveling mode with angle limits',
+      icon: '📐',
+      category: 'primary'
+    },
+    {
+      id: 'horizon',
+      name: 'HORIZON',
+      description: 'Self-leveling with acrobatic capability',
+      icon: '🌅',
+      category: 'primary'
+    },
+    {
+      id: 'acro',
+      name: 'ACRO',
+      description: 'Full manual control, no stabilization',
+      icon: '🎯',
+      category: 'primary'
+    },
+    {
+      id: 'stabilize',
+      name: 'STABILIZE',
+      description: 'Manual throttle with self-leveling',
+      icon: '⚖️',
+      category: 'primary'
+    },
+    {
+      id: 'althold',
+      name: 'ALT HOLD',
+      description: 'Maintains current altitude',
+      icon: '📊',
+      category: 'auxiliary',
+      requirements: [{ type: 'gps', condition: 'min', value: 6 }]
+    },
+    {
+      id: 'poshold',
+      name: 'POS HOLD',
+      description: 'GPS position hold',
+      icon: '📍',
+      category: 'auxiliary',
+      requirements: [{ type: 'gps', condition: 'min', value: 8 }]
+    },
+    {
+      id: 'rtl',
+      name: 'RTL',
+      description: 'Return to launch',
+      icon: '🏠',
+      category: 'safety',
+      requirements: [{ type: 'gps', condition: 'min', value: 8 }]
+    },
     { id: 'land', name: 'LAND', description: 'Automatic landing', icon: '🛬', category: 'safety' },
-    { id: 'flip', name: 'FLIP', description: 'Automatic flip maneuver', icon: '🔄', category: 'advanced', conflictsWith: ['angle', 'horizon'] },
-    { id: 'headfree', name: 'HEADFREE', description: 'Orientation-independent control', icon: '🧭', category: 'advanced' }
+    {
+      id: 'flip',
+      name: 'FLIP',
+      description: 'Automatic flip maneuver',
+      icon: '🔄',
+      category: 'advanced',
+      conflictsWith: ['angle', 'horizon']
+    },
+    {
+      id: 'headfree',
+      name: 'HEADFREE',
+      description: 'Orientation-independent control',
+      icon: '🧭',
+      category: 'advanced'
+    }
   ];
 
   onMount(() => {
@@ -131,12 +201,16 @@
       ...createSwitchPosition('aux1', 3, 5),
       ...createSwitchPosition('aux2', 3, 6),
       ...createSwitchPosition('aux3', 2, 7),
-      ...createSwitchPosition('aux4', 2, 8),
+      ...createSwitchPosition('aux4', 2, 8)
     ];
   }
 
   // NASA JPL compliant function: Create switch position configuration
-  function createSwitchPosition(channelId: string, positionCount: number, channelNumber: number): SwitchPosition[] {
+  function createSwitchPosition(
+    channelId: string,
+    positionCount: number,
+    channelNumber: number
+  ): SwitchPosition[] {
     const positions: SwitchPosition[] = [];
     const range = 1000;
     const step = range / positionCount;
@@ -146,8 +220,8 @@
         id: `${channelId}-pos${i}`,
         channelId,
         position: i,
-        pwmMin: 1000 + (i * step),
-        pwmMax: 1000 + ((i + 1) * step),
+        pwmMin: 1000 + i * step,
+        pwmMax: 1000 + (i + 1) * step,
         assignedModes: []
       });
     }
@@ -172,7 +246,20 @@
 
   // NASA JPL compliant function: Get default channel mapping
   function getDefaultMapping(index: number): ReceiverChannel['mapping'] {
-    const mappings: ReceiverChannel['mapping'][] = ['roll', 'pitch', 'throttle', 'yaw', 'aux1', 'aux2', 'aux3', 'aux4', 'aux5', 'aux6', 'aux7', 'aux8'];
+    const mappings: ReceiverChannel['mapping'][] = [
+      'roll',
+      'pitch',
+      'throttle',
+      'yaw',
+      'aux1',
+      'aux2',
+      'aux3',
+      'aux4',
+      'aux5',
+      'aux6',
+      'aux7',
+      'aux8'
+    ];
     return index < mappings.length ? mappings[index] : undefined;
   }
 
@@ -181,9 +268,9 @@
     if (updateInterval) {
       clearInterval(updateInterval);
     }
-    
+
     updateInterval = window.setInterval(() => {
-      receiverChannels = receiverChannels.map(ch => ({
+      receiverChannels = receiverChannels.map((ch) => ({
         ...ch,
         value: ch.value + (Math.random() - 0.5) * 10
       }));
@@ -208,15 +295,15 @@
   // NASA JPL compliant function: Handle drop
   function handleDrop(event: CustomEvent): void {
     if (!draggedMode) return;
-    
+
     const position = event.detail.position;
     const conflicts = checkModeConflicts(draggedMode, position);
-    
+
     if (conflicts.length > 0) {
       showConflictWarning(conflicts);
       return;
     }
-    
+
     assignModeToPosition(draggedMode, position);
     draggedMode = null;
     draggedOverPosition = null;
@@ -225,32 +312,32 @@
   // NASA JPL compliant function: Check mode conflicts
   function checkModeConflicts(mode: FlightMode, position: SwitchPosition): string[] {
     const conflicts: string[] = [];
-    
-    position.assignedModes.forEach(assignedModeId => {
-      const assignedMode = flightModes.find(m => m.id === assignedModeId);
+
+    position.assignedModes.forEach((assignedModeId) => {
+      const assignedMode = flightModes.find((m) => m.id === assignedModeId);
       if (assignedMode?.conflictsWith?.includes(mode.id)) {
         conflicts.push(`${mode.name} conflicts with ${assignedMode.name}`);
       }
     });
-    
+
     return conflicts;
   }
 
   // NASA JPL compliant function: Assign mode to position
   function assignModeToPosition(mode: FlightMode, position: SwitchPosition): void {
-    const posIndex = switchPositions.findIndex(p => p.id === position.id);
+    const posIndex = switchPositions.findIndex((p) => p.id === position.id);
     if (posIndex === -1) return;
-    
-    switchPositions = switchPositions.map(pos => {
+
+    switchPositions = switchPositions.map((pos) => {
       if (pos.channelId === position.channelId && pos.id !== position.id) {
         return {
           ...pos,
-          assignedModes: pos.assignedModes.filter(m => m !== mode.id)
+          assignedModes: pos.assignedModes.filter((m) => m !== mode.id)
         };
       }
       return pos;
     });
-    
+
     switchPositions[posIndex] = {
       ...position,
       assignedModes: [...position.assignedModes, mode.id]
@@ -260,13 +347,13 @@
   // NASA JPL compliant function: Remove mode from position
   function removeModeFromPosition(event: CustomEvent): void {
     if (readonly) return;
-    
+
     const { modeId, positionId } = event.detail;
-    switchPositions = switchPositions.map(pos => {
+    switchPositions = switchPositions.map((pos) => {
       if (pos.id === positionId) {
         return {
           ...pos,
-          assignedModes: pos.assignedModes.filter(m => m !== modeId)
+          assignedModes: pos.assignedModes.filter((m) => m !== modeId)
         };
       }
       return pos;
@@ -300,7 +387,7 @@
 
   function handleUpdatePwm(event: CustomEvent): void {
     const { positionId, field, value } = event.detail;
-    switchPositions = switchPositions.map(pos => {
+    switchPositions = switchPositions.map((pos) => {
       if (pos.id === positionId) {
         return { ...pos, [field]: value };
       }
@@ -315,7 +402,7 @@
 
   function handleUpdateChannelFailsafe(event: CustomEvent): void {
     const { channelId, value } = event.detail;
-    receiverChannels = receiverChannels.map(ch => {
+    receiverChannels = receiverChannels.map((ch) => {
       if (ch.id === channelId) {
         return { ...ch, failsafeValue: value };
       }
@@ -342,10 +429,10 @@
         <input type="checkbox" bind:checked={showAdvanced} disabled={readonly} />
         Show Advanced
       </label>
-      <button class="config-button" on:click={() => showReceiverConfig = !showReceiverConfig}>
+      <button class="config-button" on:click={() => (showReceiverConfig = !showReceiverConfig)}>
         Receiver Config
       </button>
-      <button class="config-button" on:click={() => showFailsafeConfig = !showFailsafeConfig}>
+      <button class="config-button" on:click={() => (showFailsafeConfig = !showFailsafeConfig)}>
         Failsafe Setup
       </button>
       <button class="save-button" on:click={saveConfiguration} disabled={readonly}>
@@ -357,7 +444,7 @@
   <!-- Main Content -->
   <div class="panel-content">
     <!-- Flight Modes Grid -->
-    <FlightModeSelector 
+    <FlightModeSelector
       {flightModes}
       {showAdvanced}
       {selectedMode}
@@ -370,7 +457,7 @@
     <ModeDetails {selectedMode} />
 
     <!-- Switch Assignment -->
-    <SwitchAssignment 
+    <SwitchAssignment
       {switchPositions}
       {flightModes}
       {draggedOverPosition}

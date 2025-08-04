@@ -2,7 +2,7 @@
  * Real-time telemetry store for drone data streaming
  * Implements efficient circular buffers for memory management
  * Follows NASA JPL compliance with bounded arrays
- * 
+ *
  * Theme variables used by consuming components:
  * - --color-telemetry-good: Healthy telemetry indicators
  * - --color-telemetry-warning: Warning state indicators
@@ -38,7 +38,7 @@ class CircularBuffer<T> {
   private buffer: (T | undefined)[];
   private writeIndex = 0;
   private size = 0;
-  
+
   constructor(private capacity: number) {
     this.buffer = new Array(capacity);
   }
@@ -53,10 +53,8 @@ class CircularBuffer<T> {
 
   getLatest(count: number): T[] {
     const result: T[] = [];
-    const start = this.size < this.capacity 
-      ? 0 
-      : this.writeIndex;
-    
+    const start = this.size < this.capacity ? 0 : this.writeIndex;
+
     for (let i = 0; i < Math.min(count, this.size); i++) {
       const index = (start - i - 1 + this.capacity) % this.capacity;
       const item = this.buffer[index];
@@ -64,7 +62,7 @@ class CircularBuffer<T> {
         result.push(item);
       }
     }
-    
+
     return result;
   }
 
@@ -146,117 +144,81 @@ let systemUnlisten: UnlistenFn | null = null;
 /**
  * Public derived stores
  */
-export const currentTelemetry = derived(
-  telemetryState,
-  $state => $state.current
-);
+export const currentTelemetry = derived(telemetryState, ($state) => $state.current);
 
-export const attitudeTelemetry = derived(
-  telemetryState,
-  $state => $state.attitude
-);
+export const attitudeTelemetry = derived(telemetryState, ($state) => $state.attitude);
 
-export const gpsTelemetry = derived(
-  telemetryState,
-  $state => $state.gps
-);
+export const gpsTelemetry = derived(telemetryState, ($state) => $state.gps);
 
-export const batteryTelemetry = derived(
-  telemetryState,
-  $state => $state.battery
-);
+export const batteryTelemetry = derived(telemetryState, ($state) => $state.battery);
 
-export const motorTelemetry = derived(
-  telemetryState,
-  $state => $state.motors
-);
+export const motorTelemetry = derived(telemetryState, ($state) => $state.motors);
 
-export const systemTelemetry = derived(
-  telemetryState,
-  $state => $state.system
-);
+export const systemTelemetry = derived(telemetryState, ($state) => $state.system);
 
-export const telemetryConnected = derived(
-  telemetryState,
-  $state => $state.connected
-);
+export const telemetryConnected = derived(telemetryState, ($state) => $state.connected);
 
-export const telemetryStreaming = derived(
-  telemetryState,
-  $state => $state.streaming
-);
+export const telemetryStreaming = derived(telemetryState, ($state) => $state.streaming);
 
-export const telemetryUpdateRate = derived(
-  telemetryState,
-  $state => $state.updateRate
-);
+export const telemetryUpdateRate = derived(telemetryState, ($state) => $state.updateRate);
 
-export const telemetryErrors = derived(
-  telemetryState,
-  $state => $state.errors
-);
+export const telemetryErrors = derived(telemetryState, ($state) => $state.errors);
 
 /**
  * Derived computed stores
  */
-export const gpsStatus = derived(
-  gpsTelemetry,
-  $gps => {
-    if (!$gps) return { hasfix: false, quality: 'none' };
-    
-    const hasFix = $gps.fixType >= 2;
-    let quality = 'none';
-    
-    if ($gps.fixType === 3 && $gps.satellitesVisible >= 8) {
-      quality = $gps.hdop < 1.5 ? 'excellent' : $gps.hdop < 2.5 ? 'good' : 'fair';
-    } else if ($gps.fixType === 3) {
-      quality = 'fair';
-    } else if ($gps.fixType === 2) {
-      quality = 'poor';
-    }
-    
-    return { hasFix, quality, satellites: $gps.satellitesVisible, hdop: $gps.hdop };
-  }
-);
+export const gpsStatus = derived(gpsTelemetry, ($gps) => {
+  if (!$gps) return { hasfix: false, quality: 'none' };
 
-export const batteryStatus = derived(
-  batteryTelemetry,
-  $battery => {
-    if (!$battery) return { level: 'unknown', percentage: 0, voltage: 0 };
-    
-    let level = 'critical';
-    if ($battery.remaining > 50) level = 'good';
-    else if ($battery.remaining > 30) level = 'warning';
-    else if ($battery.remaining > 15) level = 'low';
-    
-    return {
-      level,
-      percentage: $battery.remaining,
-      voltage: $battery.voltage / 1000, // Convert to volts
-      current: $battery.current / 1000, // Convert to amps
-      consumed: $battery.consumed
-    };
+  const hasFix = $gps.fixType >= 2;
+  let quality = 'none';
+
+  if ($gps.fixType === 3 && $gps.satellitesVisible >= 8) {
+    quality = $gps.hdop < 1.5 ? 'excellent' : $gps.hdop < 2.5 ? 'good' : 'fair';
+  } else if ($gps.fixType === 3) {
+    quality = 'fair';
+  } else if ($gps.fixType === 2) {
+    quality = 'poor';
   }
-);
+
+  return { hasFix, quality, satellites: $gps.satellitesVisible, hdop: $gps.hdop };
+});
+
+export const batteryStatus = derived(batteryTelemetry, ($battery) => {
+  if (!$battery) return { level: 'unknown', percentage: 0, voltage: 0 };
+
+  let level = 'critical';
+  if ($battery.remaining > 50) level = 'good';
+  else if ($battery.remaining > 30) level = 'warning';
+  else if ($battery.remaining > 15) level = 'low';
+
+  return {
+    level,
+    percentage: $battery.remaining,
+    voltage: $battery.voltage / 1000, // Convert to volts
+    current: $battery.current / 1000, // Convert to amps
+    consumed: $battery.consumed
+  };
+});
 
 /**
  * NASA JPL Rule 4: Split function - Calculate update rate
  */
 function calculateUpdateRate(): void {
   const now = Date.now();
-  
+
   if (lastUpdateTime > 0) {
     updateCount++;
-    
+
     // Calculate rate every second
     if (now - lastUpdateTime >= 1000) {
       const rate = updateCount / ((now - lastUpdateTime) / 1000);
-      
-      telemetryState.update(state => ({
+
+      telemetryState.update((state) => ({
         ...state,
         updateRate: Math.round(rate)
       }));
-      
+
       updateCount = 0;
       lastUpdateTime = now;
     }
@@ -274,9 +236,9 @@ function processTelemetryPacket(packet: TelemetryPacket): void {
   if (packet.attitude) attitudeHistory.push(packet.attitude);
   if (packet.gps) gpsHistory.push(packet.gps);
   if (packet.battery) batteryHistory.push(packet.battery);
-  
+
   // Update current state
-  telemetryState.update(state => ({
+  telemetryState.update((state) => ({
     ...state,
     current: packet,
     attitude: packet.attitude ?? null,
@@ -288,10 +250,10 @@ function processTelemetryPacket(packet: TelemetryPacket): void {
     connected: true,
     streaming: true
   }));
-  
+
   // Update rate calculation
   calculateUpdateRate();
-  
+
   // Check for critical conditions
   checkCriticalConditions(packet);
 }
@@ -304,15 +266,15 @@ function checkCriticalConditions(packet: TelemetryPacket): void {
   if (packet.battery && packet.battery.remaining < 10) {
     showWarning('Critical Battery', `Battery at ${packet.battery.remaining}%`);
   }
-  
+
   // GPS loss
   if (packet.gps && packet.gps.fixType < 2) {
     recordError('GPS fix lost');
   }
-  
+
   // System errors
   if (packet.system && packet.system.errors.length > 0) {
-    packet.system.errors.forEach(error => recordError(error));
+    packet.system.errors.forEach((error) => recordError(error));
   }
 }
 
@@ -321,10 +283,10 @@ function checkCriticalConditions(packet: TelemetryPacket): void {
  */
 function recordError(message: string): void {
   errorHistory.push({ message, timestamp: Date.now() });
-  
-  telemetryState.update(state => ({
+
+  telemetryState.update((state) => ({
     ...state,
-    errors: errorHistory.getAll().map(e => e.message)
+    errors: errorHistory.getAll().map((e) => e.message)
   }));
 }
 
@@ -335,7 +297,7 @@ export async function startTelemetryStream(
   options: TelemetrySubscriptionOptions = {}
 ): Promise<boolean> {
   if (!browser) return false;
-  
+
   try {
     // Set up WebSocket event listeners
     telemetryUnlisten = await setupEventListener<TelemetryPacket>(
@@ -346,69 +308,57 @@ export async function startTelemetryStream(
         maxErrorsBeforeDisable: 5
       }
     );
-    
+
     // Set up individual telemetry streams if requested
     if (options.attitude !== false) {
       attitudeUnlisten = await setupEventListener<AttitudeTelemetry>(
         'telemetry-attitude',
         (data) => {
           attitudeHistory.push(data);
-          telemetryState.update(state => ({ ...state, attitude: data }));
+          telemetryState.update((state) => ({ ...state, attitude: data }));
         }
       );
     }
-    
+
     if (options.gps !== false) {
-      gpsUnlisten = await setupEventListener<GPSTelemetry>(
-        'telemetry-gps',
-        (data) => {
-          gpsHistory.push(data);
-          telemetryState.update(state => ({ ...state, gps: data }));
-        }
-      );
+      gpsUnlisten = await setupEventListener<GPSTelemetry>('telemetry-gps', (data) => {
+        gpsHistory.push(data);
+        telemetryState.update((state) => ({ ...state, gps: data }));
+      });
     }
-    
+
     if (options.battery !== false) {
-      batteryUnlisten = await setupEventListener<BatteryTelemetry>(
-        'telemetry-battery',
-        (data) => {
-          batteryHistory.push(data);
-          telemetryState.update(state => ({ ...state, battery: data }));
-        }
-      );
+      batteryUnlisten = await setupEventListener<BatteryTelemetry>('telemetry-battery', (data) => {
+        batteryHistory.push(data);
+        telemetryState.update((state) => ({ ...state, battery: data }));
+      });
     }
-    
+
     if (options.motors !== false) {
-      motorUnlisten = await setupEventListener<MotorTelemetry>(
-        'telemetry-motors',
-        (data) => {
-          telemetryState.update(state => ({ ...state, motors: data }));
-        }
-      );
+      motorUnlisten = await setupEventListener<MotorTelemetry>('telemetry-motors', (data) => {
+        telemetryState.update((state) => ({ ...state, motors: data }));
+      });
     }
-    
+
     if (options.system !== false) {
-      systemUnlisten = await setupEventListener<SystemTelemetry>(
-        'telemetry-system',
-        (data) => {
-          telemetryState.update(state => ({ ...state, system: data }));
-          checkCriticalConditions({ system: data } as TelemetryPacket);
-        }
-      );
+      systemUnlisten = await setupEventListener<SystemTelemetry>('telemetry-system', (data) => {
+        telemetryState.update((state) => ({ ...state, system: data }));
+        checkCriticalConditions({ system: data } as TelemetryPacket);
+      });
     }
-    
+
     // Start update rate monitoring
     updateRateTimer = window.setInterval(calculateUpdateRate, 1000);
-    
+
     // Start memory monitoring for aerospace safety
     MemoryMonitor.startMonitoring();
-    
-    telemetryState.update(state => ({
+
+    telemetryState.update((state) => ({
       ...state,
       streaming: true,
       connected: true
     }));
-    
+
     return true;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to start telemetry';
@@ -448,23 +398,23 @@ export function stopTelemetryStream(): void {
     systemUnlisten();
     systemUnlisten = null;
   }
-  
+
   // Clear timer
   if (updateRateTimer) {
     clearInterval(updateRateTimer);
     updateRateTimer = null;
   }
-  
+
   // Stop memory monitoring
   MemoryMonitor.stopMonitoring();
-  
+
   // Reset state
-  telemetryState.update(state => ({
+  telemetryState.update((state) => ({
     ...state,
     streaming: false,
     updateRate: 0
   }));
-  
+
   updateCount = 0;
   lastUpdateTime = 0;
 }
@@ -495,8 +445,8 @@ export function clearTelemetryHistory(): void {
   gpsHistory.clear();
   batteryHistory.clear();
   errorHistory.clear();
-  
-  telemetryState.update(state => ({
+
+  telemetryState.update((state) => ({
     ...state,
     errors: []
   }));
@@ -516,15 +466,15 @@ export function exportTelemetryData(): {
 } {
   const history = getTelemetryHistory(MAX_TELEMETRY_HISTORY);
   const packets = history.telemetry;
-  
+
   let duration = 0;
   let averageRate = 0;
-  
+
   if (packets.length > 1) {
     duration = packets[0].timestamp - packets[packets.length - 1].timestamp;
     averageRate = (packets.length / duration) * 1000; // Hz
   }
-  
+
   return {
     history,
     errors: errorHistory.getAll(),
@@ -541,7 +491,7 @@ export function exportTelemetryData(): {
  */
 export function getTelemetryState(): TelemetryState {
   let state: TelemetryState | undefined;
-  const unsubscribe = telemetryState.subscribe(s => state = s);
+  const unsubscribe = telemetryState.subscribe((s) => (state = s));
   unsubscribe();
   return state!;
 }
@@ -563,7 +513,7 @@ export function getTelemetryStats(): {
   const state = getTelemetryState();
   const history = getTelemetryHistory(100);
   const packetsReceived = telemetryBuffer.getSize();
-  
+
   return {
     packetsReceived,
     updateRate: state.updateRate,
@@ -585,7 +535,7 @@ export async function setTelemetryOptions(options: TelemetrySubscriptionOptions)
   if (getTelemetryState().streaming) {
     stopTelemetryStream();
   }
-  
+
   // Start with new options
   await startTelemetryStream(options);
 }
@@ -597,25 +547,25 @@ export async function setTelemetryOptions(options: TelemetrySubscriptionOptions)
 class MemoryMonitor {
   private static readonly MAX_HEAP_SIZE = 50 * 1024 * 1024; // 50MB limit
   private static monitorInterval: number | null = null;
-  
+
   static startMonitoring(): void {
     if (this.monitorInterval) return;
-    
+
     this.monitorInterval = window.setInterval(() => {
       this.checkMemoryUsage();
     }, 5000); // Check every 5 seconds
   }
-  
+
   static stopMonitoring(): void {
     if (this.monitorInterval) {
       clearInterval(this.monitorInterval);
       this.monitorInterval = null;
     }
   }
-  
+
   private static checkMemoryUsage(): void {
     if (!browser || !(performance as any).memory) return;
-    
+
     const usage = (performance as any).memory.usedJSHeapSize;
     if (usage > this.MAX_HEAP_SIZE) {
       console.warn(`Memory usage high: ${Math.round(usage / 1024 / 1024)}MB`);
@@ -623,7 +573,7 @@ class MemoryMonitor {
       this.performCleanup();
     }
   }
-  
+
   private static performCleanup(): void {
     // Clear old history data
     const historySize = telemetryBuffer.getSize();
@@ -645,9 +595,7 @@ export const droneTelemetryStore = Object.assign(telemetryState, {
 
 // Export aliases for backward compatibility
 export const latestTelemetry = currentTelemetry;
-export const telemetryHistory = derived(telemetryState, ($state) => 
-  getTelemetryHistory()
-);
+export const telemetryHistory = derived(telemetryState, ($state) => getTelemetryHistory());
 export const telemetryRate = telemetryUpdateRate;
 
 // Compatibility aliases for test interface

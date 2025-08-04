@@ -21,6 +21,11 @@ export interface TauriContext {
 let cachedContext: TauriContext | null = null;
 
 /**
+ * Environment detection result for logging
+ */
+let environmentLogged = false;
+
+/**
  * NASA JPL Rule 4: Split function - Check primary Tauri detection
  */
 function checkPrimaryTauriDetection(): TauriContext | null {
@@ -29,10 +34,18 @@ function checkPrimaryTauriDetection(): TauriContext | null {
     '__TAURI__' in window &&
     typeof (window as any).__TAURI__?.invoke === 'function'
   ) {
-    return {
-      isAvailable: true,
-      isMockMode: false
-    };
+    // Verify the invoke function is actually callable
+    try {
+      const invokeFunc = (window as any).__TAURI__.invoke;
+      if (typeof invokeFunc === 'function') {
+        return {
+          isAvailable: true,
+          isMockMode: false
+        };
+      }
+    } catch {
+      // If accessing invoke throws, it's not real Tauri
+    }
   }
   return null;
 }
@@ -44,7 +57,8 @@ function checkSecondaryTauriDetection(): TauriContext | null {
   if (
     typeof window !== 'undefined' &&
     '__TAURI_IPC__' in window &&
-    typeof (window as any).__TAURI_IPC__ === 'object'
+    typeof (window as any).__TAURI_IPC__ === 'object' &&
+    (window as any).__TAURI_IPC__ !== null
   ) {
     return {
       isAvailable: true,
@@ -58,13 +72,35 @@ function checkSecondaryTauriDetection(): TauriContext | null {
  * NASA JPL Rule 4: Split function - Check user agent detection
  */
 function checkUserAgentDetection(): TauriContext | null {
-  if (typeof navigator !== 'undefined' && navigator.userAgent.includes('Tauri')) {
+  if (
+    typeof navigator !== 'undefined' && 
+    navigator.userAgent && 
+    navigator.userAgent.includes('Tauri')
+  ) {
     return {
       isAvailable: true,
       isMockMode: false
     };
   }
   return null;
+}
+
+/**
+ * NASA JPL Rule 4: Split function - Log environment detection result
+ */
+function logEnvironmentDetection(context: TauriContext): void {
+  if (environmentLogged) return;
+  
+  environmentLogged = true;
+  
+  if (context.isAvailable) {
+    console.log('🚀 Tauri Runtime: DETECTED - Using native backend');
+  } else {
+    console.log('🌐 Browser Runtime: DETECTED - Using mock data fallbacks');
+    if (context.error) {
+      console.debug('Tauri detection details:', context.error);
+    }
+  }
 }
 
 /**
@@ -94,27 +130,32 @@ export function detectTauriContext(): TauriContext {
     const primaryResult = checkPrimaryTauriDetection();
     if (primaryResult) {
       cachedContext = primaryResult;
+      logEnvironmentDetection(cachedContext);
       return cachedContext;
     }
 
     const secondaryResult = checkSecondaryTauriDetection();
     if (secondaryResult) {
       cachedContext = secondaryResult;
+      logEnvironmentDetection(cachedContext);
       return cachedContext;
     }
 
     const userAgentResult = checkUserAgentDetection();
     if (userAgentResult) {
       cachedContext = userAgentResult;
+      logEnvironmentDetection(cachedContext);
       return cachedContext;
     }
 
-    // Not in Tauri context
+    // Not in Tauri context - this is normal for browser-only development
     cachedContext = {
       isAvailable: false,
       isMockMode: true,
-      error: 'Tauri runtime not detected'
+      error: 'Browser-only environment (no Tauri runtime)'
     };
+    
+    logEnvironmentDetection(cachedContext);
     return cachedContext;
   } catch (error) {
     // Detection failed
@@ -305,6 +346,7 @@ export async function isTauriApiAvailable(api: string): Promise<boolean> {
  */
 export function resetTauriContext(): void {
   cachedContext = null;
+  environmentLogged = false;
 }
 
 /**

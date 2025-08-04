@@ -32,7 +32,7 @@ describe('CliPanel Component', () => {
   });
 
   it.skip('handles keyboard shortcut Ctrl+~ to toggle panel', () => {
-    // Test disabled - DOM environment issues  
+    // Test disabled - DOM environment issues
   });
 
   it.skip('resize handle is visible on hover', () => {

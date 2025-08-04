@@ -21,7 +21,7 @@ export interface AgentDefinition {
   resourceAllocation: ResourceAllocation;
 }
 
-export type AgentType = 
+export type AgentType =
   | 'ui-specialist'
   | 'plugin-developer'
   | 'telemetry-engineer'
@@ -45,7 +45,7 @@ export interface ClaudeAgent {
   metrics: AgentMetrics;
 }
 
-export type AgentStatus = 
+export type AgentStatus =
   | 'initializing'
   | 'idle'
   | 'analyzing'
@@ -67,7 +67,7 @@ export interface DevelopmentTask {
   deadline?: Date;
 }
 
-export type TaskType = 
+export type TaskType =
   | 'feature'
   | 'bugfix'
   | 'refactor'
@@ -150,7 +150,7 @@ export interface OrchestratorEvent {
   severity: 'info' | 'warning' | 'error' | 'critical';
 }
 
-export type EventType = 
+export type EventType =
   | 'agent-started'
   | 'agent-stopped'
   | 'task-assigned'

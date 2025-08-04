@@ -26,20 +26,29 @@
 
   // NASA JPL compliant function: Filter parameters
   function filterParameters(): void {
-    filteredParameters = parameters.filter(param => 
-      param.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (param.description && param.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    if (!parameters || !Array.isArray(parameters)) {
+      filteredParameters = [];
+      return;
+    }
+
+    filteredParameters = parameters.filter(
+      (param) =>
+        param.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (param.description && param.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }
 
   // NASA JPL compliant function: Group parameters
   function groupParameters(params: DroneParameter[]): Record<string, DroneParameter[]> {
-    return params.reduce((groups, param) => {
-      const group = param.group || 'MISC';
-      if (!groups[group]) groups[group] = [];
-      groups[group].push(param);
-      return groups;
-    }, {} as Record<string, DroneParameter[]>);
+    return params.reduce(
+      (groups, param) => {
+        const group = param.group || 'MISC';
+        if (!groups[group]) groups[group] = [];
+        groups[group].push(param);
+        return groups;
+      },
+      {} as Record<string, DroneParameter[]>
+    );
   }
 
   // NASA JPL compliant function: Toggle group expansion
@@ -56,7 +65,7 @@
   // NASA JPL compliant function: Update parameter
   async function updateParameter(event: CustomEvent): Promise<void> {
     if (readonly) return;
-    
+
     const { parameter, value } = event.detail;
     try {
       await droneParameterStore.setParameter(parameter.name, value);
@@ -94,7 +103,7 @@
 
 <div class="parameter-panel">
   <!-- Search and controls header -->
-  <ParameterSearch 
+  <ParameterSearch
     {searchTerm}
     {showAdvanced}
     {loading}
@@ -186,7 +195,11 @@
   }
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 </style>

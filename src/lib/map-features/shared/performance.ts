@@ -57,7 +57,7 @@ export class PerformanceMonitor {
 
   start(): void {
     if (this.rafId !== null) return;
-    
+
     const measure = (timestamp: number) => {
       if (this.lastFrameTime !== 0) {
         const delta = timestamp - this.lastFrameTime;
@@ -67,7 +67,7 @@ export class PerformanceMonitor {
       this.lastFrameTime = timestamp;
       this.rafId = requestAnimationFrame(measure);
     };
-    
+
     this.rafId = requestAnimationFrame(measure);
   }
 
@@ -184,9 +184,8 @@ export class FrameScheduler {
   }
 
   private sortTasks(): void {
-    const sorted = Array.from(this.tasks.entries())
-      .sort(([, a], [, b]) => b.priority - a.priority);
-    
+    const sorted = Array.from(this.tasks.entries()).sort(([, a], [, b]) => b.priority - a.priority);
+
     this.tasks.clear();
     sorted.forEach(([id, task]) => this.tasks.set(id, task));
   }
@@ -217,10 +216,10 @@ export class DirtyRectManager {
 
   markDirty(x: number, y: number, width: number, height: number): void {
     const rect = new DOMRect(x, y, width, height);
-    
+
     // Merge overlapping rectangles
     const merged = this.mergeRects(rect);
-    
+
     if (this.dirtyRects.length < this.maxRects) {
       this.dirtyRects.push(merged);
     } else {
@@ -251,8 +250,7 @@ export class DirtyRectManager {
   }
 
   private rectsOverlap(a: DOMRect, b: DOMRect): boolean {
-    return !(a.right < b.left || b.right < a.left || 
-             a.bottom < b.top || b.bottom < a.top);
+    return !(a.right < b.left || b.right < a.left || a.bottom < b.top || b.bottom < a.top);
   }
 
   private combineRects(a: DOMRect, b: DOMRect): DOMRect {
@@ -279,7 +277,7 @@ export const performanceStore = writable<PerformanceMetrics>({
 
 export const performanceWarning = derived(
   performanceStore,
-  $perf => $perf.fps < TARGET_FPS * 0.9 // Warn if below 90% of target
+  ($perf) => $perf.fps < TARGET_FPS * 0.9 // Warn if below 90% of target
 );
 
 // Global instances
@@ -289,7 +287,7 @@ export const globalScheduler = new FrameScheduler();
 // Auto-start monitoring in browser
 if (typeof window !== 'undefined') {
   globalMonitor.start();
-  
+
   // Update store every 500ms
   setInterval(() => {
     performanceStore.set(globalMonitor.getMetrics());

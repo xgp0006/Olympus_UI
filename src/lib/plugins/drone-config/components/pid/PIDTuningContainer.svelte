@@ -10,7 +10,7 @@
   import { safeInvoke } from '$lib/utils/tauri';
   import { showNotification } from '$lib/stores/notifications';
   import { spring } from 'svelte/motion';
-  
+
   import PIDAxisControls from './PIDAxisControls.svelte';
   import PIDPresetManager from './PIDPresetManager.svelte';
   import PIDTuningChart from './PIDTuningChart.svelte';
@@ -81,20 +81,32 @@
   let originalProfile: PIDProfile = { ...profiles[selectedProfile] };
 
   // Spring animations for smooth value transitions
-  const rollSpring = spring({ p: currentProfile.roll.p, i: currentProfile.roll.i, d: currentProfile.roll.d });
-  const pitchSpring = spring({ p: currentProfile.pitch.p, i: currentProfile.pitch.i, d: currentProfile.pitch.d });
-  const yawSpring = spring({ p: currentProfile.yaw.p, i: currentProfile.yaw.i, d: currentProfile.yaw.d });
+  const rollSpring = spring({
+    p: currentProfile.roll.p,
+    i: currentProfile.roll.i,
+    d: currentProfile.roll.d
+  });
+  const pitchSpring = spring({
+    p: currentProfile.pitch.p,
+    i: currentProfile.pitch.i,
+    d: currentProfile.pitch.d
+  });
+  const yawSpring = spring({
+    p: currentProfile.yaw.p,
+    i: currentProfile.yaw.i,
+    d: currentProfile.yaw.d
+  });
 
   const dispatch = createEventDispatcher();
 
   // NASA JPL compliant function: Load PID values from drone
   async function loadPIDValues(): Promise<void> {
     if (!$isConnected) return;
-    
+
     try {
       isLoading = true;
       const pidData = await safeInvoke<PIDProfile[]>('get_pid_profiles');
-      
+
       if (pidData && pidData.length > 0) {
         profiles = pidData;
         currentProfile = { ...profiles[selectedProfile] };
@@ -116,20 +128,20 @@
   // NASA JPL compliant function: Save PID values to drone
   async function savePIDValues(): Promise<void> {
     if (!$isConnected || !hasUnsavedChanges) return;
-    
+
     try {
       isLoading = true;
-      
+
       profiles[selectedProfile] = { ...currentProfile };
-      
+
       await safeInvoke('set_pid_profile', {
         profileId: selectedProfile,
         profile: currentProfile
       });
-      
+
       originalProfile = { ...currentProfile };
       hasUnsavedChanges = false;
-      
+
       showNotification({
         type: 'success',
         message: 'PID values saved successfully',
@@ -148,11 +160,15 @@
   }
 
   // NASA JPL compliant function: Update value with validation
-  function updateValue(axis: 'roll' | 'pitch' | 'yaw', param: 'p' | 'i' | 'd', value: number): void {
+  function updateValue(
+    axis: 'roll' | 'pitch' | 'yaw',
+    param: 'p' | 'i' | 'd',
+    value: number
+  ): void {
     const clampedValue = Math.max(0, Math.min(200, value));
-    
+
     currentProfile[axis][param] = clampedValue;
-    
+
     if (syncAxes && axis !== 'yaw') {
       if (axis === 'roll') {
         currentProfile.pitch[param] = clampedValue;
@@ -160,10 +176,10 @@
         currentProfile.roll[param] = clampedValue;
       }
     }
-    
+
     updateSprings();
     hasUnsavedChanges = true;
-    
+
     dispatch('pidChange', { axis, param, value: clampedValue });
   }
 
@@ -185,11 +201,11 @@
   function handleProfileChange(): void {
     if (hasUnsavedChanges) {
       if (!confirm('You have unsaved changes. Switch profile anyway?')) {
-        selectedProfile = profiles.findIndex(p => p.id === currentProfile.id);
+        selectedProfile = profiles.findIndex((p) => p.id === currentProfile.id);
         return;
       }
     }
-    
+
     currentProfile = { ...profiles[selectedProfile] };
     originalProfile = { ...profiles[selectedProfile] };
     hasUnsavedChanges = false;
@@ -200,7 +216,7 @@
   // NASA JPL compliant function: Copy profile
   function copyProfile(fromId: number): void {
     if (fromId === selectedProfile) return;
-    
+
     const sourceProfile = profiles[fromId];
     currentProfile = {
       ...currentProfile,
@@ -208,7 +224,7 @@
       id: currentProfile.id,
       name: currentProfile.name
     };
-    
+
     updateSprings();
     hasUnsavedChanges = true;
   }
@@ -216,7 +232,7 @@
   // NASA JPL compliant function: Reset to defaults
   function resetToDefaults(): void {
     if (!confirm('Reset current profile to defaults? This will discard unsaved changes.')) return;
-    
+
     currentProfile = {
       ...currentProfile,
       roll: { p: 40, i: 30, d: 23 },
@@ -231,7 +247,7 @@
       tpaRate: 65,
       tpaBreakpoint: 1350
     };
-    
+
     updateSprings();
     hasUnsavedChanges = true;
   }
@@ -239,14 +255,14 @@
   // NASA JPL compliant function: Apply master gain
   function applyMasterGain(): void {
     const gain = currentProfile.masterGain;
-    
-    (['roll', 'pitch', 'yaw'] as const).forEach(axis => {
+
+    (['roll', 'pitch', 'yaw'] as const).forEach((axis) => {
       const pidValues = currentProfile[axis] as PIDValues;
       pidValues.p *= gain;
       pidValues.i *= gain;
       pidValues.d *= gain;
     });
-    
+
     updateSprings();
     hasUnsavedChanges = true;
   }
@@ -254,7 +270,7 @@
   // NASA JPL compliant function: Update response data
   async function updateResponseData(): Promise<void> {
     if (!$isConnected) return;
-    
+
     try {
       const response = await safeInvoke<StepResponse>('get_pid_response');
       if (response) {
@@ -290,10 +306,10 @@
 
   onMount(() => {
     loadPIDValues();
-    
+
     const responseInterval = setInterval(updateResponseData, 50);
     window.addEventListener('keydown', handleKeyDown);
-    
+
     return () => {
       clearInterval(responseInterval);
       window.removeEventListener('keydown', handleKeyDown);
@@ -320,7 +336,7 @@
       </label>
       <button
         class="btn-icon"
-        on:click={() => showAdvanced = !showAdvanced}
+        on:click={() => (showAdvanced = !showAdvanced)}
         title="{showAdvanced ? 'Hide' : 'Show'} advanced settings"
       >
         <i class="fas fa-cog"></i>
@@ -332,10 +348,10 @@
       {/if}
     </div>
   </div>
-  
+
   <div class="panel-content">
     <!-- Profile selector -->
-    <PIDPresetManager 
+    <PIDPresetManager
       {profiles}
       {selectedProfile}
       {isLoading}
@@ -343,47 +359,50 @@
       on:copyProfile={(e) => copyProfile(e.detail.fromId)}
       on:resetDefaults={resetToDefaults}
     />
-    
+
     <!-- PID Controls -->
     <div class="pid-controls">
-      <PIDAxisControls 
+      <PIDAxisControls
         axisName="Roll"
         values={currentProfile.roll}
         springValues={$rollSpring}
         disabled={isLoading || !$isConnected}
         on:valueChange={(e) => updateValue(e.detail.axis, e.detail.param, e.detail.value)}
       />
-      
-      <PIDAxisControls 
+
+      <PIDAxisControls
         axisName="Pitch"
         values={currentProfile.pitch}
         springValues={$pitchSpring}
         disabled={isLoading || !$isConnected}
         on:valueChange={(e) => updateValue(e.detail.axis, e.detail.param, e.detail.value)}
       />
-      
-      <PIDAxisControls 
+
+      <PIDAxisControls
         axisName="Yaw"
         values={currentProfile.yaw}
         springValues={$yawSpring}
         disabled={isLoading || !$isConnected}
         on:valueChange={(e) => updateValue(e.detail.axis, e.detail.param, e.detail.value)}
       />
-      
-      <PIDMasterGain 
+
+      <PIDMasterGain
         masterGain={currentProfile.masterGain}
         disabled={isLoading || !$isConnected}
-        on:gainChange={(e) => {currentProfile.masterGain = e.detail.value; hasUnsavedChanges = true;}}
+        on:gainChange={(e) => {
+          currentProfile.masterGain = e.detail.value;
+          hasUnsavedChanges = true;
+        }}
         on:applyGain={applyMasterGain}
       />
     </div>
-    
+
     <!-- Response Graph -->
     <PIDTuningChart {responseHistory} />
-    
+
     <!-- Advanced Settings -->
     {#if showAdvanced}
-      <PIDAdvancedSettings 
+      <PIDAdvancedSettings
         profile={currentProfile}
         disabled={isLoading || !$isConnected}
         on:settingChange={(e) => {
@@ -394,10 +413,10 @@
         }}
       />
     {/if}
-    
+
     <!-- Action buttons -->
     <div class="action-buttons">
-      <button 
+      <button
         class="btn-primary"
         on:click={savePIDValues}
         disabled={!hasUnsavedChanges || isLoading || !$isConnected}
@@ -409,16 +428,12 @@
         {/if}
         Save to Drone
       </button>
-      <button 
-        class="btn-secondary"
-        on:click={loadPIDValues}
-        disabled={isLoading || !$isConnected}
-      >
+      <button class="btn-secondary" on:click={loadPIDValues} disabled={isLoading || !$isConnected}>
         <i class="fas fa-sync-alt"></i>
         Refresh from Drone
       </button>
     </div>
-    
+
     {#if !$isConnected}
       <div class="connection-warning">
         <i class="fas fa-exclamation-triangle"></i>
@@ -437,7 +452,7 @@
     color: var(--color-text_primary);
     font-family: var(--typography-font_family_sans);
   }
-  
+
   .panel-header {
     display: flex;
     justify-content: space-between;
@@ -446,7 +461,7 @@
     background: var(--color-background_tertiary);
     border-bottom: 1px solid var(--color-border_primary);
   }
-  
+
   .panel-content {
     flex: 1;
     padding: 1.5rem;
@@ -455,13 +470,13 @@
     flex-direction: column;
     gap: 1.5rem;
   }
-  
+
   .pid-controls {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1.5rem;
   }
-  
+
   .action-buttons {
     display: flex;
     gap: 1rem;

@@ -9,6 +9,7 @@ import { MAVLinkConnection } from './mavlink-connection';
 import { MAVLinkParser } from './mavlink-parser';
 import { MAVLinkCommands } from './mavlink-commands';
 import { MAVLinkTelemetry } from './mavlink-telemetry';
+import { MAVLinkAssertions } from './mavlink-assertions';
 import type {
   MAVLinkMessage,
   MAVLinkCommand,
@@ -24,22 +25,33 @@ export class MAVLinkService {
   private commands = new MAVLinkCommands();
   private telemetry = new MAVLinkTelemetry();
   private sequence: number = 0;
-  
+
   /**
    * NASA JPL compliant: Initialize service
    */
   async initialize(options: MAVLinkConnectionOptions = {}): Promise<boolean> {
     try {
+      // NASA JPL Rule 5: Validate connection options
+      if (options.systemId !== undefined) {
+        MAVLinkAssertions.validateSystemId(options.systemId);
+      }
+      if (options.componentId !== undefined) {
+        MAVLinkAssertions.validateComponentId(options.componentId);
+      }
+      if (options.requestTimeout !== undefined) {
+        MAVLinkAssertions.validateCommandTimeout(options.requestTimeout);
+      }
+
       const success = await this.connection.initialize(
         options,
         this.handleIncomingMessage.bind(this),
         this.handleCommandAck.bind(this)
       );
-      
+
       if (success) {
         await this.requestVehicleInfo();
       }
-      
+
       return success;
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'MAVLink initialization failed';
@@ -47,7 +59,7 @@ export class MAVLinkService {
       return false;
     }
   }
-  
+
   /**
    * NASA JPL compliant: Shutdown service
    */
@@ -55,26 +67,36 @@ export class MAVLinkService {
     this.commands.clearPending();
     this.connection.shutdown();
   }
-  
+
   /**
    * NASA JPL compliant: Handle incoming message
    */
   private handleIncomingMessage(message: MAVLinkMessage): void {
-    this.telemetry.recordMessage(message);
-    
-    switch (message.messageId) {
-      case 0: // HEARTBEAT
-        this.parser.parseHeartbeat(message);
-        break;
-      case 253: // STATUSTEXT
-        this.parser.parseStatusText(message);
-        break;
-      case 148: // AUTOPILOT_VERSION
-        this.parser.parseAutopilotVersion(message);
-        break;
+    try {
+      // NASA JPL Rule 5: Validate incoming message
+      MAVLinkAssertions.validateMAVLinkMessage(message);
+
+      this.telemetry.recordMessage(message);
+
+      switch (message.messageId) {
+        case 0: // HEARTBEAT
+          this.parser.parseHeartbeat(message);
+          break;
+        case 253: // STATUSTEXT
+          this.parser.parseStatusText(message);
+          break;
+        case 148: // AUTOPILOT_VERSION
+          this.parser.parseAutopilotVersion(message);
+          break;
+      }
+    } catch (error) {
+      console.error('[MAVLink] Invalid message received:', error);
+      this.telemetry.recordError(
+        'Invalid message: ' + (error instanceof Error ? error.message : 'Unknown error')
+      );
     }
   }
-  
+
   /**
    * NASA JPL compliant: Handle command acknowledgment
    */
@@ -82,7 +104,7 @@ export class MAVLinkService {
     this.telemetry.recordAck(ack.command, ack.result);
     this.commands.handleAck(ack);
   }
-  
+
   /**
    * NASA JPL compliant: Send command
    */
@@ -90,13 +112,25 @@ export class MAVLinkService {
     command: MAVLinkCommand,
     options?: { timeout?: number; retries?: number }
   ): Promise<MAVResult> {
+    // NASA JPL Rule 5: Validate command safety
+    MAVLinkAssertions.validateCommandSafety(command);
+
+    // NASA JPL Rule 5: Validate timeout if provided
+    if (options?.timeout !== undefined) {
+      MAVLinkAssertions.validateCommandTimeout(options.timeout);
+    }
+
     return this.commands.sendCommand(command, options);
   }
-  
+
   /**
    * NASA JPL compliant: Send raw message
    */
   async sendMessage(messageId: MAVMessageType, payload: Uint8Array): Promise<void> {
+    // NASA JPL Rule 5: Validate message parameters
+    MAVLinkAssertions.validateMessageId(messageId);
+    MAVLinkAssertions.validatePayloadSize(payload);
+
     const message: MAVLinkMessage = {
       systemId: this.connection.getSystemId(),
       componentId: this.connection.getComponentId(),
@@ -106,16 +140,25 @@ export class MAVLinkService {
       checksum: 0,
       timestamp: Date.now()
     };
-    
+
+    // NASA JPL Rule 5: Validate sequence number wrap
+    MAVLinkAssertions.validateSequenceNumber(this.sequence);
     if (this.sequence > 255) this.sequence = 0;
-    
-    await invokeTauriCommand('send_mavlink_message', { message }, {
-      showNotification: false
-    });
-    
+
+    // NASA JPL Rule 5: Validate complete message before sending
+    MAVLinkAssertions.validateMAVLinkMessage(message);
+
+    await invokeTauriCommand(
+      'send_mavlink_message',
+      { message },
+      {
+        showNotification: false
+      }
+    );
+
     this.telemetry.recordSentMessage(payload.length);
   }
-  
+
   /**
    * NASA JPL compliant: Request vehicle info
    */
@@ -129,55 +172,72 @@ export class MAVLinkService {
       console.warn('Failed to get vehicle info:', error);
     }
   }
-  
+
   /**
    * NASA JPL compliant: Request parameter list
    */
   async requestParameterList(): Promise<void> {
     await this.sendMessage(21, new Uint8Array([1, 0])); // PARAM_REQUEST_LIST
   }
-  
+
   /**
    * NASA JPL compliant: Request single parameter
    */
   async requestParameter(name: string, index: number = -1): Promise<void> {
+    // NASA JPL Rule 5: Validate parameter name
+    MAVLinkAssertions.validateParameterName(name);
+
     const encoder = new TextEncoder();
     const nameBytes = encoder.encode(name);
-    const payload = new Uint8Array(18);
-    
+    const payload = new Uint8Array(20); // Correct size for PARAM_REQUEST_READ
+
     payload[0] = 1; // target_system
     payload[1] = 0; // target_component
     payload.set(nameBytes.slice(0, 16), 2);
-    
+
     const view = new DataView(payload.buffer);
     view.setInt16(18, index, true);
-    
+
     await this.sendMessage(20, payload); // PARAM_REQUEST_READ
   }
-  
+
   /**
    * NASA JPL compliant: Set parameter value
    */
   async setParameter(name: string, value: number, type: number = 9): Promise<void> {
+    // NASA JPL Rule 5: Validate parameter name and value
+    MAVLinkAssertions.validateParameterName(name);
+    MAVLinkAssertions.validateParameterValue(value, type);
+
     const encoder = new TextEncoder();
     const nameBytes = encoder.encode(name);
     const payload = new Uint8Array(23);
-    
+
     payload[0] = 1; // target_system
     payload[1] = 0; // target_component
     payload.set(nameBytes.slice(0, 16), 2);
-    
+
     const view = new DataView(payload.buffer);
     view.setFloat32(18, value, true);
     payload[22] = type;
-    
+
     await this.sendMessage(23, payload); // PARAM_SET
   }
-  
+
   // Getters
-  isConnected(): boolean { return this.connection.isConnected(); }
-  getVehicleInfo(): VehicleInfo | null { return this.parser.getVehicleInfo(); }
-  getStatistics(): any { return this.telemetry.getStats(); }
-  getCommandHistory(): any[] { return this.telemetry.getCommandHistory(); }
-  clearStatistics(): void { this.telemetry.clearStats(); }
+  isConnected(): boolean {
+    return this.connection.isConnected();
+  }
+  getVehicleInfo(): VehicleInfo | null {
+    return this.parser.getVehicleInfo();
+  }
+  getStatistics(): any {
+    return this.telemetry.getStats();
+  }
+  getCommandHistory(): any[] {
+    return this.telemetry.getCommandHistory();
+  }
+  clearStatistics(): void {
+    this.telemetry.clearStats();
+  }
 }

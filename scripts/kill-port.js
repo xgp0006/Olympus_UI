@@ -14,11 +14,11 @@ async function killPort(port) {
       // Find the PID using the port
       const { stdout } = await execAsync(`netstat -ano | findstr :${port}`);
       const lines = stdout.trim().split('\n');
-      
+
       for (const line of lines) {
         const parts = line.trim().split(/\s+/);
         const pid = parts[parts.length - 1];
-        
+
         if (pid && pid !== '0') {
           console.log(`Killing process ${pid} using port ${port}...`);
           try {
@@ -46,9 +46,11 @@ async function killPort(port) {
 }
 
 // Kill the port
-killPort(PORT).then(() => {
-  console.log(`Port ${PORT} is now free`);
-}).catch(error => {
-  console.error('Error:', error);
-  process.exit(1);
-});
+killPort(PORT)
+  .then(() => {
+    console.log(`Port ${PORT} is now free`);
+  })
+  .catch((error) => {
+    console.error('Error:', error);
+    process.exit(1);
+  });

@@ -39,18 +39,17 @@ function createMotorTestStore() {
   const isEmergencyStopping = writable<boolean>(false);
   const testActive = writable<boolean>(false);
   const countdownTime = writable<number>(0);
-  
+
   // Derived stores
   const canTest = derived(
     [propellerRemoved, currentStage],
     ([$propRemoved, $stage]) => $propRemoved && $stage > SafetyStage.LOCKED
   );
-  
-  const totalCurrent = derived(
-    motors,
-    $motors => $motors.reduce((sum, motor) => sum + motor.current, 0)
+
+  const totalCurrent = derived(motors, ($motors) =>
+    $motors.reduce((sum, motor) => sum + motor.current, 0)
   );
-  
+
   return {
     currentStage,
     propellerRemoved,

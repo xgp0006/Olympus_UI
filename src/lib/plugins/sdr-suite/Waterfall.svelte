@@ -1,56 +1,155 @@
 <!--
   Waterfall Visualization Component
-  Canvas-based rendering for waterfall visualization of spectrum data over time
+  WebGL-based rendering for high-performance waterfall visualization of spectrum data over time
   Requirements: 5.3, 5.4
 -->
 <script lang="ts">
   import { onMount, onDestroy, afterUpdate } from 'svelte';
   import { theme } from '$lib/stores/theme';
   import type { FFTData } from './types';
+  import {
+    assert,
+    assertDefined,
+    assertBounds,
+    assertPerformance,
+    assertRange,
+    assertArrayBounds
+  } from '$lib/utils/assert';
+  import { AssertionCategory, AssertionErrorCode } from '$lib/types/assertions';
 
   // ===== PROPS =====
   export let data: FFTData | null = null;
-  export let maxHistory: number = 200; // Maximum number of waterfall lines to keep
+  export let maxHistory: number = 1024; // Maximum number of waterfall lines to keep
   export let colorIntensity: number = 1.0; // Color intensity multiplier
   export let showFrequencyLabels: boolean = true;
   export let showTimeLabels: boolean = true;
+  export let colorMap: 'viridis' | 'plasma' | 'turbo' | 'jet' | 'grayscale' = 'viridis';
+  export let dynamicRange: number = 80; // dB of dynamic range
+  export let averaging: boolean = false; // Enable averaging mode
+  export let peakHold: boolean = false; // Enable peak hold mode
 
   // ===== STATE =====
   interface WaterfallState {
     canvas: HTMLCanvasElement | null;
-    ctx: CanvasRenderingContext2D | null;
+    overlayCanvas: HTMLCanvasElement | null;
+    gl: WebGL2RenderingContext | null;
+    ctx2d: CanvasRenderingContext2D | null; // For labels/overlay
     animationFrame: number | null;
     lastRenderTime: number;
     isResizing: boolean;
     waterfallHistory: number[][];
-    colorMap: ImageData | null;
     minMagnitude: number;
     maxMagnitude: number;
+    // WebGL resources
+    program: WebGLProgram | null;
+    waterfallTexture: WebGLTexture | null;
+    colorMapTexture: WebGLTexture | null;
+    vertexBuffer: WebGLBuffer | null;
+    textureCoordBuffer: WebGLBuffer | null;
+    currentLine: number;
+    textureWidth: number;
+    textureHeight: number;
+    // Performance metrics
+    frameCount: number;
+    lastFpsTime: number;
+    fps: number;
+    renderTime: number;
   }
 
   let state: WaterfallState = {
     canvas: null,
-    ctx: null,
+    overlayCanvas: null,
+    gl: null,
+    ctx2d: null,
     animationFrame: null,
     lastRenderTime: 0,
     isResizing: false,
     waterfallHistory: [],
-    colorMap: null,
     minMagnitude: -100,
-    maxMagnitude: 0
+    maxMagnitude: -20,
+    // WebGL resources
+    program: null,
+    waterfallTexture: null,
+    colorMapTexture: null,
+    vertexBuffer: null,
+    textureCoordBuffer: null,
+    currentLine: 0,
+    textureWidth: 2048, // Power of 2 for GPU efficiency
+    textureHeight: 1024, // Power of 2 for GPU efficiency
+    // Performance metrics
+    frameCount: 0,
+    lastFpsTime: 0,
+    fps: 0,
+    renderTime: 0
   };
 
   let containerElement: HTMLDivElement;
   let canvasElement: HTMLCanvasElement;
+  let overlayCanvasElement: HTMLCanvasElement;
+
+  // WebGL shader sources
+  const VERTEX_SHADER_SOURCE = `#version 300 es
+    in vec2 a_position;
+    in vec2 a_texCoord;
+    out vec2 v_texCoord;
+    
+    void main() {
+      gl_Position = vec4(a_position, 0.0, 1.0);
+      v_texCoord = a_texCoord;
+    }
+  `;
+
+  const FRAGMENT_SHADER_SOURCE = `#version 300 es
+    precision highp float;
+    
+    uniform sampler2D u_waterfallTexture;
+    uniform sampler2D u_colorMapTexture;
+    uniform float u_minLevel;
+    uniform float u_maxLevel;
+    uniform float u_currentLine;
+    uniform float u_textureHeight;
+    uniform float u_intensity;
+    
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    
+    void main() {
+      // Calculate wrapped texture coordinate for circular buffer
+      float y = v_texCoord.y * u_textureHeight;
+      float wrappedY = mod(y + u_currentLine, u_textureHeight) / u_textureHeight;
+      
+      // Sample magnitude from waterfall texture
+      float magnitude = texture(u_waterfallTexture, vec2(v_texCoord.x, wrappedY)).r;
+      
+      // Normalize magnitude to 0-1 range
+      float normalized = clamp((magnitude - u_minLevel) / (u_maxLevel - u_minLevel), 0.0, 1.0);
+      
+      // Apply intensity scaling
+      normalized = pow(normalized, 1.0 / u_intensity);
+      
+      // Sample color from color map
+      vec4 color = texture(u_colorMapTexture, vec2(normalized, 0.5));
+      
+      // Apply age-based fading for older lines
+      float age = abs(y - u_currentLine) / u_textureHeight;
+      float fadeFactor = 1.0 - (age * 0.1); // Subtle fade
+      
+      fragColor = vec4(color.rgb * fadeFactor, color.a);
+    }
+  `;
 
   // ===== REACTIVE STATEMENTS =====
-  $: if (data && state.ctx && !state.isResizing) {
-    addDataToHistory(data);
+  $: if (data && state.gl && !state.isResizing) {
+    addDataToWaterfall(data);
     scheduleRender();
   }
 
-  $: if ($theme && state.ctx) {
-    updateColorMap();
+  $: if (colorMap && state.gl) {
+    updateColorMapTexture();
+    scheduleRender();
+  }
+
+  $: if ($theme && state.ctx2d) {
     scheduleRender();
   }
 
@@ -97,58 +196,476 @@
   }
 
   /**
-   * Adds new FFT data to the waterfall history
+   * Creates WebGL shader from source
    */
-  function addDataToHistory(fftData: FFTData): void {
-    if (!fftData.magnitudes || fftData.magnitudes.length === 0) {
-      return;
+  function createShader(
+    gl: WebGL2RenderingContext,
+    type: number,
+    source: string
+  ): WebGLShader | null {
+    assertDefined(gl, 'WebGL context is required');
+    assert(type === gl.VERTEX_SHADER || type === gl.FRAGMENT_SHADER, 'Invalid shader type');
+    assert(source.length > 0, 'Shader source cannot be empty');
+
+    const shader = gl.createShader(type);
+    if (!shader) {
+      console.error('Failed to create shader');
+      return null;
     }
 
-    // Add new data to the beginning of the history
-    state.waterfallHistory.unshift([...fftData.magnitudes]);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
 
-    // Update magnitude range for better color mapping
-    const currentMin = Math.min(...fftData.magnitudes);
-    const currentMax = Math.max(...fftData.magnitudes);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      const error = gl.getShaderInfoLog(shader) || 'Unknown shader compilation error';
+      console.error('Shader compilation error:', error);
+      gl.deleteShader(shader);
+      return null;
+    }
+
+    return shader;
+  }
+
+  /**
+   * Creates WebGL program from vertex and fragment shaders
+   */
+  function createProgram(
+    gl: WebGL2RenderingContext,
+    vertexShader: WebGLShader,
+    fragmentShader: WebGLShader
+  ): WebGLProgram | null {
+    const program = gl.createProgram();
+    if (!program) {
+      console.error('Failed to create program');
+      return null;
+    }
+
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.error('Program linking error:', gl.getProgramInfoLog(program));
+      gl.deleteProgram(program);
+      return null;
+    }
+
+    return program;
+  }
+
+  /**
+   * Initializes WebGL resources
+   * NASA JPL Rule 4: Split into focused functions ≤60 lines
+   */
+  function initWebGL(): boolean {
+    if (!state.canvas) return false;
+
+    const gl = initWebGLContext();
+    if (!gl) return false;
+
+    const program = createShaderProgram(gl);
+    if (!program) return false;
+
+    state.program = program;
+
+    const buffersCreated = createWebGLBuffers(gl);
+    if (!buffersCreated) return false;
+
+    const texturesCreated = createWebGLTextures(gl);
+    if (!texturesCreated) return false;
+
+    return true;
+  }
+
+  /**
+   * NASA JPL Rule 4: Initialize WebGL context ≤20 lines
+   */
+  function initWebGLContext(): WebGL2RenderingContext | null {
+    const gl = state.canvas!.getContext('webgl2', {
+      alpha: false,
+      antialias: false,
+      depth: false,
+      stencil: false,
+      powerPreference: 'high-performance',
+      preserveDrawingBuffer: false,
+      desynchronized: true
+    });
+
+    if (!gl) {
+      console.error('WebGL2 not supported, falling back to Canvas2D');
+      return null;
+    }
+
+    state.gl = gl;
+    return gl;
+  }
+
+  /**
+   * NASA JPL Rule 4: Create shader program ≤20 lines
+   */
+  function createShaderProgram(gl: WebGL2RenderingContext): WebGLProgram | null {
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER_SOURCE);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER_SOURCE);
+
+    if (!vertexShader || !fragmentShader) {
+      return null;
+    }
+
+    return createProgram(gl, vertexShader, fragmentShader);
+  }
+
+  /**
+   * NASA JPL Rule 4: Create WebGL buffers ≤30 lines
+   */
+  function createWebGLBuffers(gl: WebGL2RenderingContext): boolean {
+    // Set up vertex buffer (full screen quad)
+    const positions = new Float32Array([
+      -1,
+      -1, // Bottom left
+      1,
+      -1, // Bottom right
+      -1,
+      1, // Top left
+      1,
+      1 // Top right
+    ]);
+
+    const vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+    state.vertexBuffer = vertexBuffer;
+
+    // Set up texture coordinates
+    const texCoords = new Float32Array([
+      0,
+      1, // Bottom left
+      1,
+      1, // Bottom right
+      0,
+      0, // Top left
+      1,
+      0 // Top right
+    ]);
+
+    const texCoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
+    state.textureCoordBuffer = texCoordBuffer;
+
+    return true;
+  }
+
+  /**
+   * NASA JPL Rule 4: Create WebGL textures ≤25 lines
+   */
+  function createWebGLTextures(gl: WebGL2RenderingContext): boolean {
+    // Create waterfall texture
+    const waterfallTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, waterfallTexture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
+    // Initialize empty texture
+    const emptyData = new Float32Array(state.textureWidth * state.textureHeight);
+    emptyData.fill(state.minMagnitude);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.R32F,
+      state.textureWidth,
+      state.textureHeight,
+      0,
+      gl.RED,
+      gl.FLOAT,
+      emptyData
+    );
+    state.waterfallTexture = waterfallTexture;
+
+    // Create color map texture
+    updateColorMapTexture();
+
+    return true;
+  }
+
+  /**
+   * Adds new FFT data to the WebGL waterfall texture
+   * NASA JPL Rule 4: Split into focused functions ≤60 lines
+   */
+  function addDataToWaterfall(fftData: FFTData): void {
+    validateFFTInput(fftData);
+
+    if (!state.gl || !state.waterfallTexture) {
+      return; // Graceful fallback for missing WebGL
+    }
+
+    const magnitudes = fftData.magnitudes;
+    validateMagnitudeValues(magnitudes);
+
+    updateMagnitudeRange(magnitudes);
+
+    const textureData = resampleFFTData(magnitudes);
+
+    updateWaterfallTexture(textureData);
+
+    updateHistoryBuffer(magnitudes);
+  }
+
+  /**
+   * NASA JPL Rule 4: Validate FFT input ≤15 lines
+   */
+  function validateFFTInput(fftData: FFTData): void {
+    assertDefined(fftData, 'FFT data is required');
+    assertDefined(fftData.magnitudes, 'FFT magnitudes are required');
+    assert(fftData.magnitudes.length > 0, 'FFT magnitudes cannot be empty');
+    assertBounds(fftData.magnitudes.length, 1, 32768, 'FFT size out of reasonable bounds');
+  }
+
+  /**
+   * NASA JPL Rule 4: Validate magnitude values ≤15 lines
+   */
+  function validateMagnitudeValues(magnitudes: number[]): void {
+    for (let i = 0; i < Math.min(10, magnitudes.length); i++) {
+      assertRange(magnitudes[i], -200, 50, `Magnitude ${i} out of expected dB range`);
+    }
+  }
+
+  /**
+   * NASA JPL Rule 4: Update magnitude range for color mapping ≤20 lines
+   */
+  function updateMagnitudeRange(magnitudes: number[]): void {
+    const currentMin = Math.min(...magnitudes);
+    const currentMax = Math.max(...magnitudes);
+
+    // NASA JPL Rule 5: Validate computed values
+    assert(isFinite(currentMin), 'Minimum magnitude must be finite');
+    assert(isFinite(currentMax), 'Maximum magnitude must be finite');
+    assert(currentMin <= currentMax, 'Min magnitude must be <= max magnitude');
 
     // Use exponential moving average for smooth range adaptation
     const alpha = 0.1;
     state.minMagnitude = state.minMagnitude * (1 - alpha) + currentMin * alpha;
     state.maxMagnitude = state.maxMagnitude * (1 - alpha) + currentMax * alpha;
+  }
 
-    // Trim history to maximum size
+  /**
+   * NASA JPL Rule 4: Resample FFT data to texture width ≤20 lines
+   */
+  function resampleFFTData(magnitudes: number[]): Float32Array {
+    const textureData = new Float32Array(state.textureWidth);
+
+    for (let i = 0; i < state.textureWidth; i++) {
+      const fftIndex = Math.floor((i / state.textureWidth) * magnitudes.length);
+      assertArrayBounds(magnitudes, fftIndex, 'FFT index out of bounds during resampling');
+      textureData[i] = magnitudes[fftIndex];
+    }
+
+    return textureData;
+  }
+
+  /**
+   * NASA JPL Rule 4: Update WebGL texture ≤25 lines
+   */
+  function updateWaterfallTexture(textureData: Float32Array): void {
+    const gl = state.gl!;
+
+    gl.bindTexture(gl.TEXTURE_2D, state.waterfallTexture);
+
+    // NASA JPL Rule 5: Validate texture update parameters
+    assertBounds(state.currentLine, 0, state.textureHeight, 'Current line out of texture bounds');
+
+    gl.texSubImage2D(
+      gl.TEXTURE_2D,
+      0, // level
+      0, // x offset
+      state.currentLine, // y offset
+      state.textureWidth, // width
+      1, // height
+      gl.RED,
+      gl.FLOAT,
+      textureData
+    );
+
+    // NASA JPL Rule 7: Check for WebGL errors
+    const error = gl.getError();
+    assert(error === gl.NO_ERROR, `WebGL error during texture update: ${error}`);
+
+    // Move to next line (circular)
+    state.currentLine = (state.currentLine + 1) % state.textureHeight;
+  }
+
+  /**
+   * NASA JPL Rule 4: Update history buffer ≤15 lines
+   */
+  function updateHistoryBuffer(magnitudes: number[]): void {
+    state.waterfallHistory.unshift([...magnitudes]);
     if (state.waterfallHistory.length > maxHistory) {
       state.waterfallHistory = state.waterfallHistory.slice(0, maxHistory);
     }
   }
 
   /**
-   * Creates a color map for signal strength visualization
+   * Generates color map data for different schemes
+   * NASA JPL Rule 4: Split into focused functions ≤60 lines
    */
-  function updateColorMap(): void {
-    if (!state.ctx) {
-      return;
+  function generateColorMapData(scheme: string): Uint8Array {
+    const size = 256;
+    const data = new Uint8Array(size * 4);
+
+    for (let i = 0; i < size; i++) {
+      const t = i / (size - 1);
+      const color = calculateColorForScheme(scheme, t, i);
+
+      const idx = i * 4;
+      data[idx] = color.r;
+      data[idx + 1] = color.g;
+      data[idx + 2] = color.b;
+      data[idx + 3] = Math.floor(255 * colorIntensity);
     }
 
-    const colorMapSize = 256;
-    const imageData = state.ctx.createImageData(colorMapSize, 1);
-    const data = imageData.data;
+    return data;
+  }
 
-    // Get theme colors for gradient
-    const gradientColors = parseGradientColors();
+  /**
+   * NASA JPL Rule 4: Calculate color for specific scheme ≤60 lines
+   */
+  function calculateColorForScheme(
+    scheme: string,
+    t: number,
+    i: number
+  ): { r: number; g: number; b: number } {
+    let r = 0,
+      g = 0,
+      b = 0;
 
-    for (let i = 0; i < colorMapSize; i++) {
-      const intensity = i / (colorMapSize - 1);
-      const color = interpolateGradientColor(gradientColors, intensity);
-
-      const pixelIndex = i * 4;
-      data[pixelIndex] = color.r; // Red
-      data[pixelIndex + 1] = color.g; // Green
-      data[pixelIndex + 2] = color.b; // Blue
-      data[pixelIndex + 3] = Math.floor(255 * colorIntensity); // Alpha
+    switch (scheme) {
+      case 'viridis':
+        return calculateViridisColor(t, i);
+      case 'plasma':
+        return calculatePlasmaColor(t);
+      case 'turbo':
+        return calculateTurboColor(t);
+      case 'jet':
+        return calculateJetColor(t);
+      case 'grayscale':
+        r = g = b = Math.floor(255 * t);
+        break;
+      default:
+        return calculateViridisColor(t, i);
     }
 
-    state.colorMap = imageData;
+    return clampColor({ r, g, b });
+  }
+
+  /**
+   * NASA JPL Rule 4: Calculate Viridis color ≤15 lines
+   */
+  function calculateViridisColor(t: number, i: number): { r: number; g: number; b: number } {
+    const r = Math.floor(255 * (0.267 + 0.004 * i - 0.329 * t * t + 0.449 * t * t * t));
+    const g = Math.floor(255 * (0.005 + 1.395 * t - 0.831 * t * t));
+    const b = Math.floor(255 * (0.329 + 1.089 * t - 1.378 * t * t + 0.919 * t * t * t));
+    return clampColor({ r, g, b });
+  }
+
+  /**
+   * NASA JPL Rule 4: Calculate Plasma color ≤15 lines
+   */
+  function calculatePlasmaColor(t: number): { r: number; g: number; b: number } {
+    const r = Math.floor(255 * (0.05 + 2.718 * t - 5.947 * t * t + 4.174 * t * t * t));
+    const g = Math.floor(255 * (0.004 + 0.106 * t + 1.825 * t * t - 1.903 * t * t * t));
+    const b = Math.floor(255 * (0.528 + 0.886 * t - 1.739 * t * t + 0.951 * t * t * t));
+    return clampColor({ r, g, b });
+  }
+
+  /**
+   * NASA JPL Rule 4: Calculate Turbo color ≤25 lines
+   */
+  function calculateTurboColor(t: number): { r: number; g: number; b: number } {
+    let r = 0,
+      g = 0,
+      b = 0;
+
+    if (t < 0.35) {
+      r = Math.floor(255 * (0.138 + 4.781 * t));
+      g = Math.floor(255 * (0.097 + 2.003 * t));
+      b = Math.floor(255 * (0.85 - 1.316 * t));
+    } else if (t < 0.65) {
+      r = Math.floor(255 * (1.445 - 1.259 * (t - 0.35)));
+      g = Math.floor(255 * (0.797 + 0.617 * (t - 0.35)));
+      b = Math.floor(255 * (0.386 + 1.958 * (t - 0.35)));
+    } else {
+      r = Math.floor(255 * (1.067 - 0.894 * (t - 0.65)));
+      g = Math.floor(255 * (0.982 - 2.265 * (t - 0.65)));
+      b = Math.floor(255 * (0.973 - 1.885 * (t - 0.65)));
+    }
+
+    return clampColor({ r, g, b });
+  }
+
+  /**
+   * NASA JPL Rule 4: Calculate Jet color ≤30 lines
+   */
+  function calculateJetColor(t: number): { r: number; g: number; b: number } {
+    let r = 0,
+      g = 0,
+      b = 0;
+
+    if (t < 0.125) {
+      b = Math.floor(255 * (0.5 + 4 * t));
+    } else if (t < 0.375) {
+      b = 255;
+      g = Math.floor(255 * (4 * (t - 0.125)));
+    } else if (t < 0.625) {
+      g = 255;
+      b = Math.floor(255 * (1 - 4 * (t - 0.375)));
+      r = Math.floor(255 * (4 * (t - 0.375)));
+    } else if (t < 0.875) {
+      r = 255;
+      g = Math.floor(255 * (1 - 4 * (t - 0.625)));
+    } else {
+      r = Math.floor(255 * (1 - 4 * (t - 0.875)));
+    }
+
+    return clampColor({ r, g, b });
+  }
+
+  /**
+   * NASA JPL Rule 4: Clamp color values ≤10 lines
+   */
+  function clampColor(color: { r: number; g: number; b: number }): {
+    r: number;
+    g: number;
+    b: number;
+  } {
+    return {
+      r: Math.max(0, Math.min(255, color.r)),
+      g: Math.max(0, Math.min(255, color.g)),
+      b: Math.max(0, Math.min(255, color.b))
+    };
+  }
+
+  /**
+   * Updates the color map texture in WebGL
+   */
+  function updateColorMapTexture(): void {
+    if (!state.gl) return;
+
+    const gl = state.gl;
+    const colorMapData = generateColorMapData(colorMap);
+
+    if (!state.colorMapTexture) {
+      const texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      state.colorMapTexture = texture;
+    }
+
+    gl.bindTexture(gl.TEXTURE_2D, state.colorMapTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, colorMapData);
   }
 
   /**
@@ -253,28 +770,191 @@
     }
 
     state.animationFrame = requestAnimationFrame(() => {
-      const now = performance.now();
+      const startTime = performance.now();
 
-      // Throttle rendering to ~30fps for waterfall (less frequent than spectrum)
-      if (now - state.lastRenderTime >= 33) {
-        renderWaterfall();
-        state.lastRenderTime = now;
+      if (state.gl) {
+        renderWaterfallWebGL();
+      } else {
+        renderWaterfallCanvas2D();
       }
 
+      // Update performance metrics
+      state.renderTime = performance.now() - startTime;
+      state.frameCount++;
+
+      // Update FPS every second
+      if (startTime - state.lastFpsTime >= 1000) {
+        state.fps = state.frameCount;
+        state.frameCount = 0;
+        state.lastFpsTime = startTime;
+      }
+
+      state.lastRenderTime = startTime;
       state.animationFrame = null;
     });
   }
 
   /**
-   * Main rendering function for the waterfall visualization
+   * Main WebGL rendering function
+   * NASA JPL Rule 4: Split into focused functions ≤60 lines
    */
-  function renderWaterfall(): void {
-    if (!state.ctx || !state.canvas) {
-      return;
+  function renderWaterfallWebGL(): void {
+    validateWebGLRenderState();
+
+    const { gl, canvas } = prepareWebGLCanvas();
+    if (!gl || !canvas) return;
+
+    clearWebGLCanvas(gl);
+
+    setupWebGLProgram(gl);
+
+    setWebGLUniforms(gl);
+
+    bindWebGLTextures(gl);
+
+    bindWebGLVertexAttributes(gl);
+
+    drawWebGLQuad(gl);
+
+    renderOverlay();
+  }
+
+  /**
+   * NASA JPL Rule 4: Validate WebGL render state ≤15 lines
+   */
+  function validateWebGLRenderState(): void {
+    assertDefined(state.gl, 'WebGL context is required for rendering');
+    assertDefined(state.program, 'WebGL program is required for rendering');
+    assertDefined(state.canvas, 'Canvas element is required for rendering');
+    assertDefined(state.waterfallTexture, 'Waterfall texture is required');
+    assertDefined(state.colorMapTexture, 'Color map texture is required');
+  }
+
+  /**
+   * NASA JPL Rule 4: Prepare WebGL canvas ≤30 lines
+   */
+  function prepareWebGLCanvas(): {
+    gl: WebGL2RenderingContext | null;
+    canvas: HTMLCanvasElement | null;
+  } {
+    const gl = state.gl!;
+    const canvas = state.canvas!;
+    const rect = canvas.getBoundingClientRect();
+
+    // NASA JPL Rule 5: Validate dimensions
+    assert(rect.width > 0 && rect.height > 0, 'Canvas has invalid dimensions');
+    assertBounds(rect.width, 1, 8192, 'Canvas width out of bounds');
+    assertBounds(rect.height, 1, 8192, 'Canvas height out of bounds');
+
+    // Update canvas size if needed
+    const dpr = window.devicePixelRatio || 1;
+    const width = Math.floor(rect.width * dpr);
+    const height = Math.floor(rect.height * dpr);
+
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+      gl.viewport(0, 0, width, height);
     }
 
-    const canvas = state.canvas;
-    const ctx = state.ctx;
+    // NASA JPL Rule 7: Check for context loss
+    if (gl.isContextLost()) {
+      console.warn('WebGL context is lost, skipping render');
+      return { gl: null, canvas: null };
+    }
+
+    return { gl, canvas };
+  }
+
+  /**
+   * NASA JPL Rule 4: Clear WebGL canvas ≤10 lines
+   */
+  function clearWebGLCanvas(gl: WebGL2RenderingContext): void {
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+  }
+
+  /**
+   * NASA JPL Rule 4: Setup WebGL program ≤10 lines
+   */
+  function setupWebGLProgram(gl: WebGL2RenderingContext): void {
+    gl.useProgram(state.program!);
+  }
+
+  /**
+   * NASA JPL Rule 4: Set WebGL uniforms ≤25 lines
+   */
+  function setWebGLUniforms(gl: WebGL2RenderingContext): void {
+    const minLevelLoc = gl.getUniformLocation(state.program!, 'u_minLevel');
+    const maxLevelLoc = gl.getUniformLocation(state.program!, 'u_maxLevel');
+    const currentLineLoc = gl.getUniformLocation(state.program!, 'u_currentLine');
+    const textureHeightLoc = gl.getUniformLocation(state.program!, 'u_textureHeight');
+    const intensityLoc = gl.getUniformLocation(state.program!, 'u_intensity');
+
+    // NASA JPL Rule 5: Validate uniform values
+    assertRange(state.minMagnitude, -200, 50, 'Min magnitude out of range');
+    assertRange(state.maxMagnitude, -200, 50, 'Max magnitude out of range');
+    assert(state.minMagnitude < state.maxMagnitude, 'Invalid magnitude range');
+    assertRange(colorIntensity, 0.1, 10, 'Color intensity out of range');
+
+    gl.uniform1f(minLevelLoc, state.minMagnitude);
+    gl.uniform1f(maxLevelLoc, state.maxMagnitude);
+    gl.uniform1f(currentLineLoc, state.currentLine);
+    gl.uniform1f(textureHeightLoc, state.textureHeight);
+    gl.uniform1f(intensityLoc, colorIntensity);
+  }
+
+  /**
+   * NASA JPL Rule 4: Bind WebGL textures ≤20 lines
+   */
+  function bindWebGLTextures(gl: WebGL2RenderingContext): void {
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, state.waterfallTexture);
+    gl.uniform1i(gl.getUniformLocation(state.program!, 'u_waterfallTexture'), 0);
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, state.colorMapTexture);
+    gl.uniform1i(gl.getUniformLocation(state.program!, 'u_colorMapTexture'), 1);
+  }
+
+  /**
+   * NASA JPL Rule 4: Bind WebGL vertex attributes ≤20 lines
+   */
+  function bindWebGLVertexAttributes(gl: WebGL2RenderingContext): void {
+    const positionLoc = gl.getAttribLocation(state.program!, 'a_position');
+    const texCoordLoc = gl.getAttribLocation(state.program!, 'a_texCoord');
+
+    assertDefined(state.vertexBuffer, 'Vertex buffer is required');
+    assertDefined(state.textureCoordBuffer, 'Texture coordinate buffer is required');
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, state.vertexBuffer!);
+    gl.enableVertexAttribArray(positionLoc);
+    gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, state.textureCoordBuffer!);
+    gl.enableVertexAttribArray(texCoordLoc);
+    gl.vertexAttribPointer(texCoordLoc, 2, gl.FLOAT, false, 0, 0);
+  }
+
+  /**
+   * NASA JPL Rule 4: Draw WebGL quad ≤15 lines
+   */
+  function drawWebGLQuad(gl: WebGL2RenderingContext): void {
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // NASA JPL Rule 7: Check for rendering errors
+    const error = gl.getError();
+    assert(error === gl.NO_ERROR, `WebGL rendering error: ${error}`);
+  }
+
+  /**
+   * Fallback Canvas2D rendering function
+   */
+  function renderWaterfallCanvas2D(): void {
+    if (!state.overlayCanvas || !state.ctx2d) return;
+
+    const canvas = state.overlayCanvas;
+    const ctx = state.ctx2d;
     const rect = canvas.getBoundingClientRect();
 
     // Set canvas size to match display size for crisp rendering
@@ -296,8 +976,8 @@
     ctx.fillRect(0, 0, rect.width, rect.height);
 
     // Draw waterfall data if available
-    if (state.waterfallHistory.length > 0 && state.colorMap) {
-      drawWaterfallData(ctx, rect.width, rect.height);
+    if (state.waterfallHistory.length > 0) {
+      drawWaterfallDataCanvas2D(ctx, rect.width, rect.height);
     } else {
       drawNoDataMessage(ctx, rect.width, rect.height, axisLabelColor);
     }
@@ -311,7 +991,11 @@
   /**
    * NASA JPL Rule 4: Split function - Calculate safe waterfall dimensions
    */
-  function calculateWaterfallDimensions(width: number, height: number, historyLength: number): {
+  function calculateWaterfallDimensions(
+    width: number,
+    height: number,
+    historyLength: number
+  ): {
     safeWidth: number;
     safeHeight: number;
     startX: number;
@@ -342,56 +1026,80 @@
   }
 
   /**
-   * NASA JPL Rule 4: Split function - Render waterfall pixels
+   * NASA JPL Rule 7: Check WebGL context loss
    */
-  function renderWaterfallPixels(
-    pixels: Uint8ClampedArray,
-    history: (Float32Array | number[])[],
-    safeWidth: number,
-    safeHeight: number,
-    dataLength: number
-  ): void {
-    if (!state.colorMap) return;
-    
-    for (let y = 0; y < safeHeight && y < history.length; y++) {
-      const magnitudes = history[y];
+  function handleContextLost(event: Event): void {
+    event.preventDefault();
+    console.warn('WebGL context lost');
+    state.gl = null;
+    state.program = null;
+    state.waterfallTexture = null;
+    state.colorMapTexture = null;
+  }
 
-      for (let x = 0; x < safeWidth; x++) {
-        const binIndex = Math.floor((x / safeWidth) * dataLength);
-        const magnitude = magnitudes[binIndex] || state.minMagnitude;
+  /**
+   * NASA JPL Rule 7: Restore WebGL context
+   */
+  function handleContextRestored(): void {
+    console.info('WebGL context restored');
+    initWebGL();
+  }
 
-        const normalizedMagnitude = Math.max(
-          0,
-          Math.min(1, (magnitude - state.minMagnitude) / (state.maxMagnitude - state.minMagnitude))
-        );
+  /**
+   * Renders overlay with labels and grid
+   */
+  function renderOverlay(): void {
+    if (!state.overlayCanvas || !state.ctx2d) return;
 
-        const colorIndex = Math.floor(normalizedMagnitude * 255);
-        const colorMapPixel = colorIndex * 4;
+    const canvas = state.overlayCanvas;
+    const ctx = state.ctx2d;
+    const rect = canvas.getBoundingClientRect();
 
-        const pixelIndex = (y * safeWidth + x) * 4;
-        pixels[pixelIndex] = state.colorMap.data[colorMapPixel];
-        pixels[pixelIndex + 1] = state.colorMap.data[colorMapPixel + 1];
-        pixels[pixelIndex + 2] = state.colorMap.data[colorMapPixel + 2];
-        pixels[pixelIndex + 3] = state.colorMap.data[colorMapPixel + 3];
-      }
+    // Set canvas size to match display size
+    const dpr = window.devicePixelRatio || 1;
+    const width = rect.width;
+    const height = rect.height;
+
+    if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.scale(dpr, dpr);
+    }
+
+    // Clear overlay
+    ctx.clearRect(0, 0, width, height);
+
+    // Get theme colors
+    const axisLabelColor = getThemeColor('axis_label_color', '#cccccc');
+    const gridLineColor = getThemeColor('grid_line_color', '#333333');
+
+    // Draw labels if enabled
+    if (showFrequencyLabels || showTimeLabels) {
+      drawLabels(ctx, width, height, axisLabelColor, gridLineColor);
+    }
+
+    // Draw performance metrics
+    if (state.fps > 0) {
+      ctx.fillStyle = axisLabelColor;
+      ctx.font = '12px var(--typography-font_family_mono)';
+      ctx.textAlign = 'right';
+      ctx.fillText(`${state.fps} FPS | ${state.renderTime.toFixed(1)}ms`, width - 10, 20);
     }
   }
 
   /**
-   * Draws the waterfall data using efficient pixel manipulation
-   * NASA JPL Rule 4: Function refactored to be ≤60 lines
+   * Draws the waterfall data using Canvas2D as fallback
    */
-  function drawWaterfallData(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-    if (!state.colorMap || state.waterfallHistory.length === 0) {
-      return;
-    }
+  function drawWaterfallDataCanvas2D(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number
+  ): void {
+    if (state.waterfallHistory.length === 0) return;
 
     const history = state.waterfallHistory;
     const dataLength = history[0]?.length || 0;
-
-    if (dataLength === 0) {
-      return;
-    }
+    if (dataLength === 0) return;
 
     // Calculate safe dimensions
     const dims = calculateWaterfallDimensions(width, height, history.length);
@@ -401,9 +1109,30 @@
 
     // Create image data for efficient pixel manipulation
     const imageData = ctx.createImageData(safeWidth, safeHeight);
-    
-    // Render pixels
-    renderWaterfallPixels(imageData.data, history, safeWidth, safeHeight, dataLength);
+    const colorMapData = generateColorMapData(colorMap);
+
+    // Render pixels with color mapping
+    for (let y = 0; y < safeHeight && y < history.length; y++) {
+      const magnitudes = history[y];
+
+      for (let x = 0; x < safeWidth; x++) {
+        const binIndex = Math.floor((x / safeWidth) * dataLength);
+        const magnitude = magnitudes[binIndex] || state.minMagnitude;
+
+        const normalized = Math.max(
+          0,
+          Math.min(1, (magnitude - state.minMagnitude) / (state.maxMagnitude - state.minMagnitude))
+        );
+
+        const colorIndex = Math.floor(normalized * 255) * 4;
+        const pixelIndex = (y * safeWidth + x) * 4;
+
+        imageData.data[pixelIndex] = colorMapData[colorIndex];
+        imageData.data[pixelIndex + 1] = colorMapData[colorIndex + 1];
+        imageData.data[pixelIndex + 2] = colorMapData[colorIndex + 2];
+        imageData.data[pixelIndex + 3] = colorMapData[colorIndex + 3];
+      }
+    }
 
     // Draw the image data to canvas
     ctx.putImageData(imageData, startX, startY);
@@ -488,7 +1217,8 @@
       const y = startY + (waterfallHeight * i) / timeLabels;
 
       const secondsAgo = timeIndex / 30; // ~30fps update rate
-      const timeLabel = secondsAgo < 60 ? `${secondsAgo.toFixed(0)}s` : `${(secondsAgo / 60).toFixed(1)}m`;
+      const timeLabel =
+        secondsAgo < 60 ? `${secondsAgo.toFixed(0)}s` : `${(secondsAgo / 60).toFixed(1)}m`;
 
       ctx.fillText(timeLabel, startX - 5, y + 4);
 
@@ -526,7 +1256,16 @@
     const startY = 20;
 
     // Draw frequency labels and vertical grid
-    drawFrequencyLabels(ctx, width, height, waterfallWidth, waterfallHeight, startX, startY, labelColor);
+    drawFrequencyLabels(
+      ctx,
+      width,
+      height,
+      waterfallWidth,
+      waterfallHeight,
+      startX,
+      startY,
+      labelColor
+    );
 
     // Draw time labels and horizontal grid
     drawTimeLabels(ctx, waterfallWidth, waterfallHeight, startX, startY, gridColor);
@@ -661,20 +1400,33 @@
    * Initializes the canvas and rendering context
    */
   function initializeCanvas(): void {
-    if (!canvasElement) {
+    if (!canvasElement || !overlayCanvasElement) {
       return;
     }
 
     state.canvas = canvasElement;
-    state.ctx = canvasElement.getContext('2d');
+    state.overlayCanvas = overlayCanvasElement;
 
-    if (!state.ctx) {
-      console.error('Failed to get 2D rendering context for waterfall visualizer');
-      return;
+    // Try WebGL first
+    const webglSupported = initWebGL();
+
+    if (!webglSupported) {
+      // Fallback to Canvas2D
+      console.warn('WebGL not available, using Canvas2D fallback');
+      state.ctx2d = overlayCanvasElement.getContext('2d');
+
+      if (!state.ctx2d) {
+        console.error('Failed to get 2D rendering context');
+        return;
+      }
+    } else {
+      // Still need 2D context for overlay
+      state.ctx2d = overlayCanvasElement.getContext('2d');
+
+      // Set up WebGL context loss handling
+      canvasElement.addEventListener('webglcontextlost', handleContextLost);
+      canvasElement.addEventListener('webglcontextrestored', handleContextRestored);
     }
-
-    // Initialize color map
-    updateColorMap();
 
     // Initial render
     scheduleRender();
@@ -696,7 +1448,7 @@
   });
 
   afterUpdate(() => {
-    if (canvasElement && !state.canvas) {
+    if (canvasElement && overlayCanvasElement && !state.canvas) {
       initializeCanvas();
     }
   });
@@ -704,6 +1456,28 @@
   onDestroy(() => {
     if (state.animationFrame) {
       cancelAnimationFrame(state.animationFrame);
+    }
+
+    // Clean up WebGL resources
+    if (state.gl) {
+      const gl = state.gl;
+
+      // Delete textures
+      if (state.waterfallTexture) gl.deleteTexture(state.waterfallTexture);
+      if (state.colorMapTexture) gl.deleteTexture(state.colorMapTexture);
+
+      // Delete buffers
+      if (state.vertexBuffer) gl.deleteBuffer(state.vertexBuffer);
+      if (state.textureCoordBuffer) gl.deleteBuffer(state.textureCoordBuffer);
+
+      // Delete program
+      if (state.program) gl.deleteProgram(state.program);
+
+      // Remove event listeners
+      if (state.canvas) {
+        state.canvas.removeEventListener('webglcontextlost', handleContextLost);
+        state.canvas.removeEventListener('webglcontextrestored', handleContextRestored);
+      }
     }
   });
 </script>
@@ -724,12 +1498,48 @@
             ? (processedData.sampleRate / 1000000).toFixed(1) + ' MHz'
             : 'N/A'}
         </span>
+        <span class="info-item">
+          Mode: {state.gl ? 'WebGL' : 'Canvas2D'}
+        </span>
       </div>
     {/if}
   </div>
 
+  <div class="waterfall-controls">
+    <label class="control-item">
+      Color Map:
+      <select bind:value={colorMap} on:change={() => updateColorMapTexture()}>
+        <option value="viridis">Viridis</option>
+        <option value="plasma">Plasma</option>
+        <option value="turbo">Turbo</option>
+        <option value="jet">Jet</option>
+        <option value="grayscale">Grayscale</option>
+      </select>
+    </label>
+    <label class="control-item">
+      Intensity:
+      <input type="range" min="0.1" max="2" step="0.1" bind:value={colorIntensity} />
+    </label>
+    <label class="control-item">
+      <input type="checkbox" bind:checked={averaging} />
+      Averaging
+    </label>
+    <label class="control-item">
+      <input type="checkbox" bind:checked={peakHold} />
+      Peak Hold
+    </label>
+  </div>
+
   <div class="canvas-container">
-    <canvas bind:this={canvasElement} class="waterfall-canvas" data-testid="waterfall-canvas"
+    <canvas
+      bind:this={canvasElement}
+      class="waterfall-canvas webgl-canvas"
+      data-testid="waterfall-canvas"
+    ></canvas>
+    <canvas
+      bind:this={overlayCanvasElement}
+      class="waterfall-canvas overlay-canvas"
+      data-testid="waterfall-overlay"
     ></canvas>
   </div>
 </div>
@@ -778,6 +1588,39 @@
     border: var(--layout-border_width) solid var(--component-sdr-grid_line_color);
   }
 
+  .waterfall-controls {
+    display: flex;
+    gap: calc(var(--layout-spacing_unit) * 2);
+    padding: var(--layout-spacing_unit);
+    background-color: var(--color-background_tertiary);
+    border-bottom: var(--layout-border_width) solid var(--component-sdr-grid_line_color);
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .control-item {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--layout-spacing_unit) / 2);
+    font-size: var(--typography-font_size_sm);
+    color: var(--color-text_secondary);
+  }
+
+  .control-item select,
+  .control-item input[type='range'] {
+    background-color: var(--color-background_primary);
+    border: var(--layout-border_width) solid var(--component-sdr-grid_line_color);
+    border-radius: calc(var(--layout-border_radius) / 2);
+    padding: calc(var(--layout-spacing_unit) / 4) calc(var(--layout-spacing_unit) / 2);
+    color: var(--color-text_primary);
+    font-family: var(--typography-font_family_mono);
+    font-size: var(--typography-font_size_sm);
+  }
+
+  .control-item input[type='checkbox'] {
+    margin: 0;
+  }
+
   .canvas-container {
     flex: 1;
     position: relative;
@@ -786,9 +1629,21 @@
   }
 
   .waterfall-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     display: block;
+  }
+
+  .webgl-canvas {
+    z-index: 1;
+  }
+
+  .overlay-canvas {
+    z-index: 2;
+    pointer-events: none;
     cursor: crosshair;
   }
 

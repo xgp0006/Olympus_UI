@@ -35,10 +35,10 @@
     <div class="advanced-item">
       <label>
         <span>Gyro Filter (Hz)</span>
-        <input 
-          type="number" 
-          min="50" 
-          max="500" 
+        <input
+          type="number"
+          min="50"
+          max="500"
           step="10"
           value={profile.gyroFilter}
           on:change={(e) => updateSetting('gyroFilter', Number(e.currentTarget.value))}
@@ -49,10 +49,10 @@
     <div class="advanced-item">
       <label>
         <span>D-term Filter (Hz)</span>
-        <input 
-          type="number" 
-          min="50" 
-          max="500" 
+        <input
+          type="number"
+          min="50"
+          max="500"
           step="10"
           value={profile.dtermFilter}
           on:change={(e) => updateSetting('dtermFilter', Number(e.currentTarget.value))}
@@ -63,10 +63,10 @@
     <div class="advanced-item">
       <label>
         <span>Feed Forward</span>
-        <input 
-          type="number" 
-          min="0" 
-          max="100" 
+        <input
+          type="number"
+          min="0"
+          max="100"
           step="5"
           value={profile.feedForward}
           on:change={(e) => updateSetting('feedForward', Number(e.currentTarget.value))}
@@ -77,10 +77,10 @@
     <div class="advanced-item">
       <label>
         <span>I-term Relax</span>
-        <input 
-          type="number" 
-          min="0" 
-          max="100" 
+        <input
+          type="number"
+          min="0"
+          max="100"
           step="5"
           value={profile.iTermRelax}
           on:change={(e) => updateSetting('iTermRelax', Number(e.currentTarget.value))}

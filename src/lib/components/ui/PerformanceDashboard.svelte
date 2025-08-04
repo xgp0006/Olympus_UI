@@ -7,12 +7,12 @@
 -->
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { 
-    performanceMonitor, 
-    currentFPS, 
-    isPerformanceCritical, 
+  import {
+    performanceMonitor,
+    currentFPS,
+    isPerformanceCritical,
     performanceWarning,
-    PERFORMANCE_CONSTANTS 
+    PERFORMANCE_CONSTANTS
   } from '$lib/utils/performance-optimizations';
   import { browser } from '$app/environment';
 
@@ -43,13 +43,13 @@
    */
   function updateStats(): void {
     if (!browser) return;
-    
+
     stats = performanceMonitor.getStats();
-    
+
     // Update history arrays
     fpsHistory.push($currentFPS || 0);
     memoryHistory.push(stats.memoryUsage);
-    
+
     // Bounded arrays (NASA JPL Rule 2)
     if (fpsHistory.length > MAX_HISTORY_LENGTH) {
       fpsHistory.shift();
@@ -57,7 +57,7 @@
     if (memoryHistory.length > MAX_HISTORY_LENGTH) {
       memoryHistory.shift();
     }
-    
+
     // Auto-hide logic
     if (autoHide && !$isPerformanceCritical && !$performanceWarning) {
       if (hideTimeout === null) {
@@ -87,7 +87,8 @@
    * Get performance status color
    */
   function getPerformanceColor(fps: number): string {
-    if (fps >= PERFORMANCE_CONSTANTS.TARGET_FPS * 0.9) return 'var(--color-status_success, #4caf50)';
+    if (fps >= PERFORMANCE_CONSTANTS.TARGET_FPS * 0.9)
+      return 'var(--color-status_success, #4caf50)';
     if (fps >= 60) return 'var(--color-status_warning, #ff9800)';
     return 'var(--color-status_error, #f44336)';
   }
@@ -135,9 +136,9 @@
 
 <!-- Performance dashboard container -->
 {#if visible}
-  <div 
-    class="performance-dashboard" 
-    class:minimized 
+  <div
+    class="performance-dashboard"
+    class:minimized
     class:critical={$isPerformanceCritical}
     class:warning={$performanceWarning}
     class:position-top-left={position === 'top-left'}
@@ -146,7 +147,20 @@
     class:position-bottom-right={position === 'bottom-right'}
   >
     <!-- Dashboard header -->
-    <div class="dashboard-header" on:click={toggleMinimized} role="button" tabindex="0">
+    <div
+      class="dashboard-header"
+      on:click={toggleMinimized}
+      on:keydown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleMinimized();
+        }
+      }}
+      role="button"
+      tabindex="0"
+      aria-label="Toggle performance dashboard"
+      aria-expanded={!minimized}
+    >
       <span class="dashboard-title">Performance</span>
       <div class="dashboard-controls">
         <span class="minimize-icon" class:rotated={!minimized}>▼</span>
@@ -178,7 +192,10 @@
           </div>
           <div class="metric">
             <span class="metric-label">Max Frame:</span>
-            <span class="metric-value" class:warning={stats.maxFrameTime > PERFORMANCE_CONSTANTS.WARNING_FRAME_TIME}>
+            <span
+              class="metric-value"
+              class:warning={stats.maxFrameTime > PERFORMANCE_CONSTANTS.WARNING_FRAME_TIME}
+            >
               {stats.maxFrameTime.toFixed(1)}ms
             </span>
           </div>
@@ -199,17 +216,21 @@
               <svg viewBox="0 0 60 20" class="chart-svg">
                 <!-- FPS line -->
                 <polyline
-                  points={fpsHistory.map((fps, i) => `${i},${20 - (fps / PERFORMANCE_CONSTANTS.TARGET_FPS) * 20}`).join(' ')}
+                  points={fpsHistory
+                    .map((fps, i) => `${i},${20 - (fps / PERFORMANCE_CONSTANTS.TARGET_FPS) * 20}`)
+                    .join(' ')}
                   fill="none"
                   stroke={getPerformanceColor($currentFPS || 0)}
                   stroke-width="0.5"
                 />
                 <!-- Target FPS line -->
-                <line 
-                  x1="0" 
-                  y1={20 - (PERFORMANCE_CONSTANTS.TARGET_FPS / PERFORMANCE_CONSTANTS.TARGET_FPS) * 20} 
-                  x2="60" 
-                  y2={20 - (PERFORMANCE_CONSTANTS.TARGET_FPS / PERFORMANCE_CONSTANTS.TARGET_FPS) * 20}
+                <line
+                  x1="0"
+                  y1={20 -
+                    (PERFORMANCE_CONSTANTS.TARGET_FPS / PERFORMANCE_CONSTANTS.TARGET_FPS) * 20}
+                  x2="60"
+                  y2={20 -
+                    (PERFORMANCE_CONSTANTS.TARGET_FPS / PERFORMANCE_CONSTANTS.TARGET_FPS) * 20}
                   stroke="var(--color-accent_blue, #007acc)"
                   stroke-width="0.2"
                   stroke-dasharray="1,1"
@@ -221,10 +242,8 @@
 
         <!-- Controls -->
         <div class="dashboard-controls-row">
-          <button class="control-btn" on:click={clearHistory} title="Clear history">
-            Clear
-          </button>
-          <button class="control-btn" on:click={() => visible = false} title="Hide dashboard">
+          <button class="control-btn" on:click={clearHistory} title="Clear history"> Clear </button>
+          <button class="control-btn" on:click={() => (visible = false)} title="Hide dashboard">
             Hide
           </button>
         </div>
@@ -248,10 +267,22 @@
   }
 
   /* Position variants */
-  .position-top-left { top: 10px; left: 10px; }
-  .position-top-right { top: 10px; right: 10px; }
-  .position-bottom-left { bottom: 10px; left: 10px; }
-  .position-bottom-right { bottom: 10px; right: 10px; }
+  .position-top-left {
+    top: 10px;
+    left: 10px;
+  }
+  .position-top-right {
+    top: 10px;
+    right: 10px;
+  }
+  .position-bottom-left {
+    bottom: 10px;
+    left: 10px;
+  }
+  .position-bottom-right {
+    bottom: 10px;
+    right: 10px;
+  }
 
   /* State variants */
   .performance-dashboard.critical {
@@ -394,17 +425,25 @@
       font-size: 0.7rem;
       min-width: 180px;
     }
-    
+
     .position-top-left,
-    .position-bottom-left { left: 5px; }
-    
+    .position-bottom-left {
+      left: 5px;
+    }
+
     .position-top-right,
-    .position-bottom-right { right: 5px; }
-    
+    .position-bottom-right {
+      right: 5px;
+    }
+
     .position-top-left,
-    .position-top-right { top: 5px; }
-    
+    .position-top-right {
+      top: 5px;
+    }
+
     .position-bottom-left,
-    .position-bottom-right { bottom: 5px; }
+    .position-bottom-right {
+      bottom: 5px;
+    }
   }
 </style>

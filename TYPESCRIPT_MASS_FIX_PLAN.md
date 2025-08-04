@@ -3,9 +3,10 @@
 ## Phase 1: Import Type Fixes (Automated - 15 minutes)
 
 ### Files to Fix:
+
 1. src/lib/map-features/shared/aerospace-context.ts
-2. src/lib/map-features/crosshair/renderers/ring-renderer.ts  
-3. src/lib/plugins/drone-config/__tests__/utils/mockDroneData.ts
+2. src/lib/map-features/crosshair/renderers/ring-renderer.ts
+3. src/lib/plugins/drone-config/**tests**/utils/mockDroneData.ts
 
 ### Mass Fix Commands:
 
@@ -14,13 +15,13 @@
 find src/lib/map-features -name "*.ts" -type f -exec sed -i.bak \
   's/import type { RenderErrorType }/import { RenderErrorType }/g' {} \;
 
-# Fix DroneErrorType imports  
+# Fix DroneErrorType imports
 find src/lib/plugins/drone-config -name "*.ts" -type f -exec sed -i.bak \
   's/import type { DroneErrorType }/import { DroneErrorType }/g' {} \;
 
 # Alternative for Windows PowerShell:
 Get-ChildItem -Path "src/lib/map-features" -Filter "*.ts" -Recurse | ForEach-Object {
-    (Get-Content $_.FullName) -replace 'import type { RenderErrorType }', 'import { RenderErrorType }' | 
+    (Get-Content $_.FullName) -replace 'import type { RenderErrorType }', 'import { RenderErrorType }' |
     Set-Content $_.FullName
 }
 ```
@@ -28,40 +29,46 @@ Get-ChildItem -Path "src/lib/map-features" -Filter "*.ts" -Recurse | ForEach-Obj
 ## Phase 2: Service Method Fixes (Semi-automated - 30 minutes)
 
 ### Files to Fix:
-1. src/lib/plugins/drone-config/__tests__/services/mavlink-service.test.ts
-2. src/lib/plugins/drone-config/__tests__/services/parameter-service.test.ts
+
+1. src/lib/plugins/drone-config/**tests**/services/mavlink-service.test.ts
+2. src/lib/plugins/drone-config/**tests**/services/parameter-service.test.ts
 
 ### Strategy:
+
 1. Add missing error methods to service interfaces
 2. Update test expectations to match actual implementation
 
 ### Mass Fix Pattern:
+
 ```typescript
 // Add to MAVLinkService interface:
 getError(): Error | null;
 getErrorType(): string | null;
 
-// Add to ParameterService interface:  
+// Add to ParameterService interface:
 getErrorType(): string | null;
 ```
 
 ## Phase 3: Test Utility Type Fixes (Manual - 45 minutes)
 
 ### File to Fix:
-1. src/lib/plugins/drone-config/__tests__/utils/testUtils.ts
+
+1. src/lib/plugins/drone-config/**tests**/utils/testUtils.ts
 
 ### Fix Strategy:
+
 ```typescript
 // Change from:
-context: new Map([...array])
+context: new Map([...array]);
 
 // To:
-context: new Map<string, any>([...array] as const)
+context: new Map<string, any>([...array] as const);
 ```
 
 ## Phase 4: Validation & Cleanup (15 minutes)
 
 ### Commands:
+
 ```bash
 # Remove backup files after verification
 find . -name "*.bak" -type f -delete
@@ -78,12 +85,14 @@ npx svelte-check
 To prevent concurrent edits:
 
 ### Team Assignments:
+
 - **Agent 1**: Phase 1 - map-features directory ONLY
-- **Agent 2**: Phase 1 - drone-config directory ONLY  
+- **Agent 2**: Phase 1 - drone-config directory ONLY
 - **Agent 3**: Phase 2 - Test files ONLY
 - **Agent 4**: Phase 3 - testUtils.ts ONLY
 
 ### Lock File Implementation:
+
 ```bash
 # Before editing:
 touch .editing-${AGENT_ID}-${FILE_NAME}.lock

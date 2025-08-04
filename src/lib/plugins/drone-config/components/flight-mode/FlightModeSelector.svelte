@@ -45,7 +45,7 @@
   // NASA JPL compliant function: Handle drag start
   function handleDragStart(event: DragEvent, mode: FlightMode): void {
     if (readonly) return;
-    
+
     event.dataTransfer!.effectAllowed = 'copy';
     event.dataTransfer!.setData('text/plain', mode.id);
     dispatch('dragStart', { mode });
@@ -64,7 +64,7 @@
       <div class="mode-category">
         <h5 class="category-title" style="color: {color}">{category.toUpperCase()}</h5>
         <div class="mode-cards">
-          {#each flightModes.filter(m => m.category === category && (showAdvanced || category !== 'advanced')) as mode (mode.id)}
+          {#each flightModes.filter((m) => m.category === category && (showAdvanced || category !== 'advanced')) as mode (mode.id)}
             <div
               class="mode-card"
               class:active={mode.isActive}
@@ -74,7 +74,7 @@
               on:click={() => selectMode(mode)}
               style="border-color: {color}"
               animate:flip={{ duration: 200 }}
-              role="button" 
+              role="button"
               tabindex="0"
               on:keydown={(e) => e.key === 'Enter' && selectMode(mode)}
             >

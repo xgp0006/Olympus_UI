@@ -29,14 +29,14 @@ const BOUNDS = {
 };
 
 export async function validateInput(
-  input: string, 
+  input: string,
   format: CoordinateFormat
 ): Promise<ValidationResult> {
   const startTime = performance.now();
-  
+
   try {
     const trimmedInput = input.trim();
-    
+
     if (!trimmedInput) {
       return {
         valid: false,
@@ -45,7 +45,7 @@ export async function validateInput(
     }
 
     let result: ValidationResult;
-    
+
     switch (format) {
       case 'latlong':
         result = validateLatLong(trimmedInput);
@@ -84,10 +84,10 @@ export async function validateInput(
 function validateDecimalDegrees(input: string): ValidationResult | null {
   const ddMatch = input.match(VALIDATION_PATTERNS.latlong.decimal);
   if (!ddMatch) return null;
-  
+
   const lat = parseFloat(ddMatch[1]);
   const lng = parseFloat(ddMatch[2]);
-  
+
   if (lat < BOUNDS.lat.min || lat > BOUNDS.lat.max) {
     return {
       valid: false,
@@ -95,7 +95,7 @@ function validateDecimalDegrees(input: string): ValidationResult | null {
       suggestions: [`${Math.max(BOUNDS.lat.min, Math.min(BOUNDS.lat.max, lat))}, ${lng}`]
     };
   }
-  
+
   if (lng < BOUNDS.lng.min || lng > BOUNDS.lng.max) {
     return {
       valid: false,
@@ -103,22 +103,22 @@ function validateDecimalDegrees(input: string): ValidationResult | null {
       suggestions: [`${lat}, ${Math.max(BOUNDS.lng.min, Math.min(BOUNDS.lng.max, lng))}`]
     };
   }
-  
+
   return { valid: true };
 }
 
 function validateDMSFormat(input: string): ValidationResult | null {
   const dmsMatch = input.match(VALIDATION_PATTERNS.latlong.dms);
   if (!dmsMatch) return null;
-  
+
   const latDeg = parseInt(dmsMatch[1]);
   const latMin = parseInt(dmsMatch[2]);
   const latSec = parseFloat(dmsMatch[3]);
-  
+
   const lngDeg = parseInt(dmsMatch[5]);
   const lngMin = parseInt(dmsMatch[6]);
   const lngSec = parseFloat(dmsMatch[7]);
-  
+
   // Validate time ranges
   if (latMin >= 60 || latSec >= 60 || lngMin >= 60 || lngSec >= 60) {
     return {
@@ -126,7 +126,7 @@ function validateDMSFormat(input: string): ValidationResult | null {
       error: 'Minutes and seconds must be less than 60'
     };
   }
-  
+
   // Validate degree ranges
   if (latDeg > 90 || (latDeg === 90 && (latMin > 0 || latSec > 0))) {
     return {
@@ -134,14 +134,14 @@ function validateDMSFormat(input: string): ValidationResult | null {
       error: 'Latitude degrees cannot exceed 90°'
     };
   }
-  
+
   if (lngDeg > 180 || (lngDeg === 180 && (lngMin > 0 || lngSec > 0))) {
     return {
       valid: false,
       error: 'Longitude degrees cannot exceed 180°'
     };
   }
-  
+
   return { valid: true };
 }
 
@@ -149,10 +149,10 @@ function validateLatLong(input: string): ValidationResult {
   // NASA JPL Rule 3: Function complexity reduced by delegation
   let result = validateDecimalDegrees(input);
   if (result) return result;
-  
+
   result = validateDMSFormat(input);
   if (result) return result;
-  
+
   // Try DDM format
   const ddmMatch = input.match(VALIDATION_PATTERNS.latlong.ddm);
   if (ddmMatch) {
@@ -167,9 +167,9 @@ function validateLatLong(input: string): ValidationResult {
 }
 
 function validateUTM(input: string): ValidationResult {
-  const match = input.match(VALIDATION_PATTERNS.utm.standard) || 
-                input.match(VALIDATION_PATTERNS.utm.compact);
-  
+  const match =
+    input.match(VALIDATION_PATTERNS.utm.standard) || input.match(VALIDATION_PATTERNS.utm.compact);
+
   if (!match) {
     return {
       valid: false,
@@ -177,19 +177,19 @@ function validateUTM(input: string): ValidationResult {
       suggestions: getUTMSuggestions(input)
     };
   }
-  
+
   const zone = parseInt(match[1]);
   const letter = match[2].toUpperCase();
   const easting = parseInt(match[3]);
   const northing = parseInt(match[4]);
-  
+
   if (zone < BOUNDS.utmZone.min || zone > BOUNDS.utmZone.max) {
     return {
       valid: false,
       error: `UTM zone must be between ${BOUNDS.utmZone.min} and ${BOUNDS.utmZone.max}`
     };
   }
-  
+
   // Validate grid zone letter
   const validLetters = 'CDEFGHJKLMNPQRSTUVWX';
   if (!validLetters.includes(letter)) {
@@ -199,27 +199,27 @@ function validateUTM(input: string): ValidationResult {
       suggestions: [`${zone}T ${easting} ${northing}`]
     };
   }
-  
+
   if (easting < BOUNDS.utmEasting.min || easting > BOUNDS.utmEasting.max) {
     return {
       valid: false,
       error: `Easting must be between ${BOUNDS.utmEasting.min} and ${BOUNDS.utmEasting.max}`
     };
   }
-  
+
   if (northing < BOUNDS.utmNorthing.min || northing > BOUNDS.utmNorthing.max) {
     return {
       valid: false,
       error: `Northing must be between ${BOUNDS.utmNorthing.min} and ${BOUNDS.utmNorthing.max}`
     };
   }
-  
+
   return { valid: true };
 }
 
 function validateMGRS(input: string): ValidationResult {
   const match = input.match(VALIDATION_PATTERNS.mgrs.full);
-  
+
   if (!match) {
     return {
       valid: false,
@@ -227,32 +227,31 @@ function validateMGRS(input: string): ValidationResult {
       suggestions: getMGRSSuggestions(input)
     };
   }
-  
+
   const gridZone = match[1].toUpperCase();
   const gridSquare = match[2].toUpperCase();
   const digits = match[3];
-  
+
   // Validate grid zone
   const zoneNumber = parseInt(gridZone.slice(0, -1));
   const zoneLetter = gridZone.slice(-1);
-  
+
   if (zoneNumber < 1 || zoneNumber > 60) {
     return {
       valid: false,
       error: 'MGRS zone number must be between 1 and 60'
     };
   }
-  
+
   // Validate grid square letters
   const validSquareLetters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // No I or O
-  if (!validSquareLetters.includes(gridSquare[0]) || 
-      !validSquareLetters.includes(gridSquare[1])) {
+  if (!validSquareLetters.includes(gridSquare[0]) || !validSquareLetters.includes(gridSquare[1])) {
     return {
       valid: false,
       error: 'Invalid MGRS grid square letters (I and O are not used)'
     };
   }
-  
+
   // Validate digits (must be even number)
   if (digits.length % 2 !== 0) {
     return {
@@ -260,7 +259,7 @@ function validateMGRS(input: string): ValidationResult {
       error: 'MGRS coordinates must have an even number of digits'
     };
   }
-  
+
   const precision = digits.length / 2;
   if (precision < 1 || precision > 5) {
     return {
@@ -268,13 +267,13 @@ function validateMGRS(input: string): ValidationResult {
       error: 'MGRS precision must be between 1 and 5 (2-10 digits)'
     };
   }
-  
+
   return { valid: true };
 }
 
 function validateWhat3Words(input: string): ValidationResult {
   const match = input.match(VALIDATION_PATTERNS.what3words.standard);
-  
+
   if (!match) {
     return {
       valid: false,
@@ -282,9 +281,9 @@ function validateWhat3Words(input: string): ValidationResult {
       suggestions: getWhat3WordsSuggestions(input)
     };
   }
-  
+
   const words = input.split('.');
-  
+
   // Basic validation - each word should be reasonable length
   for (const word of words) {
     if (word.length < 1 || word.length > 40) {
@@ -294,7 +293,7 @@ function validateWhat3Words(input: string): ValidationResult {
       };
     }
   }
-  
+
   // Note: Full validation would require API call to verify words exist
   return { valid: true };
 }
@@ -302,7 +301,7 @@ function validateWhat3Words(input: string): ValidationResult {
 // Suggestion helpers for better UX
 function getLatLongSuggestions(input: string): string[] {
   const suggestions: string[] = [];
-  
+
   // If it looks like they're trying decimal degrees
   if (input.includes(',') || input.includes(' ')) {
     const parts = input.split(/[,\s]+/);
@@ -310,55 +309,53 @@ function getLatLongSuggestions(input: string): string[] {
       suggestions.push(`${parts[0].trim()}, ${parts[1].trim()}`);
     }
   }
-  
+
   // If it contains degree symbols, suggest DMS format
   if (input.includes('°')) {
     suggestions.push('40°42\'46.0"N 74°00\'21.6"W');
   }
-  
+
   return suggestions;
 }
 
 function getUTMSuggestions(input: string): string[] {
   const suggestions: string[] = [];
-  
+
   // If missing spaces
   const compactMatch = input.match(/^(\d{1,2})([A-Z])(\d+)$/i);
   if (compactMatch) {
     const [, zone, letter, rest] = compactMatch;
     const halfLength = Math.floor(rest.length / 2);
-    suggestions.push(
-      `${zone}${letter} ${rest.slice(0, halfLength)} ${rest.slice(halfLength)}`
-    );
+    suggestions.push(`${zone}${letter} ${rest.slice(0, halfLength)} ${rest.slice(halfLength)}`);
   }
-  
+
   return suggestions;
 }
 
 function getMGRSSuggestions(input: string): string[] {
   const suggestions: string[] = [];
-  
+
   // Common MGRS format issues
   if (input.includes(' ')) {
     suggestions.push(input.replace(/\s+/g, ''));
   }
-  
+
   return suggestions;
 }
 
 function getWhat3WordsSuggestions(input: string): string[] {
   const suggestions: string[] = [];
-  
+
   // If using wrong separator
   if (input.includes('-') || input.includes('_')) {
     suggestions.push(input.replace(/[-_]/g, '.'));
   }
-  
+
   // If missing separators
   const words = input.split(/[.\s-_]+/);
   if (words.length === 3) {
     suggestions.push(words.join('.').toLowerCase());
   }
-  
+
   return suggestions;
 }

@@ -8,7 +8,7 @@ import type { MAVLinkMessage, VehicleInfo, MAVMessageType } from '../types/drone
 
 export class MAVLinkParser {
   private vehicleInfo: VehicleInfo | null = null;
-  
+
   /**
    * NASA JPL compliant: Parse heartbeat message
    */
@@ -16,7 +16,7 @@ export class MAVLinkParser {
     // In real implementation, extract vehicle state, mode, etc.
     return { connected: true };
   }
-  
+
   /**
    * NASA JPL compliant: Parse status text message
    */
@@ -24,7 +24,7 @@ export class MAVLinkParser {
     try {
       const severity = message.payload[0];
       const text = new TextDecoder().decode(message.payload.slice(1, 51)).trim();
-      
+
       if (severity < 4) {
         showError('Vehicle Message', text);
       } else if (severity < 6) {
@@ -36,7 +36,7 @@ export class MAVLinkParser {
       console.error('Failed to parse status text:', error);
     }
   }
-  
+
   /**
    * NASA JPL compliant: Parse autopilot version
    */
@@ -44,7 +44,7 @@ export class MAVLinkParser {
     try {
       const capabilities = new DataView(message.payload.buffer).getBigUint64(0, true);
       const flightSwVersion = new DataView(message.payload.buffer).getUint32(8, true);
-      
+
       this.vehicleInfo = {
         autopilot: 'ArduPilot',
         vehicleType: 'Quadcopter',
@@ -52,21 +52,21 @@ export class MAVLinkParser {
         protocolVersion: '2.0',
         capabilities: this.parseCapabilities(capabilities)
       };
-      
+
       return this.vehicleInfo;
     } catch (error) {
       console.error('Failed to parse autopilot version:', error);
       return null;
     }
   }
-  
+
   /**
    * NASA JPL compliant: Extract version string
    */
   private extractVersion(version: number): string {
-    return `${(version >> 24) & 0xFF}.${(version >> 16) & 0xFF}.${(version >> 8) & 0xFF}`;
+    return `${(version >> 24) & 0xff}.${(version >> 16) & 0xff}.${(version >> 8) & 0xff}`;
   }
-  
+
   /**
    * NASA JPL compliant: Parse vehicle capabilities
    */
@@ -83,14 +83,14 @@ export class MAVLinkParser {
       { flag: 0x80n, name: 'SET_POSITION_TARGET_LOCAL_NED' },
       { flag: 0x100n, name: 'SET_POSITION_TARGET_GLOBAL_INT' }
     ];
-    
+
     FLAGS.forEach(({ flag, name }) => {
       if (capabilities & flag) caps.push(name);
     });
-    
+
     return caps;
   }
-  
+
   getVehicleInfo(): VehicleInfo | null {
     return this.vehicleInfo;
   }

@@ -49,6 +49,12 @@ fn health_check() -> String {
     "Modular C2 Backend is running".into()
 }
 
+// Ping command for connection checks
+#[tauri::command]
+fn ping() -> Result<String, String> {
+    Ok("pong".to_string())
+}
+
 // Get application info
 #[tauri::command]
 fn get_app_info() -> serde_json::Value {
@@ -267,6 +273,7 @@ fn main() {
         .manage(mavlink::init())
         .invoke_handler(tauri::generate_handler![
             health_check,
+            ping,
             get_app_info,
             get_loaded_plugins,
             run_cli_command,

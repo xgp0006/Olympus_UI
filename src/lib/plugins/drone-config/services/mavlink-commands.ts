@@ -5,6 +5,7 @@
 
 import { invokeTauriCommand } from '$lib/utils/tauri';
 import { BoundedArray } from '$lib/utils/bounded-array';
+import { MAVLinkAssertions } from './mavlink-assertions';
 import type { MAVLinkCommand, MAVResult } from '../types/drone-types';
 
 const MAX_PENDING_COMMANDS = 50;
@@ -21,14 +22,14 @@ interface PendingCommand {
 export class MAVLinkCommands {
   private pendingCommands = new Map<string, PendingCommand>();
   private messagesSent: number = 0;
-  
+
   /**
    * NASA JPL compliant: Generate command key
    */
   private generateKey(cmd: MAVLinkCommand): string {
     return `${cmd.targetSystem}_${cmd.targetComponent}_${cmd.command}_${cmd.confirmation}`;
   }
-  
+
   /**
    * NASA JPL compliant: Send command
    */
@@ -36,14 +37,24 @@ export class MAVLinkCommands {
     command: MAVLinkCommand,
     options: { timeout?: number; retries?: number } = {}
   ): Promise<MAVResult> {
+    // NASA JPL Rule 5: Command has already been validated by MAVLinkService
+    // Additional validation for timeout and retries
     const timeout = options.timeout || 5000;
     const maxRetries = options.retries || 3;
-    
+
+    // NASA JPL Rule 5: Validate timeout
+    MAVLinkAssertions.validateCommandTimeout(timeout);
+
+    // NASA JPL Rule 5: Validate retries
+    if (maxRetries < 0 || maxRetries > 10) {
+      throw new Error(`Invalid retry count: ${maxRetries} (must be 0-10)`);
+    }
+
     this.checkPendingLimit();
-    
+
     return new Promise((resolve, reject) => {
       const key = this.generateKey(command);
-      
+
       const pending: PendingCommand = {
         command,
         timestamp: Date.now(),
@@ -54,36 +65,48 @@ export class MAVLinkCommands {
           this.handleTimeout(key, pending, maxRetries);
         }, timeout)
       };
-      
+
       this.pendingCommands.set(key, pending);
-      this.sendToBackend(command).catch(error => {
+      this.sendToBackend(command).catch((error) => {
         clearTimeout(pending.timeoutId);
         this.pendingCommands.delete(key);
         reject(error);
       });
     });
   }
-  
+
   /**
    * NASA JPL compliant: Handle command acknowledgment
    */
   handleAck(ack: { command: number; result: MAVResult }): void {
+    // NASA JPL Rule 5: Validate acknowledgment
+    if (!Number.isInteger(ack.command) || ack.command < 0) {
+      console.error(`Invalid command in ACK: ${ack.command}`);
+      return;
+    }
+
+    if (!Number.isInteger(ack.result) || ack.result < 0 || ack.result > 6) {
+      console.error(`Invalid result in ACK: ${ack.result}`);
+      return;
+    }
+
     for (const [key, pending] of this.pendingCommands.entries()) {
       if (pending.command.command === ack.command) {
         clearTimeout(pending.timeoutId);
-        
-        if (ack.result === 0 || ack.result === 5) { // ACCEPTED or IN_PROGRESS
+
+        if (ack.result === 0 || ack.result === 5) {
+          // ACCEPTED or IN_PROGRESS
           pending.resolver(ack.result);
         } else {
           pending.rejecter(new Error(`Command failed: ${ack.result}`));
         }
-        
+
         this.pendingCommands.delete(key);
         break;
       }
     }
   }
-  
+
   /**
    * NASA JPL compliant: Check pending commands limit
    */
@@ -98,7 +121,7 @@ export class MAVLinkCommands {
       }
     }
   }
-  
+
   /**
    * NASA JPL compliant: Handle command timeout
    */
@@ -111,14 +134,14 @@ export class MAVLinkCommands {
       pending.rejecter(new Error(`Command timeout after ${maxRetries} retries`));
     }
   }
-  
+
   /**
    * NASA JPL compliant: Retry command
    */
   private async retryCommand(key: string, pending: PendingCommand): Promise<void> {
     try {
       await this.sendToBackend(pending.command);
-      
+
       pending.timeoutId = window.setTimeout(() => {
         this.handleTimeout(key, pending, 3);
       }, 5000);
@@ -127,29 +150,33 @@ export class MAVLinkCommands {
       pending.rejecter(error as Error);
     }
   }
-  
+
   /**
    * NASA JPL compliant: Send command to backend
    */
   private async sendToBackend(command: MAVLinkCommand): Promise<void> {
-    await invokeTauriCommand('send_mavlink_command', { command }, {
-      showNotification: false,
-      retryAttempts: 0
-    });
+    await invokeTauriCommand(
+      'send_mavlink_command',
+      { command },
+      {
+        showNotification: false,
+        retryAttempts: 0
+      }
+    );
     this.messagesSent++;
   }
-  
+
   /**
    * NASA JPL compliant: Clear pending commands
    */
   clearPending(): void {
-    this.pendingCommands.forEach(pending => {
+    this.pendingCommands.forEach((pending) => {
       clearTimeout(pending.timeoutId);
       pending.rejecter(new Error('Service shutting down'));
     });
     this.pendingCommands.clear();
   }
-  
+
   getMessagesSent(): number {
     return this.messagesSent;
   }

@@ -4,7 +4,7 @@
  * Requirements: 2.1, 2.5, 2.7
  */
 
-import { render, fireEvent, waitFor, screen } from '@testing-library/svelte';
+import { render, waitFor } from '@testing-library/svelte';
 import { vi, describe, test, expect, beforeEach } from 'vitest';
 import CliView from '../CliView.svelte';
 import { theme } from '../../../stores/theme';

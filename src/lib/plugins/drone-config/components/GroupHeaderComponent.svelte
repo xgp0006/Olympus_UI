@@ -41,7 +41,7 @@
 </script>
 
 <!-- Group header container -->
-<div 
+<div
   class="group-header"
   class:expanded
   on:click={handleToggle}
@@ -129,7 +129,7 @@
     .group-header {
       border-bottom: 2px solid var(--color-border_primary, #ffffff);
     }
-    
+
     .group-header:focus {
       outline: 3px solid var(--color-accent_blue, #007acc);
     }
@@ -150,11 +150,11 @@
       color: black !important;
       border-bottom: 1px solid black;
     }
-    
+
     .group-name {
       color: black !important;
     }
-    
+
     .group-count {
       background: #f0f0f0 !important;
       color: black !important;

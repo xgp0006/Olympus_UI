@@ -12,7 +12,9 @@
   // Component and props configuration
   export let component: any; // Svelte component constructor
   export let props: Record<string, any> = {}; // Component props
-  export let compareProps: ((prev: Record<string, any>, next: Record<string, any>) => boolean) | undefined = undefined;
+  export let compareProps:
+    | ((prev: Record<string, any>, next: Record<string, any>) => boolean)
+    | undefined = undefined;
   export let enablePerfMonitoring: boolean = false;
   export let debugName: string = 'MemoizedComponent';
 
@@ -105,13 +107,13 @@
    */
   function checkShouldUpdate(newProps: Record<string, any>): boolean {
     const comparisonStart = performance.now();
-    
+
     const compareFn = compareProps || defaultCompareProps;
     const propsEqual = compareFn(prevProps, newProps);
-    
+
     const comparisonTime = performance.now() - comparisonStart;
     comparisonTimes.push(comparisonTime);
-    
+
     // Keep only last 100 comparison times for metrics
     if (comparisonTimes.length > 100) {
       comparisonTimes.shift();
@@ -119,15 +121,15 @@
 
     if (propsEqual) {
       skipCount++;
-      dispatch('skip', { 
-        skipCount, 
-        reason: 'Props unchanged' 
+      dispatch('skip', {
+        skipCount,
+        reason: 'Props unchanged'
       });
-      
+
       if (enablePerfMonitoring) {
         emitMetrics();
       }
-      
+
       return false;
     }
 
@@ -139,17 +141,20 @@
    * Emit performance metrics
    */
   function emitMetrics(): void {
-    const avgComparisonTime = comparisonTimes.length > 0 
-      ? comparisonTimes.reduce((sum, time) => sum + time, 0) / comparisonTimes.length 
-      : 0;
+    const avgComparisonTime =
+      comparisonTimes.length > 0
+        ? comparisonTimes.reduce((sum, time) => sum + time, 0) / comparisonTimes.length
+        : 0;
 
     const metrics: MemoizationMetrics = {
       renderCount,
       skipCount,
       avgRenderTime: renderCount > 0 ? totalRenderTime / renderCount : 0,
       lastComparisonTime: avgComparisonTime,
-      memoryUsage: browser && 'memory' in performance ? 
-        (performance as any).memory?.usedJSHeapSize || 0 : undefined
+      memoryUsage:
+        browser && 'memory' in performance
+          ? (performance as any).memory?.usedJSHeapSize || 0
+          : undefined
     };
 
     dispatch('metrics', metrics);
@@ -170,7 +175,8 @@
     }
 
     // Log performance warnings for aerospace debugging
-    if (renderTime > 16.67) { // More than one 60fps frame
+    if (renderTime > 16.67) {
+      // More than one 60fps frame
       console.warn(`[${debugName}] Slow render detected: ${renderTime.toFixed(2)}ms`);
     }
   }
@@ -182,18 +188,23 @@
 
   // Log memoization stats in development
   $: if (browser && enablePerfMonitoring) {
-    const efficiency = renderCount + skipCount > 0 
-      ? (skipCount / (renderCount + skipCount) * 100).toFixed(1)
-      : '0.0';
-    
-    console.log(`[${debugName}] Memoization efficiency: ${efficiency}% (${skipCount} skips, ${renderCount} renders)`);
+    const efficiency =
+      renderCount + skipCount > 0
+        ? ((skipCount / (renderCount + skipCount)) * 100).toFixed(1)
+        : '0.0';
+
+    console.log(
+      `[${debugName}] Memoization efficiency: ${efficiency}% (${skipCount} skips, ${renderCount} renders)`
+    );
   }
 
   onDestroy(() => {
     // Log final performance metrics
     if (enablePerfMonitoring && (renderCount > 0 || skipCount > 0)) {
-      const efficiency = (skipCount / (renderCount + skipCount) * 100).toFixed(1);
-      console.log(`[${debugName}] Final metrics: ${efficiency}% efficiency, avg render: ${(totalRenderTime / renderCount).toFixed(2)}ms`);
+      const efficiency = ((skipCount / (renderCount + skipCount)) * 100).toFixed(1);
+      console.log(
+        `[${debugName}] Final metrics: ${efficiency}% efficiency, avg render: ${(totalRenderTime / renderCount).toFixed(2)}ms`
+      );
     }
   });
 </script>
@@ -204,11 +215,7 @@
     <!-- Track render time -->
     {#key props}
       <div class="memoized-wrapper" bind:this={componentInstance}>
-        <svelte:component 
-          this={component} 
-          {...props}
-          on:*
-        />
+        <svelte:component this={component} {...props} on:* />
       </div>
     {/key}
   {:else}
@@ -233,7 +240,9 @@
     <div class="perf-stat">
       <span class="perf-label">Efficiency:</span>
       <span class="perf-value">
-        {renderCount + skipCount > 0 ? (skipCount / (renderCount + skipCount) * 100).toFixed(1) : '0'}%
+        {renderCount + skipCount > 0
+          ? ((skipCount / (renderCount + skipCount)) * 100).toFixed(1)
+          : '0'}%
       </span>
     </div>
     <div class="perf-stat">

@@ -17,12 +17,7 @@ export const AGENT_PROFILES: Record<string, AgentDefinition> = {
       { name: 'accessibility', proficiency: 80, domains: ['aria', 'wcag', 'keyboard-nav'] },
       { name: 'animation', proficiency: 75, domains: ['transitions', 'gsap', 'css'] }
     ],
-    focusAreas: [
-      'src/lib/components',
-      'src/lib/stores',
-      'src/routes',
-      'src/app.html'
-    ],
+    focusAreas: ['src/lib/components', 'src/lib/stores', 'src/routes', 'src/app.html'],
     validationRules: [
       'component-prop-types',
       'accessibility-standards',
@@ -41,16 +36,28 @@ export const AGENT_PROFILES: Record<string, AgentDefinition> = {
     name: 'Plugin Architecture Specialist',
     type: 'plugin-developer',
     capabilities: [
-      { name: 'plugin-architecture', proficiency: 95, domains: ['interfaces', 'lifecycle', 'isolation'] },
-      { name: 'typescript', proficiency: 90, domains: ['advanced-types', 'decorators', 'metadata'] },
-      { name: 'module-systems', proficiency: 85, domains: ['dynamic-import', 'lazy-loading', 'bundling'] },
-      { name: 'state-management', proficiency: 80, domains: ['stores', 'events', 'synchronization'] }
+      {
+        name: 'plugin-architecture',
+        proficiency: 95,
+        domains: ['interfaces', 'lifecycle', 'isolation']
+      },
+      {
+        name: 'typescript',
+        proficiency: 90,
+        domains: ['advanced-types', 'decorators', 'metadata']
+      },
+      {
+        name: 'module-systems',
+        proficiency: 85,
+        domains: ['dynamic-import', 'lazy-loading', 'bundling']
+      },
+      {
+        name: 'state-management',
+        proficiency: 80,
+        domains: ['stores', 'events', 'synchronization']
+      }
     ],
-    focusAreas: [
-      'src/lib/plugins',
-      'src/lib/types/plugin.ts',
-      'src/lib/components/plugins'
-    ],
+    focusAreas: ['src/lib/plugins', 'src/lib/types/plugin.ts', 'src/lib/components/plugins'],
     validationRules: [
       'plugin-interface-compliance',
       'isolation-boundaries',
@@ -69,8 +76,16 @@ export const AGENT_PROFILES: Record<string, AgentDefinition> = {
     name: 'Real-time Systems Engineer',
     type: 'telemetry-engineer',
     capabilities: [
-      { name: 'websockets', proficiency: 95, domains: ['protocols', 'reconnection', 'binary-data'] },
-      { name: 'real-time-processing', proficiency: 90, domains: ['streaming', 'buffering', 'throttling'] },
+      {
+        name: 'websockets',
+        proficiency: 95,
+        domains: ['protocols', 'reconnection', 'binary-data']
+      },
+      {
+        name: 'real-time-processing',
+        proficiency: 90,
+        domains: ['streaming', 'buffering', 'throttling']
+      },
       { name: 'data-visualization', proficiency: 85, domains: ['charts', 'maps', 'live-updates'] },
       { name: 'performance-optimization', proficiency: 90, domains: ['memory', 'cpu', 'network'] }
     ],
@@ -98,16 +113,19 @@ export const AGENT_PROFILES: Record<string, AgentDefinition> = {
     type: 'test-specialist',
     capabilities: [
       { name: 'vitest', proficiency: 95, domains: ['unit', 'integration', 'mocking'] },
-      { name: 'playwright', proficiency: 90, domains: ['e2e', 'cross-browser', 'visual-regression'] },
-      { name: 'coverage-analysis', proficiency: 85, domains: ['metrics', 'reporting', 'optimization'] },
+      {
+        name: 'playwright',
+        proficiency: 90,
+        domains: ['e2e', 'cross-browser', 'visual-regression']
+      },
+      {
+        name: 'coverage-analysis',
+        proficiency: 85,
+        domains: ['metrics', 'reporting', 'optimization']
+      },
       { name: 'test-patterns', proficiency: 90, domains: ['tdd', 'bdd', 'property-based'] }
     ],
-    focusAreas: [
-      'src/**/*.test.ts',
-      'src/**/*.spec.ts',
-      'tests',
-      'e2e'
-    ],
+    focusAreas: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'tests', 'e2e'],
     validationRules: [
       'coverage-thresholds',
       'test-isolation',
@@ -128,15 +146,14 @@ export const AGENT_PROFILES: Record<string, AgentDefinition> = {
     capabilities: [
       { name: 'api-design', proficiency: 90, domains: ['rest', 'graphql', 'websocket'] },
       { name: 'tauri-integration', proficiency: 85, domains: ['ipc', 'commands', 'events'] },
-      { name: 'system-architecture', proficiency: 90, domains: ['patterns', 'scalability', 'security'] },
+      {
+        name: 'system-architecture',
+        proficiency: 90,
+        domains: ['patterns', 'scalability', 'security']
+      },
       { name: 'cross-platform', proficiency: 80, domains: ['desktop', 'web', 'compatibility'] }
     ],
-    focusAreas: [
-      'src-tauri',
-      'src/lib/utils/tauri-context.ts',
-      'src/lib/api',
-      'vite.config.ts'
-    ],
+    focusAreas: ['src-tauri', 'src/lib/utils/tauri-context.ts', 'src/lib/api', 'vite.config.ts'],
     validationRules: [
       'api-consistency',
       'security-boundaries',
@@ -157,21 +174,15 @@ export const AGENT_PROFILES: Record<string, AgentDefinition> = {
     capabilities: [
       { name: 'nasa-jpl-rules', proficiency: 100, domains: ['power-of-10', 'misra-c', 'cert-c'] },
       { name: 'static-analysis', proficiency: 95, domains: ['ast', 'data-flow', 'control-flow'] },
-      { name: 'security-audit', proficiency: 90, domains: ['vulnerabilities', 'dependencies', 'permissions'] },
+      {
+        name: 'security-audit',
+        proficiency: 90,
+        domains: ['vulnerabilities', 'dependencies', 'permissions']
+      },
       { name: 'documentation', proficiency: 85, domains: ['technical', 'compliance', 'api'] }
     ],
-    focusAreas: [
-      'src/**/*.ts',
-      'src/**/*.svelte',
-      'package.json',
-      'tsconfig.json'
-    ],
-    validationRules: [
-      'all-nasa-jpl-rules',
-      'type-safety',
-      'memory-safety',
-      'error-handling'
-    ],
+    focusAreas: ['src/**/*.ts', 'src/**/*.svelte', 'package.json', 'tsconfig.json'],
+    validationRules: ['all-nasa-jpl-rules', 'type-safety', 'memory-safety', 'error-handling'],
     resourceAllocation: {
       cpuWeight: 60,
       memoryMB: 1024,
@@ -305,40 +316,35 @@ Report any violations with specific file:line references and provide remediation
 /**
  * Get agent prompt with task context
  */
-export function getAgentPrompt(
-  agentType: string,
-  taskContext?: string
-): string {
+export function getAgentPrompt(agentType: string, taskContext?: string): string {
   const key = agentType.toUpperCase().replace(/-/g, '_');
   const basePrompt = AGENT_PROMPTS[key] || '';
-  
+
   if (taskContext) {
     return `${basePrompt}\n\nCURRENT TASK CONTEXT:\n${taskContext}`;
   }
-  
+
   return basePrompt;
 }
 
 /**
  * Get recommended agent for a given task type
  */
-export function getRecommendedAgent(
-  taskType: string,
-  component: string
-): string {
+export function getRecommendedAgent(taskType: string, component: string): string {
   const recommendations: Record<string, string> = {
     'ui-component': 'UI_SPECIALIST',
-    'plugin': 'PLUGIN_DEVELOPER',
-    'telemetry': 'TELEMETRY_ENGINEER',
-    'test': 'TEST_SPECIALIST',
-    'integration': 'INTEGRATION_EXPERT',
-    'validation': 'VALIDATOR'
+    plugin: 'PLUGIN_DEVELOPER',
+    telemetry: 'TELEMETRY_ENGINEER',
+    test: 'TEST_SPECIALIST',
+    integration: 'INTEGRATION_EXPERT',
+    validation: 'VALIDATOR'
   };
 
   // Check component path for better recommendation
   if (component.includes('components')) return 'UI_SPECIALIST';
   if (component.includes('plugins')) return 'PLUGIN_DEVELOPER';
-  if (component.includes('telemetry') || component.includes('websocket')) return 'TELEMETRY_ENGINEER';
+  if (component.includes('telemetry') || component.includes('websocket'))
+    return 'TELEMETRY_ENGINEER';
   if (component.includes('test') || component.includes('spec')) return 'TEST_SPECIALIST';
   if (component.includes('tauri') || component.includes('api')) return 'INTEGRATION_EXPERT';
 

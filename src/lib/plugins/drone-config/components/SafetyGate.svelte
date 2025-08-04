@@ -6,30 +6,24 @@
   import { writable } from 'svelte/store';
   import type { Writable } from 'svelte/store';
   import { SafetyStage } from '../stores/motor-test';
-  
+
   export let currentStage: Writable<SafetyStage>;
   export let propellerRemoved: Writable<boolean>;
   export let onProgressStage: (stage: SafetyStage) => void;
-  
+
   function handlePropellerToggle(): void {
-    propellerRemoved.update(value => !value);
+    propellerRemoved.update((value) => !value);
   }
 </script>
 
 <div class="safety-gate">
   <div class="safety-requirement">
     <label class="safety-checkbox">
-      <input 
-        type="checkbox" 
-        bind:checked={$propellerRemoved}
-        on:change={handlePropellerToggle}
-      />
-      <span class="checkbox-label">
-        Propellers removed (REQUIRED)
-      </span>
+      <input type="checkbox" bind:checked={$propellerRemoved} on:change={handlePropellerToggle} />
+      <span class="checkbox-label"> Propellers removed (REQUIRED) </span>
     </label>
   </div>
-  
+
   <div class="safety-stages">
     {#each [1, 2, 3, 4] as stage}
       <button
@@ -50,7 +44,7 @@
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   .safety-checkbox {
     display: flex;
     align-items: center;

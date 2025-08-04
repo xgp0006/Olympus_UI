@@ -17,7 +17,19 @@
     center: number;
     reversed: boolean;
     failsafeValue: number;
-    mapping?: 'roll' | 'pitch' | 'yaw' | 'throttle' | 'aux1' | 'aux2' | 'aux3' | 'aux4' | 'aux5' | 'aux6' | 'aux7' | 'aux8';
+    mapping?:
+      | 'roll'
+      | 'pitch'
+      | 'yaw'
+      | 'throttle'
+      | 'aux1'
+      | 'aux2'
+      | 'aux3'
+      | 'aux4'
+      | 'aux5'
+      | 'aux6'
+      | 'aux7'
+      | 'aux8';
   }
 
   // Props
@@ -31,7 +43,7 @@
   function getChannelBarWidth(channel: ReceiverChannel): string {
     const bar = channelBars.get(channel.id);
     if (!bar) return '50%';
-    
+
     const value = bar.get ? bar.get() : bar;
     const percentage = ((value - channel.min) / (channel.max - channel.min)) * 100;
     return `${Math.max(0, Math.min(100, percentage))}%`;
@@ -39,7 +51,7 @@
 
   // NASA JPL compliant function: Update channel animations
   function updateChannelBars(): void {
-    receiverChannels.forEach(channel => {
+    receiverChannels.forEach((channel) => {
       let bar = channelBars.get(channel.id);
       if (!bar) {
         bar = tweened(channel.value, { duration: 50 });
@@ -78,10 +90,7 @@
       <div class="channel-bar-container">
         <span class="channel-label">CH{channel.number} {channel.mapping || ''}</span>
         <div class="channel-bar-track">
-          <div
-            class="channel-bar-fill"
-            style="width: {getChannelBarWidth(channel)}"
-          />
+          <div class="channel-bar-fill" style="width: {getChannelBarWidth(channel)}" />
           <span class="channel-value">{Math.round(channel.value)}μs</span>
         </div>
       </div>

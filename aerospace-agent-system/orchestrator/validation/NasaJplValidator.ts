@@ -34,15 +34,10 @@ export class NasaJplValidator {
   public async validateFile(filePath: string): Promise<ValidationResult> {
     try {
       const sourceCode = readFileSync(filePath, 'utf-8');
-      const sourceFile = ts.createSourceFile(
-        filePath,
-        sourceCode,
-        ts.ScriptTarget.Latest,
-        true
-      );
+      const sourceFile = ts.createSourceFile(filePath, sourceCode, ts.ScriptTarget.Latest, true);
 
       const violations: ComplianceViolation[] = [];
-      
+
       for (const rule of this.rules) {
         const ruleViolations = rule.validate(sourceFile);
         violations.push(...ruleViolations);
@@ -57,7 +52,7 @@ export class NasaJplValidator {
           totalFiles: 1,
           filesChecked: 1,
           totalViolations: violations.length,
-          criticalViolations: violations.filter(v => v.severity === 'error').length,
+          criticalViolations: violations.filter((v) => v.severity === 'error').length,
           executionTime: 0
         }
       };
@@ -68,12 +63,12 @@ export class NasaJplValidator {
 
   private generateWarnings(violations: ComplianceViolation[]): string[] {
     const warnings: string[] = [];
-    
-    if (violations.some(v => v.rule === 'loop-bounds')) {
+
+    if (violations.some((v) => v.rule === 'loop-bounds')) {
       warnings.push('Unbounded loops detected - potential infinite execution risk');
     }
-    
-    if (violations.some(v => v.rule === 'recursion-depth')) {
+
+    if (violations.some((v) => v.rule === 'recursion-depth')) {
       warnings.push('Deep recursion detected - stack overflow risk');
     }
 
@@ -82,12 +77,12 @@ export class NasaJplValidator {
 
   private generateSuggestions(violations: ComplianceViolation[]): string[] {
     const suggestions: string[] = [];
-    
+
     if (violations.length > 10) {
       suggestions.push('Consider breaking down complex functions into smaller units');
     }
-    
-    if (violations.some(v => v.rule === 'function-length')) {
+
+    if (violations.some((v) => v.rule === 'function-length')) {
       suggestions.push('Extract helper functions to reduce function complexity');
     }
 
@@ -105,16 +100,16 @@ class SimpleControlFlowRule implements NasaJplRule {
 
   validate(sourceFile: ts.SourceFile): ComplianceViolation[] {
     const violations: ComplianceViolation[] = [];
-    
+
     const checkNode = (node: ts.Node) => {
       // Check for restricted control flow
       if (ts.isIdentifier(node) && node.text === 'goto') {
         violations.push(this.createViolation(node, 'goto statement detected'));
       }
-      
+
       ts.forEachChild(node, checkNode);
     };
-    
+
     checkNode(sourceFile);
     return violations;
   }
@@ -142,23 +137,23 @@ class LoopBoundRule implements NasaJplRule {
 
   validate(sourceFile: ts.SourceFile): ComplianceViolation[] {
     const violations: ComplianceViolation[] = [];
-    
+
     const checkNode = (node: ts.Node) => {
       if (ts.isWhileStatement(node)) {
         if (!this.hasFixedBound(node)) {
           violations.push(this.createViolation(node, 'While loop without fixed upper bound'));
         }
       }
-      
+
       if (ts.isForStatement(node)) {
         if (!this.hasFixedForBound(node)) {
           violations.push(this.createViolation(node, 'For loop without fixed upper bound'));
         }
       }
-      
+
       ts.forEachChild(node, checkNode);
     };
-    
+
     checkNode(sourceFile);
     return violations;
   }
@@ -167,29 +162,32 @@ class LoopBoundRule implements NasaJplRule {
     // Check for counter variable that limits iterations
     // This is a simplified check - real implementation would be more sophisticated
     const condition = node.expression;
-    
+
     if (ts.isBinaryExpression(condition)) {
       const operator = condition.operatorToken.kind;
-      return operator === ts.SyntaxKind.LessThanToken ||
-             operator === ts.SyntaxKind.LessThanEqualsToken;
+      return (
+        operator === ts.SyntaxKind.LessThanToken || operator === ts.SyntaxKind.LessThanEqualsToken
+      );
     }
-    
+
     return false;
   }
 
   private hasFixedForBound(node: ts.ForStatement): boolean {
     if (!node.condition) return false;
-    
+
     if (ts.isBinaryExpression(node.condition)) {
       const operator = node.condition.operatorToken.kind;
       const right = node.condition.right;
-      
+
       // Check if comparing against a literal or const
-      return (operator === ts.SyntaxKind.LessThanToken ||
-              operator === ts.SyntaxKind.LessThanEqualsToken) &&
-             (ts.isNumericLiteral(right) || ts.isIdentifier(right));
+      return (
+        (operator === ts.SyntaxKind.LessThanToken ||
+          operator === ts.SyntaxKind.LessThanEqualsToken) &&
+        (ts.isNumericLiteral(right) || ts.isIdentifier(right))
+      );
     }
-    
+
     return false;
   }
 
@@ -217,29 +215,31 @@ class HeapMemoryRule implements NasaJplRule {
   validate(sourceFile: ts.SourceFile): ComplianceViolation[] {
     const violations: ComplianceViolation[] = [];
     let inInitializer = false;
-    
+
     const checkNode = (node: ts.Node) => {
       // Check if we're in a constructor or module initializer
       if (ts.isConstructorDeclaration(node) || ts.isSourceFile(node)) {
         inInitializer = true;
       }
-      
+
       // Check for dynamic allocations
       if (ts.isNewExpression(node) && !inInitializer) {
         // Allow certain safe allocations (like creating error objects)
         const type = node.expression;
         if (ts.isIdentifier(type) && !this.isSafeAllocation(type.text)) {
-          violations.push(this.createViolation(node, 'Dynamic memory allocation outside initialization'));
+          violations.push(
+            this.createViolation(node, 'Dynamic memory allocation outside initialization')
+          );
         }
       }
-      
+
       ts.forEachChild(node, checkNode);
-      
+
       if (ts.isConstructorDeclaration(node)) {
         inInitializer = false;
       }
     };
-    
+
     checkNode(sourceFile);
     return violations;
   }
@@ -269,21 +269,22 @@ class FunctionLengthRule implements NasaJplRule {
   id = 'function-length';
   name = 'Function Length Limit';
   description = 'No function should be longer than 60 lines';
-  
+
   private maxLines = 60;
 
   validate(sourceFile: ts.SourceFile): ComplianceViolation[] {
     const violations: ComplianceViolation[] = [];
-    
+
     const checkNode = (node: ts.Node) => {
-      if (ts.isFunctionDeclaration(node) || 
-          ts.isMethodDeclaration(node) || 
-          ts.isArrowFunction(node)) {
-        
+      if (
+        ts.isFunctionDeclaration(node) ||
+        ts.isMethodDeclaration(node) ||
+        ts.isArrowFunction(node)
+      ) {
         const start = sourceFile.getLineAndCharacterOfPosition(node.getStart());
         const end = sourceFile.getLineAndCharacterOfPosition(node.getEnd());
         const lineCount = end.line - start.line + 1;
-        
+
         if (lineCount > this.maxLines) {
           violations.push({
             rule: this.id,
@@ -296,10 +297,10 @@ class FunctionLengthRule implements NasaJplRule {
           });
         }
       }
-      
+
       ts.forEachChild(node, checkNode);
     };
-    
+
     checkNode(sourceFile);
     return violations;
   }
@@ -315,34 +316,36 @@ class AssertionDensityRule implements NasaJplRule {
 
   validate(sourceFile: ts.SourceFile): ComplianceViolation[] {
     const violations: ComplianceViolation[] = [];
-    
+
     const checkFunction = (node: ts.FunctionLikeDeclaration) => {
       let assertionCount = 0;
-      
+
       const countAssertions = (n: ts.Node) => {
         if (ts.isCallExpression(n)) {
           const expression = n.expression;
-          if (ts.isIdentifier(expression) && 
-              (expression.text === 'assert' || 
-               expression.text === 'expect' ||
-               expression.text.includes('assert'))) {
+          if (
+            ts.isIdentifier(expression) &&
+            (expression.text === 'assert' ||
+              expression.text === 'expect' ||
+              expression.text.includes('assert'))
+          ) {
             assertionCount++;
           }
         }
-        
+
         // Check for if-throw patterns (manual assertions)
         if (ts.isIfStatement(n) && n.thenStatement) {
           if (ts.isThrowStatement(n.thenStatement)) {
             assertionCount++;
           }
         }
-        
+
         ts.forEachChild(n, countAssertions);
       };
-      
+
       if (node.body) {
         countAssertions(node.body);
-        
+
         if (assertionCount < 2) {
           const { line, character } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
           violations.push({
@@ -357,17 +360,19 @@ class AssertionDensityRule implements NasaJplRule {
         }
       }
     };
-    
+
     const checkNode = (node: ts.Node) => {
-      if (ts.isFunctionDeclaration(node) || 
-          ts.isMethodDeclaration(node) || 
-          ts.isArrowFunction(node)) {
+      if (
+        ts.isFunctionDeclaration(node) ||
+        ts.isMethodDeclaration(node) ||
+        ts.isArrowFunction(node)
+      ) {
         checkFunction(node as ts.FunctionLikeDeclaration);
       }
-      
+
       ts.forEachChild(node, checkNode);
     };
-    
+
     checkNode(sourceFile);
     return violations;
   }
@@ -383,14 +388,14 @@ class DataDeclarationRule implements NasaJplRule {
 
   validate(sourceFile: ts.SourceFile): ComplianceViolation[] {
     const violations: ComplianceViolation[] = [];
-    
+
     // Check for module-level variables that could be function-scoped
     const moduleVariables = new Map<string, ts.Node>();
     const functionUsage = new Map<string, Set<string>>();
-    
+
     const collectModuleVariables = (node: ts.Node) => {
       if (ts.isVariableStatement(node) && node.parent === sourceFile) {
-        node.declarationList.declarations.forEach(decl => {
+        node.declarationList.declarations.forEach((decl) => {
           if (ts.isIdentifier(decl.name)) {
             moduleVariables.set(decl.name.text, decl);
           }
@@ -398,12 +403,12 @@ class DataDeclarationRule implements NasaJplRule {
       }
       ts.forEachChild(node, collectModuleVariables);
     };
-    
+
     collectModuleVariables(sourceFile);
-    
+
     // Check usage patterns
     // (Simplified - full implementation would track all usages)
-    
+
     return violations;
   }
 }
@@ -418,12 +423,12 @@ class ReturnValueCheckRule implements NasaJplRule {
 
   validate(sourceFile: ts.SourceFile): ComplianceViolation[] {
     const violations: ComplianceViolation[] = [];
-    
+
     const checkNode = (node: ts.Node) => {
       if (ts.isExpressionStatement(node) && ts.isCallExpression(node.expression)) {
         // Check if the called function returns a value
         const callExpr = node.expression;
-        
+
         // This is a simplified check - real implementation would use type information
         if (!this.isVoidFunction(callExpr)) {
           const { line, character } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
@@ -438,10 +443,10 @@ class ReturnValueCheckRule implements NasaJplRule {
           });
         }
       }
-      
+
       ts.forEachChild(node, checkNode);
     };
-    
+
     checkNode(sourceFile);
     return violations;
   }
@@ -451,7 +456,7 @@ class ReturnValueCheckRule implements NasaJplRule {
     const expr = call.expression;
     if (ts.isIdentifier(expr)) {
       const voidFunctions = ['console.log', 'console.error', 'console.warn'];
-      return voidFunctions.some(f => expr.text === f.split('.').pop());
+      return voidFunctions.some((f) => expr.text === f.split('.').pop());
     }
     return false;
   }
@@ -482,7 +487,7 @@ class PointerRule implements NasaJplRule {
 
   validate(sourceFile: ts.SourceFile): ComplianceViolation[] {
     const violations: ComplianceViolation[] = [];
-    
+
     const checkNode = (node: ts.Node) => {
       // Check for function type assignments (function pointers)
       if (ts.isVariableDeclaration(node) && node.type) {
@@ -499,10 +504,10 @@ class PointerRule implements NasaJplRule {
           });
         }
       }
-      
+
       ts.forEachChild(node, checkNode);
     };
-    
+
     checkNode(sourceFile);
     return violations;
   }
@@ -530,13 +535,13 @@ class RecursionDepthRule implements NasaJplRule {
   id = 'recursion-depth';
   name = 'Recursion Depth Limit';
   description = 'Do not use recursion deeper than 3 levels';
-  
+
   private maxDepth = 3;
 
   validate(sourceFile: ts.SourceFile): ComplianceViolation[] {
     const violations: ComplianceViolation[] = [];
     const functionCalls = new Map<string, Set<string>>();
-    
+
     // Build call graph
     const buildCallGraph = (node: ts.Node, currentFunction?: string) => {
       if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) {
@@ -546,19 +551,19 @@ class RecursionDepthRule implements NasaJplRule {
         }
         currentFunction = name;
       }
-      
+
       if (ts.isCallExpression(node) && currentFunction) {
         const callee = node.expression;
         if (ts.isIdentifier(callee)) {
           functionCalls.get(currentFunction)?.add(callee.text);
         }
       }
-      
-      ts.forEachChild(node, n => buildCallGraph(n, currentFunction));
+
+      ts.forEachChild(node, (n) => buildCallGraph(n, currentFunction));
     };
-    
+
     buildCallGraph(sourceFile);
-    
+
     // Check for recursive calls
     functionCalls.forEach((calls, func) => {
       if (calls.has(func)) {
@@ -574,7 +579,7 @@ class RecursionDepthRule implements NasaJplRule {
         });
       }
     });
-    
+
     return violations;
   }
 }

@@ -35,8 +35,16 @@
 
   const dispatch = createEventDispatcher();
 
+  // Stop event propagation for modal content
+  function handleModalContentClick(event: MouseEvent): void {
+    event.stopPropagation();
+  }
+
   // NASA JPL compliant function: Update receiver config
-  function updateReceiverConfig<K extends keyof ReceiverConfig>(field: K, value: ReceiverConfig[K]): void {
+  function updateReceiverConfig<K extends keyof ReceiverConfig>(
+    field: K,
+    value: ReceiverConfig[K]
+  ): void {
     if (readonly) return;
     dispatch('updateReceiverConfig', { field, value });
   }
@@ -67,24 +75,21 @@
 
 <!-- Receiver Configuration Modal -->
 {#if showReceiverConfig}
-  <div 
-    class="modal-overlay" 
-    on:click={() => closeModal('receiver')} 
+  <div
+    class="modal-overlay"
+    on:click={() => closeModal('receiver')}
     on:keydown={(e) => {
       if (e.key === 'Escape') {
         closeModal('receiver');
       }
     }}
-    role="dialog" 
-    aria-modal="true"
+    role="button"
+    tabindex="0"
+    aria-label="Close modal overlay"
   >
-    <div 
-      class="modal-content" 
-      on:click|stopPropagation
-      on:keydown|stopPropagation
-    >
+    <div class="modal-content" on:click={handleModalContentClick} role="presentation">
       <h3>Receiver Configuration</h3>
-      
+
       <div class="config-group">
         <label>
           Protocol:
@@ -102,7 +107,7 @@
             <option value="SPEKTRUM">Spektrum</option>
           </select>
         </label>
-        
+
         <label>
           Channel Order:
           <select
@@ -116,12 +121,13 @@
             <option value="TEAR">TEAR</option>
           </select>
         </label>
-        
+
         <label>
           RSSI Channel:
           <select
             bind:value={receiverConfig.rssiChannel}
-            on:change={(e) => updateReceiverConfig('rssiChannel', parseInt(e.currentTarget.value) || undefined)}
+            on:change={(e) =>
+              updateReceiverConfig('rssiChannel', parseInt(e.currentTarget.value) || undefined)}
             disabled={readonly}
           >
             <option value="">None</option>
@@ -130,7 +136,7 @@
             {/each}
           </select>
         </label>
-        
+
         <label class="checkbox-label">
           <input
             type="checkbox"
@@ -141,7 +147,7 @@
           Enable Telemetry
         </label>
       </div>
-      
+
       <button class="close-button" on:click={() => closeModal('receiver')}>Close</button>
     </div>
   </div>
@@ -149,10 +155,21 @@
 
 <!-- Failsafe Configuration Modal -->
 {#if showFailsafeConfig}
-  <div class="modal-overlay" on:click={() => closeModal('failsafe')} role="dialog" aria-modal="true">
-    <div class="modal-content" on:click|stopPropagation>
+  <div
+    class="modal-overlay"
+    on:click={() => closeModal('failsafe')}
+    on:keydown={(e) => {
+      if (e.key === 'Escape') {
+        closeModal('failsafe');
+      }
+    }}
+    role="button"
+    tabindex="0"
+    aria-label="Close modal overlay"
+  >
+    <div class="modal-content" on:click={handleModalContentClick} role="presentation">
       <h3>Failsafe Configuration</h3>
-      
+
       <div class="config-group">
         <label>
           Failsafe Mode:
@@ -167,7 +184,7 @@
             <option value="rtl">Return to Launch</option>
           </select>
         </label>
-        
+
         <h4>Channel Failsafe Values</h4>
         <div class="failsafe-channels">
           {#each receiverChannels.slice(0, 8) as channel}
@@ -186,7 +203,7 @@
           {/each}
         </div>
       </div>
-      
+
       <button class="close-button" on:click={() => closeModal('failsafe')}>Close</button>
     </div>
   </div>

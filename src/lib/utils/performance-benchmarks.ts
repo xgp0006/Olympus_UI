@@ -80,11 +80,11 @@ export class PerformanceBenchmark {
 
     try {
       const { name, testFunction, iterations, warmupIterations = 5, timeout = 30000 } = config;
-      
+
       // Memory measurement setup
       const initialMemory = this.getMemoryUsage();
       let peakMemory = initialMemory;
-      
+
       // Warmup iterations to stabilize performance
       console.log(`Running warmup iterations for ${name}...`);
       for (let i = 0; i < warmupIterations; i++) {
@@ -102,9 +102,9 @@ export class PerformanceBenchmark {
 
       for (let i = 0; i < iterations; i++) {
         const iterationStart = performance.now();
-        
+
         await this.executeWithTimeout(testFunction, timeout);
-        
+
         const iterationTime = performance.now() - iterationStart;
         times.push(iterationTime);
 
@@ -125,7 +125,8 @@ export class PerformanceBenchmark {
       const averageTime = times.reduce((sum, time) => sum + time, 0) / times.length;
       const minTime = Math.min(...times);
       const maxTime = Math.max(...times);
-      const variance = times.reduce((sum, time) => sum + Math.pow(time - averageTime, 2), 0) / times.length;
+      const variance =
+        times.reduce((sum, time) => sum + Math.pow(time - averageTime, 2), 0) / times.length;
       const standardDeviation = Math.sqrt(variance);
       const fps = averageTime > 0 ? 1000 / averageTime : 0;
 
@@ -155,7 +156,6 @@ export class PerformanceBenchmark {
 
       console.log(`Benchmark ${name} completed:`, result);
       return result;
-
     } finally {
       this.isRunning = false;
     }
@@ -173,13 +173,15 @@ export class PerformanceBenchmark {
       try {
         const result = fn();
         if (result instanceof Promise) {
-          result.then(() => {
-            clearTimeout(timeoutId);
-            resolve();
-          }).catch((error) => {
-            clearTimeout(timeoutId);
-            reject(error);
-          });
+          result
+            .then(() => {
+              clearTimeout(timeoutId);
+              resolve();
+            })
+            .catch((error) => {
+              clearTimeout(timeoutId);
+              reject(error);
+            });
         } else {
           clearTimeout(timeoutId);
           resolve();
@@ -195,7 +197,7 @@ export class PerformanceBenchmark {
    * Wait for next animation frame
    */
   private waitForNextFrame(): Promise<void> {
-    return new Promise(resolve => requestAnimationFrame(() => resolve()));
+    return new Promise((resolve) => requestAnimationFrame(() => resolve()));
   }
 
   /**
@@ -211,11 +213,20 @@ export class PerformanceBenchmark {
   /**
    * Compare two benchmark results
    */
-  compareBenchmarks(beforeName: string, afterName: string, expectedImprovement?: number): BenchmarkComparison | null {
+  compareBenchmarks(
+    beforeName: string,
+    afterName: string,
+    expectedImprovement?: number
+  ): BenchmarkComparison | null {
     const beforeResults = this.results.get(beforeName);
     const afterResults = this.results.get(afterName);
 
-    if (!beforeResults || !afterResults || beforeResults.length === 0 || afterResults.length === 0) {
+    if (
+      !beforeResults ||
+      !afterResults ||
+      beforeResults.length === 0 ||
+      afterResults.length === 0
+    ) {
       return null;
     }
 
@@ -224,9 +235,12 @@ export class PerformanceBenchmark {
 
     const timeImprovement = ((before.averageTime - after.averageTime) / before.averageTime) * 100;
     const fpsImprovement = ((after.fps - before.fps) / before.fps) * 100;
-    const memoryImprovement = ((before.memoryUsage.peak - after.memoryUsage.peak) / before.memoryUsage.peak) * 100;
+    const memoryImprovement =
+      ((before.memoryUsage.peak - after.memoryUsage.peak) / before.memoryUsage.peak) * 100;
 
-    const passed = expectedImprovement ? timeImprovement >= expectedImprovement : timeImprovement > 0;
+    const passed = expectedImprovement
+      ? timeImprovement >= expectedImprovement
+      : timeImprovement > 0;
 
     return {
       name: `${beforeName} vs ${afterName}`,
@@ -266,7 +280,7 @@ export class PerformanceBenchmark {
       if (results.length === 0) continue;
 
       const latest = results[results.length - 1];
-      
+
       report.push(`Benchmark: ${name}`);
       report.push('-'.repeat(40));
       report.push(`Iterations: ${latest.iterations}`);
@@ -275,8 +289,10 @@ export class PerformanceBenchmark {
       report.push(`Max Time: ${latest.maxTime.toFixed(3)}ms`);
       report.push(`Standard Deviation: ${latest.standardDeviation.toFixed(3)}ms`);
       report.push(`FPS: ${latest.fps.toFixed(1)}`);
-      report.push(`Memory Usage: Initial=${this.formatMemory(latest.memoryUsage.initial)}, Peak=${this.formatMemory(latest.memoryUsage.peak)}, Leaked=${this.formatMemory(latest.memoryUsage.leaked)}`);
-      
+      report.push(
+        `Memory Usage: Initial=${this.formatMemory(latest.memoryUsage.initial)}, Peak=${this.formatMemory(latest.memoryUsage.peak)}, Leaked=${this.formatMemory(latest.memoryUsage.leaked)}`
+      );
+
       // Performance assessment
       if (latest.averageTime <= PERFORMANCE_CONSTANTS.FRAME_BUDGET_MS) {
         report.push(`Status: ✅ EXCELLENT (within ${PERFORMANCE_CONSTANTS.TARGET_FPS}fps budget)`);
@@ -285,7 +301,7 @@ export class PerformanceBenchmark {
       } else {
         report.push(`Status: ❌ NEEDS OPTIMIZATION (exceeds 60fps budget)`);
       }
-      
+
       report.push('');
     }
 
@@ -346,8 +362,8 @@ export const performanceBenchmark = new PerformanceBenchmark();
  * Utility function to run a quick performance test
  */
 export async function quickBenchmark(
-  name: string, 
-  testFn: () => Promise<void> | void, 
+  name: string,
+  testFn: () => Promise<void> | void,
   iterations: number = 50
 ): Promise<BenchmarkResult> {
   return performanceBenchmark.runBenchmark({

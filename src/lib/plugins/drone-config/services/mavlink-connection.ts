@@ -13,7 +13,7 @@ export class MAVLinkConnection {
   private connected: boolean = false;
   private messageUnlisten: (() => void) | null = null;
   private ackUnlisten: (() => void) | null = null;
-  
+
   /**
    * NASA JPL compliant: Initialize connection
    */
@@ -25,19 +25,17 @@ export class MAVLinkConnection {
     try {
       if (options.systemId !== undefined) this.systemId = options.systemId;
       if (options.componentId !== undefined) this.componentId = options.componentId;
-      
+
       this.messageUnlisten = await setupEventListener<MAVLinkMessage>(
         'mavlink-message',
         onMessage,
         { showErrorNotifications: false, enableLogging: false }
       );
-      
-      this.ackUnlisten = await setupEventListener(
-        'mavlink-ack',
-        onAck,
-        { showErrorNotifications: true }
-      );
-      
+
+      this.ackUnlisten = await setupEventListener('mavlink-ack', onAck, {
+        showErrorNotifications: true
+      });
+
       this.connected = true;
       showInfo('MAVLink Connected', 'Connection established');
       return true;
@@ -45,7 +43,7 @@ export class MAVLinkConnection {
       return false;
     }
   }
-  
+
   /**
    * NASA JPL compliant: Shutdown connection
    */
@@ -54,23 +52,23 @@ export class MAVLinkConnection {
       this.messageUnlisten();
       this.messageUnlisten = null;
     }
-    
+
     if (this.ackUnlisten) {
       this.ackUnlisten();
       this.ackUnlisten = null;
     }
-    
+
     this.connected = false;
   }
-  
+
   isConnected(): boolean {
     return this.connected;
   }
-  
+
   getSystemId(): number {
     return this.systemId;
   }
-  
+
   getComponentId(): number {
     return this.componentId;
   }

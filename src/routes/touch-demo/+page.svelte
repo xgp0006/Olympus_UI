@@ -20,7 +20,7 @@
 
   // ===== STATE =====
   let activeDemo = 'overview';
-  let gestureLogArray = new BoundedArray<string>(50);
+  const gestureLogArray = new BoundedArray<string>(50);
   let touchDemoElement: HTMLElement;
   let touchGestureCleanup: (() => void) | null = null;
 

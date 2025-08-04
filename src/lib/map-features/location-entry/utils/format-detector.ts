@@ -6,14 +6,14 @@ const FORMAT_PATTERNS = {
   decimalDegrees: /^-?\d{1,3}\.?\d*[,\s]+-?\d{1,3}\.?\d*$/,
   dms: /^\d{1,3}°\d{1,2}'\d{1,2}(\.\d+)?"[NS]\s+\d{1,3}°\d{1,2}'\d{1,2}(\.\d+)?"[EW]$/i,
   ddm: /^\d{1,3}°\d{1,2}(\.\d+)?'[NS]\s+\d{1,3}°\d{1,2}(\.\d+)?'[EW]$/i,
-  
+
   // UTM patterns
   utmStandard: /^\d{1,2}[A-Z]\s+\d{3,7}\s+\d{3,7}$/i,
   utmCompact: /^\d{1,2}[A-Z]\d{6,14}$/i,
-  
+
   // MGRS pattern
   mgrs: /^\d{1,2}[A-Z]{3}\d{2,10}$/i,
-  
+
   // What3Words pattern
   what3words: /^[a-z]+\.[a-z]+\.[a-z]+$/i
 };
@@ -24,7 +24,7 @@ class FormatDetector {
 
   detect(input: string): CoordinateFormat | null {
     const trimmedInput = input.trim();
-    
+
     // Check cache first
     const cached = this.detectionCache.get(trimmedInput);
     if (cached !== undefined) {
@@ -52,7 +52,7 @@ class FormatDetector {
 
     // Cache result
     this.cacheResult(trimmedInput, format);
-    
+
     return format;
   }
 
@@ -65,10 +65,7 @@ class FormatDetector {
   }
 
   private isUTM(input: string): boolean {
-    return !!(
-      FORMAT_PATTERNS.utmStandard.test(input) ||
-      FORMAT_PATTERNS.utmCompact.test(input)
-    );
+    return !!(FORMAT_PATTERNS.utmStandard.test(input) || FORMAT_PATTERNS.utmCompact.test(input));
   }
 
   private isMGRS(input: string): boolean {
@@ -87,7 +84,7 @@ class FormatDetector {
     }
 
     // Each word should be reasonable length
-    return words.every(word => word.length >= 1 && word.length <= 40);
+    return words.every((word) => word.length >= 1 && word.length <= 40);
   }
 
   private cacheResult(input: string, format: CoordinateFormat | null): void {
@@ -98,13 +95,13 @@ class FormatDetector {
         this.detectionCache.delete(firstKey);
       }
     }
-    
+
     this.detectionCache.set(input, format);
   }
 
   // Performance optimization: batch detection for multiple inputs
   detectBatch(inputs: string[]): (CoordinateFormat | null)[] {
-    return inputs.map(input => this.detect(input));
+    return inputs.map((input) => this.detect(input));
   }
 
   // Get confidence score for format detection
@@ -116,7 +113,7 @@ class FormatDetector {
 
     // Check if input could potentially match the specified format
     const trimmedInput = input.trim();
-    
+
     switch (format) {
       case 'latlong':
         // Check if it has characteristics of lat/long
@@ -124,21 +121,21 @@ class FormatDetector {
           return 0.5;
         }
         break;
-      
+
       case 'utm':
         // Check if it starts with numbers and has a letter
         if (/^\d{1,2}[A-Z]/i.test(trimmedInput)) {
           return 0.5;
         }
         break;
-      
+
       case 'mgrs':
         // Check if it matches partial MGRS pattern
         if (/^\d{1,2}[A-Z]/i.test(trimmedInput)) {
           return 0.3;
         }
         break;
-      
+
       case 'what3words':
         // Check if it has dots
         if (trimmedInput.includes('.')) {

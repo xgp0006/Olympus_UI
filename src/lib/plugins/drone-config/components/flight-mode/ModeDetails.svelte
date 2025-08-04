@@ -30,8 +30,8 @@
 
   // NASA JPL compliant function: Format requirement text
   function formatRequirement(req: ModeRequirement): string {
-    const conditionText = req.condition === 'min' ? 'minimum' : 
-                         req.condition === 'max' ? 'maximum' : 'exactly';
+    const conditionText =
+      req.condition === 'min' ? 'minimum' : req.condition === 'max' ? 'maximum' : 'exactly';
     return `${req.type} ${conditionText} ${req.value}${req.unit || ''}`;
   }
 
@@ -50,9 +50,9 @@
         <span class="mode-category">{selectedMode.category}</span>
       </div>
     </div>
-    
+
     <p class="mode-description">{selectedMode.description}</p>
-    
+
     {#if selectedMode.requirements?.length}
       <div class="requirements">
         <strong class="requirements-title">Requirements:</strong>
@@ -63,14 +63,14 @@
         </ul>
       </div>
     {/if}
-    
+
     {#if selectedMode.conflictsWith?.length}
       <div class="conflicts">
-        <strong class="conflicts-title">Conflicts with:</strong> 
+        <strong class="conflicts-title">Conflicts with:</strong>
         <span class="conflicts-list">{formatConflicts(selectedMode.conflictsWith)}</span>
       </div>
     {/if}
-    
+
     {#if selectedMode.isActive}
       <div class="status-active">
         <span class="status-indicator">●</span>
@@ -171,7 +171,12 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
   }
 </style>

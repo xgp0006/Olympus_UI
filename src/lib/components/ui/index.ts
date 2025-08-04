@@ -6,23 +6,23 @@ export { default as MemoizedComponent } from './MemoizedComponent.svelte';
 export { default as PerformanceDashboard } from './PerformanceDashboard.svelte';
 
 export type {
-	DraggableContainerProps,
-	DraggablePosition,
-	DraggableSize,
-	DraggableState,
-	DraggableEvents,
-	ResizeHandle,
-	PerformanceMetrics
+  DraggableContainerProps,
+  DraggablePosition,
+  DraggableSize,
+  DraggableState,
+  DraggableEvents,
+  ResizeHandle,
+  PerformanceMetrics
 } from './draggable-container.types';
 
 // Re-export performance optimization utilities
 export {
-	RAFThrottler,
-	ComponentPool,
-	createDebouncer,
-	createThrottler,
-	EventListenerManager,
-	measurePerformance,
-	batchDOMUpdates,
-	PERFORMANCE_CONSTANTS
+  RAFThrottler,
+  ComponentPool,
+  createDebouncer,
+  createThrottler,
+  EventListenerManager,
+  measurePerformance,
+  batchDOMUpdates,
+  PERFORMANCE_CONSTANTS
 } from '$lib/utils/performance-optimizations';

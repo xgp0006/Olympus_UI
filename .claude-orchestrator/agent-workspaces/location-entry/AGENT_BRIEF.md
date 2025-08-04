@@ -1,9 +1,11 @@
 # Agent Brief: Location Entry Specialist
 
 ## Mission
+
 Implement a high-performance multi-format coordinate entry system supporting MGRS, UTM, Lat/Long, and What3Words formats.
 
 ## Performance Target
+
 - **Frame Budget**: 0.5ms per frame
 - **Conversion Time**: <10ms for any format
 - **Input Validation**: <1ms
@@ -11,6 +13,7 @@ Implement a high-performance multi-format coordinate entry system supporting MGR
 ## Technical Requirements
 
 ### Core Component Structure
+
 ```svelte
 <!-- src/lib/map-features/location-entry/LocationEntry.svelte -->
 <script lang="ts">
@@ -18,10 +21,10 @@ Implement a high-performance multi-format coordinate entry system supporting MGR
   import { createEventDispatcher } from 'svelte';
   import { coordinateConverter } from './utils/converter';
   import { validateInput } from './utils/validator';
-  
+
   export let formats: CoordinateFormat[] = ['latlong', 'utm', 'mgrs', 'what3words'];
   export let defaultFormat: CoordinateFormat = 'latlong';
-  
+
   const dispatch = createEventDispatcher<{
     select: { coordinate: Coordinate };
     error: { message: string };
@@ -30,6 +33,7 @@ Implement a high-performance multi-format coordinate entry system supporting MGR
 ```
 
 ### Key Features
+
 1. **Format Auto-detection**: Intelligently detect input format
 2. **Real-time Validation**: Validate as user types
 3. **Format Conversion**: Convert between all formats seamlessly
@@ -37,6 +41,7 @@ Implement a high-performance multi-format coordinate entry system supporting MGR
 5. **Keyboard Navigation**: Full keyboard accessibility
 
 ### Coordinate Conversion Pipeline
+
 ```typescript
 // Use Web Worker for heavy calculations
 const conversionWorker = new Worker('./conversion-worker.js');
@@ -46,13 +51,14 @@ const conversionCache = new Map<string, Coordinate>();
 ```
 
 ### What3Words Integration
+
 ```typescript
 // API integration with rate limiting
 class What3WordsClient {
   private readonly apiKey: string;
   private readonly rateLimit = 60; // requests per minute
   private requestQueue: Promise<any>[] = [];
-  
+
   async convertToCoords(words: string): Promise<LatLng> {
     // Implement with caching and error handling
   }
@@ -60,12 +66,14 @@ class What3WordsClient {
 ```
 
 ### Validation Rules
+
 - **Lat/Long**: -90 to 90, -180 to 180, up to 8 decimal places
 - **UTM**: Valid zone (1-60), appropriate easting/northing ranges
 - **MGRS**: Valid grid reference format, precision 1-5
 - **What3Words**: Three words separated by dots, valid word list
 
 ### UI Requirements
+
 - Clean, minimal interface
 - Clear format indicators
 - Error states with helpful messages
@@ -73,6 +81,7 @@ class What3WordsClient {
 - Smooth transitions (60fps minimum)
 
 ### Testing Requirements
+
 ```typescript
 // Required test coverage
 describe('LocationEntry', () => {
@@ -85,12 +94,14 @@ describe('LocationEntry', () => {
 ```
 
 ### Integration Points
+
 - Emit `coordinate:select` event on valid input
 - Subscribe to `viewport:change` for context
 - Integrate with settings for unit preferences
 - Connect to map click for reverse geocoding
 
 ### Performance Optimizations
+
 1. Debounce validation (16ms)
 2. Use requestIdleCallback for conversions
 3. Precompile regex patterns
@@ -98,6 +109,7 @@ describe('LocationEntry', () => {
 5. Use CSS transforms for animations
 
 ### Deliverables
+
 1. `LocationEntry.svelte` - Main component
 2. `converter.ts` - Conversion utilities
 3. `validator.ts` - Input validation

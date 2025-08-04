@@ -15,12 +15,20 @@
     type TouchPoint
   } from '$lib/utils/touch';
   import type { MissionItem } from './types';
+  import { telemetry144fps } from '$lib/utils/performance-telemetry-144fps';
+  import { measureRenderPerformance } from '$lib/utils/performance-monitor';
+  import {
+    DRAG_CONFIG_144FPS,
+    getDragUpdateOptions,
+    calculateMagneticAttraction
+  } from '$lib/utils/drag-config-144fps';
 
   // ===== PROPS =====
   export let item: MissionItem;
   export let isPinned: boolean = false;
   export let snapPoints: Array<{ x: number; y: number; id: string }> = [];
   export let initialPosition: { x: number; y: number } = { x: 0, y: 0 };
+  export let disableOwnDragging: boolean = false; // When used inside DraggableContainerEnhanced
 
   // ===== EVENT DISPATCHER =====
   const dispatch = createEventDispatcher<{
@@ -42,19 +50,47 @@
   let touchDragCleanup: (() => void) | null = null;
   let touchButtonCleanup: (() => void) | null = null;
   let dragStartPosition = { x: 0, y: 0 };
+  let currentVelocity = { x: 0, y: 0 };
+  let lastDragTime = 0;
+
+  // Pre-allocated circular buffer for drag history (NASA JPL Rule 3: No dynamic allocation)
+  const DRAG_HISTORY_SIZE = 5;
+  const dragHistoryBuffer = new Array(DRAG_HISTORY_SIZE);
+  let dragHistoryIndex = 0;
+  let dragHistoryCount = 0;
+
+  // Initialize drag history buffer
+  for (let i = 0; i < DRAG_HISTORY_SIZE; i++) {
+    dragHistoryBuffer[i] = { x: 0, y: 0, time: 0 };
+  }
+
+  // Animation frame tracking
+  let momentumRafId: number | null = null;
+  let isDestroyed = false;
+
+  // Performance monitoring
+  let showPerformanceMetrics = false;
+  let currentFps = 0;
+  let currentFrameTime = 0;
+  let frameCount = 0;
+  let lastFpsUpdate = 0;
+  const FPS_UPDATE_INTERVAL = 1000; // Update FPS every second
 
   // ===== MOTION =====
-  // Position spring for smooth dragging and snapping
-  const position = spring(initialPosition, {
-    stiffness: 0.3,
-    damping: 0.6
-  });
+  // Position spring for smooth dragging and snapping - optimized for 144fps
+  const position = spring(initialPosition, DRAG_CONFIG_144FPS.spring);
 
   // Scale spring for hover and interaction effects
-  const scale = spring(1, {
-    stiffness: 0.4,
-    damping: 0.8
-  });
+  const scale = spring<number>(
+    DRAG_CONFIG_144FPS.visual.normalScale,
+    DRAG_CONFIG_144FPS.scaleSpring
+  );
+
+  // Shadow intensity spring for depth perception
+  const shadowIntensity = spring<number>(
+    DRAG_CONFIG_144FPS.visual.shadowIntensityNormal,
+    DRAG_CONFIG_144FPS.scaleSpring
+  );
 
   // ===== REACTIVE STATEMENTS =====
   $: if (mounted && !dragging) {
@@ -62,16 +98,25 @@
   }
 
   $: if (isHovering && !dragging) {
-    scale.set(1.1);
+    scale.set(DRAG_CONFIG_144FPS.visual.hoveringScale);
+    shadowIntensity.set(DRAG_CONFIG_144FPS.visual.shadowIntensityHover);
   } else if (dragging) {
-    scale.set(1.05);
+    scale.set(DRAG_CONFIG_144FPS.visual.draggingScale);
+    shadowIntensity.set(DRAG_CONFIG_144FPS.visual.shadowIntensityDragging);
   } else {
-    scale.set(1);
+    scale.set(DRAG_CONFIG_144FPS.visual.normalScale);
+    shadowIntensity.set(DRAG_CONFIG_144FPS.visual.shadowIntensityNormal);
   }
 
   // ===== CONSTANTS =====
-  const SNAP_THRESHOLD = 30; // pixels
+  const SNAP_THRESHOLD = DRAG_CONFIG_144FPS.drag.snapThreshold;
   const DOUBLE_CLICK_THRESHOLD = 300; // milliseconds
+  const VELOCITY_SMOOTHING_PREV = DRAG_CONFIG_144FPS.momentum.velocitySmoothingPrev;
+  const VELOCITY_SMOOTHING_NEW = DRAG_CONFIG_144FPS.momentum.velocitySmoothingNew;
+  const MOMENTUM_FRICTION = DRAG_CONFIG_144FPS.momentum.friction;
+  const MOMENTUM_MIN_VELOCITY = DRAG_CONFIG_144FPS.momentum.minVelocity;
+  const ATTRACTION_STRENGTH = DRAG_CONFIG_144FPS.drag.attractionStrength;
+  const FRAME_BUDGET_MS = DRAG_CONFIG_144FPS.performance.frameTimeMs;
 
   // ===== FUNCTIONS =====
 
@@ -144,16 +189,43 @@
    * Handle drag start (touch or mouse)
    */
   function handleDragStart(point: TouchPoint): void {
-    if (isPinned) return;
+    // NASA JPL Rule 5: Input validation
+    if (!point || typeof point.x !== 'number' || typeof point.y !== 'number') {
+      console.error('Invalid TouchPoint in handleDragStart');
+      return;
+    }
+
+    if (isPinned || disableOwnDragging) return;
 
     dragging = true;
-    dragStartPosition = { x: point.x, y: point.y };
+    dragStartPosition = { x: $position.x, y: $position.y };
 
     const rect = coinElement.getBoundingClientRect();
+    // Calculate offset from cursor to coin's current position
+    // This maintains the grab point relative to the coin
     dragOffset = {
-      x: point.x - rect.left - rect.width / 2,
-      y: point.y - rect.top - rect.height / 2
+      x: point.x - $position.x,
+      y: point.y - $position.y
     };
+
+    // Reset velocity tracking
+    currentVelocity = { x: 0, y: 0 };
+    lastDragTime = Date.now();
+
+    // Initialize drag history buffer (no allocation)
+    dragHistoryIndex = 0;
+    dragHistoryCount = 0;
+    const entry = dragHistoryBuffer[0];
+    entry.x = point.x;
+    entry.y = point.y;
+    entry.time = lastDragTime;
+    dragHistoryCount = 1;
+
+    // Add cursor styles
+    document.body.style.cursor = 'grabbing';
+
+    // Start performance monitoring
+    telemetry144fps.recordMagneticCalculation(0);
 
     console.log(`Started dragging coin for item: ${item.id}`);
   }
@@ -162,7 +234,7 @@
    * Handle mouse down - start dragging (fallback for non-touch devices)
    */
   function handleMouseDown(event: MouseEvent): void {
-    if (isPinned || $isMobile) return; // Use touch handler on mobile
+    if (isPinned || $isMobile || disableOwnDragging) return; // Use touch handler on mobile
 
     event.preventDefault();
     event.stopPropagation();
@@ -182,54 +254,198 @@
   }
 
   /**
-   * Handle drag movement (touch or mouse)
+   * Handle drag movement (touch or mouse) - optimized for 144fps
    */
   function handleDrag(gesture: PanGesture): void {
-    if (!dragging || isPinned) return;
+    // NASA JPL Rule 5: Input validation
+    if (
+      !gesture ||
+      typeof gesture.totalDeltaX !== 'number' ||
+      typeof gesture.totalDeltaY !== 'number'
+    ) {
+      console.error('Invalid PanGesture in handleDrag');
+      return;
+    }
 
+    if (!dragging || isPinned || isDestroyed) return;
+
+    const frameStartTime = performance.now();
+    const now = Date.now();
+    const deltaTime = now - lastDragTime;
+
+    // Calculate position with proper offset maintenance
     const newPosition = {
-      x: dragStartPosition.x + gesture.totalDeltaX - dragOffset.x,
-      y: dragStartPosition.y + gesture.totalDeltaY - dragOffset.y
+      x: dragStartPosition.x + gesture.totalDeltaX,
+      y: dragStartPosition.y + gesture.totalDeltaY
     };
 
-    // Find nearest snap point
-    nearestSnapPoint = findNearestSnapPoint(newPosition);
+    // Track velocity for momentum (144fps optimization)
+    if (deltaTime > 0) {
+      const velocityX = (gesture.deltaX / deltaTime) * 16.67; // Normalize to 60fps base
+      const velocityY = (gesture.deltaY / deltaTime) * 16.67;
 
-    // Update position (snap if near a snap point)
-    const targetPosition = nearestSnapPoint || newPosition;
-    position.set(targetPosition, { hard: true });
+      // Smooth velocity with exponential moving average
+      currentVelocity.x =
+        currentVelocity.x * VELOCITY_SMOOTHING_PREV + velocityX * VELOCITY_SMOOTHING_NEW;
+      currentVelocity.y =
+        currentVelocity.y * VELOCITY_SMOOTHING_PREV + velocityY * VELOCITY_SMOOTHING_NEW;
+    }
+
+    // Update drag history buffer (no allocation)
+    dragHistoryIndex = (dragHistoryIndex + 1) % DRAG_HISTORY_SIZE;
+    const entry = dragHistoryBuffer[dragHistoryIndex];
+    entry.x = newPosition.x;
+    entry.y = newPosition.y;
+    entry.time = now;
+    if (dragHistoryCount < DRAG_HISTORY_SIZE) {
+      dragHistoryCount++;
+    }
+
+    lastDragTime = now;
+
+    // Find nearest snap point with magnetic effect
+    measureRenderPerformance(
+      () => {
+        nearestSnapPoint = findNearestSnapPoint(newPosition);
+      },
+      'findNearestSnapPoint',
+      144 // Target 144fps
+    );
+
+    // Apply magnetic attraction smoothly
+    let targetPosition = newPosition;
+    if (nearestSnapPoint) {
+      const distance = calculateDistance(newPosition, nearestSnapPoint);
+      const attractionStrength = Math.max(0, 1 - distance / SNAP_THRESHOLD);
+      targetPosition = {
+        x:
+          newPosition.x +
+          (nearestSnapPoint.x - newPosition.x) * attractionStrength * ATTRACTION_STRENGTH,
+        y:
+          newPosition.y +
+          (nearestSnapPoint.y - newPosition.y) * attractionStrength * ATTRACTION_STRENGTH
+      };
+
+      // Record magnetic calculation for telemetry
+      telemetry144fps.recordMagneticCalculation(1);
+    }
+
+    // Update position with standardized options for smooth 144fps response
+    position.set(targetPosition, getDragUpdateOptions(dragging));
 
     // Dispatch move event
     dispatch('move', { itemId: item.id, position: targetPosition });
+
+    // Record frame time for telemetry
+    const frameTime = performance.now() - frameStartTime;
+    telemetry144fps.recordFrame(frameTime);
+
+    // Update local performance metrics
+    currentFrameTime = frameTime;
+    frameCount++;
+
+    // Calculate FPS every second
+    const perfNow = performance.now();
+    if (perfNow - lastFpsUpdate >= FPS_UPDATE_INTERVAL) {
+      currentFps = Math.round((frameCount * 1000) / (perfNow - lastFpsUpdate));
+      frameCount = 0;
+      lastFpsUpdate = perfNow;
+    }
   }
 
   /**
    * Handle mouse move - update position while dragging (fallback for non-touch devices)
    */
   function handleMouseMove(event: MouseEvent): void {
-    if (!dragging || isPinned || $isMobile) return;
+    if (!dragging || isPinned || $isMobile || isDestroyed) return;
+
+    // Calculate the total delta from the start position
+    const totalDeltaX = event.clientX - dragOffset.x - dragStartPosition.x;
+    const totalDeltaY = event.clientY - dragOffset.y - dragStartPosition.y;
+
+    // Get last position from circular buffer for delta calculation
+    const lastIndex = dragHistoryIndex >= 0 ? dragHistoryIndex : 0;
+    const lastEntry =
+      dragHistoryCount > 0 ? dragHistoryBuffer[lastIndex] : { x: event.clientX, y: event.clientY };
+
+    const deltaX = event.clientX - lastEntry.x;
+    const deltaY = event.clientY - lastEntry.y;
 
     const gesture: PanGesture = {
-      deltaX: event.clientX - dragStartPosition.x,
-      deltaY: event.clientY - dragStartPosition.y,
-      totalDeltaX: event.clientX - dragStartPosition.x,
-      totalDeltaY: event.clientY - dragStartPosition.y,
-      velocity: { x: 0, y: 0 }
+      deltaX: deltaX,
+      deltaY: deltaY,
+      totalDeltaX: totalDeltaX,
+      totalDeltaY: totalDeltaY,
+      velocity: currentVelocity
     };
 
     handleDrag(gesture);
   }
 
   /**
-   * Handle drag end (touch or mouse)
+   * Handle drag end (touch or mouse) - with momentum physics
    */
   function handleDragEnd(point: TouchPoint): void {
-    if (!dragging) return;
+    // NASA JPL Rule 5: Input validation
+    if (!point || typeof point.timestamp !== 'number') {
+      console.error('Invalid TouchPoint in handleDragEnd');
+      return;
+    }
+
+    if (!dragging || isDestroyed) return;
 
     dragging = false;
 
-    // Handle snapping
+    // Reset cursor
+    document.body.style.cursor = '';
+
+    // Cancel any existing momentum animation
+    if (momentumRafId !== null) {
+      cancelAnimationFrame(momentumRafId);
+      momentumRafId = null;
+    }
+
+    // Apply momentum if no snap point
+    if (!nearestSnapPoint && Math.abs(currentVelocity.x) + Math.abs(currentVelocity.y) > 0.5) {
+      const applyMomentum = () => {
+        const frameStart = performance.now();
+        
+        // Check if component is destroyed
+        if (isDestroyed) {
+          momentumRafId = null;
+          return;
+        }
+
+        if (
+          Math.abs(currentVelocity.x) > MOMENTUM_MIN_VELOCITY ||
+          Math.abs(currentVelocity.y) > MOMENTUM_MIN_VELOCITY
+        ) {
+          position.update((p) => ({
+            x: p.x + currentVelocity.x,
+            y: p.y + currentVelocity.y
+          }));
+
+          currentVelocity.x *= MOMENTUM_FRICTION;
+          currentVelocity.y *= MOMENTUM_FRICTION;
+          
+          // NASA JPL Rule 5: Assert frame budget
+          const frameTime = performance.now() - frameStart;
+          if (frameTime > DRAG_CONFIG_144FPS.performance.frameTimeThreshold) {
+            console.warn(`MinimizedCoin momentum exceeded frame budget: ${frameTime.toFixed(2)}ms`);
+          }
+
+          momentumRafId = requestAnimationFrame(applyMomentum);
+        } else {
+          momentumRafId = null;
+        }
+      };
+
+      momentumRafId = requestAnimationFrame(applyMomentum);
+    }
+
+    // Handle snapping with smooth animation
     if (nearestSnapPoint) {
+      position.set(nearestSnapPoint, getDragUpdateOptions(false)); // Smooth snap animation
       dispatch('snap', {
         itemId: item.id,
         snapToId: nearestSnapPoint.id,
@@ -239,6 +455,8 @@
     }
 
     nearestSnapPoint = null;
+    currentVelocity = { x: 0, y: 0 };
+    dragHistoryCount = 0; // Reset history count
     console.log(`Finished dragging coin for item: ${item.id}`);
   }
 
@@ -382,10 +600,24 @@
       setupTouchInteractions();
     }
 
+    // Enable performance metrics in dev mode or with query param
+    if (window.location.search.includes('debug=true') || import.meta.env.DEV) {
+      showPerformanceMetrics = true;
+    }
+
     console.log(`Mounted MinimizedCoin for item: ${item.id}`);
   });
 
   onDestroy(() => {
+    // Set destroyed flag to prevent any further operations
+    isDestroyed = true;
+
+    // Cancel any active animations
+    if (momentumRafId !== null) {
+      cancelAnimationFrame(momentumRafId);
+      momentumRafId = null;
+    }
+
     // Clean up event listeners
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
@@ -394,9 +626,11 @@
     // Clean up touch handlers
     if (touchDragCleanup) {
       touchDragCleanup();
+      touchDragCleanup = null;
     }
     if (touchButtonCleanup) {
       touchButtonCleanup();
+      touchButtonCleanup = null;
     }
 
     console.log(`Destroyed MinimizedCoin for item: ${item.id}`);
@@ -435,8 +669,9 @@
   class:hovering={isHovering}
   class:near-snap={nearestSnapPoint !== null}
   style="
-    transform: translate({$position.x}px, {$position.y}px) scale({$scale});
+    transform: translate3d({$position.x}px, {$position.y}px, 0) scale({$scale});
     --type-color: {getTypeColor(item.type)};
+    --shadow-intensity: {$shadowIntensity};
   "
   on:mousedown={handleMouseDown}
   on:click={handleClick}
@@ -478,6 +713,21 @@
       <div class="snap-ring"></div>
     </div>
   {/if}
+
+  <!-- Performance metrics (debug mode) -->
+  {#if showPerformanceMetrics && dragging}
+    <div class="performance-metrics">
+      <span
+        class="fps"
+        class:optimal={currentFps >= 130}
+        class:warning={currentFps < 130 && currentFps >= 100}
+        class:critical={currentFps < 100}
+      >
+        {currentFps}fps
+      </span>
+      <span class="frame-time">{currentFrameTime.toFixed(1)}ms</span>
+    </div>
+  {/if}
 </div>
 
 <!-- ===== STYLES ===== -->
@@ -486,17 +736,30 @@
     position: absolute;
     width: 60px;
     height: 60px;
-    cursor: move;
+    cursor: grab;
     user-select: none;
     z-index: 100;
-    transition: filter var(--animation-transition_duration) var(--animation-easing_function);
+    transition:
+      filter 0.15s ease-out,
+      box-shadow 0.15s ease-out;
+    will-change: transform;
+    transform: translateZ(0); /* Force GPU layer */
 
     /* Hexagonal shape using clip-path */
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 
-    /* Base styling */
-    background-color: var(--component-hex_coin-background);
-    border: 2px solid var(--component-hex_coin-border_color_default);
+    /* Base styling with improved gradients */
+    background: linear-gradient(
+      145deg,
+      var(--color-surface-variant, #2a2a2a) 0%,
+      var(--color-surface, #1a1a1a) 50%,
+      var(--color-surface-variant, #2a2a2a) 100%
+    );
+    border: 2px solid var(--color-border, #333);
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, var(--shadow-intensity, 0.3)),
+      0 1px 2px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
 
     /* Center content */
     display: flex;
@@ -505,6 +768,9 @@
 
     /* Focus styling */
     outline: none;
+
+    /* Performance optimization */
+    contain: layout style paint;
   }
 
   .hex-coin:focus {
@@ -512,25 +778,34 @@
   }
 
   .hex-coin.pinned {
-    border-color: var(--component-hex_coin-border_color_pinned);
+    border-color: var(--color-accent_yellow, #ffd700);
     cursor: pointer;
-    box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
   }
 
   .hex-coin.dragging {
     cursor: grabbing;
-    filter: brightness(1.2);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    filter: brightness(1.15) saturate(1.1);
+    box-shadow:
+      0 6px 20px rgba(0, 0, 0, 0.4),
+      0 2px 4px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: none;
   }
 
   .hex-coin.hovering:not(.dragging) {
-    filter: brightness(1.1);
+    cursor: grab;
+    filter: brightness(1.08) saturate(1.05);
     border-color: var(--type-color);
+    box-shadow:
+      0 3px 10px rgba(0, 0, 0, 0.35),
+      0 1px 2px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   .hex-coin.near-snap {
-    border-color: var(--component-hex_coin-snap_point_color);
-    box-shadow: 0 0 12px rgba(0, 255, 136, 0.6);
+    border-color: var(--color-accent_green, #00ff00);
+    box-shadow: 0 0 12px rgba(0, 255, 0, 0.6);
   }
 
   .coin-content {
@@ -588,12 +863,12 @@
     right: -2px;
     width: 16px;
     height: 16px;
-    background-color: var(--component-hex_coin-border_color_pinned);
+    background-color: var(--color-accent_yellow, #ffd700);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-background_primary);
+    color: var(--color-background_primary, #000);
     z-index: 1;
   }
 
@@ -609,7 +884,7 @@
   .snap-ring {
     width: 80px;
     height: 80px;
-    border: 2px solid var(--component-hex_coin-snap_point_color);
+    border: 2px solid var(--color-accent_green, #00ff00);
     border-radius: 50%;
     animation: pulse 1s ease-in-out infinite;
   }
@@ -684,5 +959,56 @@
     .snap-ring {
       animation: none;
     }
+  }
+
+  /* High refresh rate optimization */
+  @media (min-resolution: 2dppx) {
+    .hex-coin {
+      image-rendering: -webkit-optimize-contrast;
+      -webkit-font-smoothing: antialiased;
+    }
+  }
+
+  /* GPU acceleration hints */
+  .hex-coin * {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* Performance metrics display */
+  .performance-metrics {
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-family: monospace;
+    display: flex;
+    gap: 6px;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .performance-metrics .fps {
+    font-weight: bold;
+  }
+
+  .performance-metrics .fps.optimal {
+    color: #00ff00;
+  }
+
+  .performance-metrics .fps.warning {
+    color: #ffff00;
+  }
+
+  .performance-metrics .fps.critical {
+    color: #ff0000;
+  }
+
+  .performance-metrics .frame-time {
+    color: #888;
   }
 </style>

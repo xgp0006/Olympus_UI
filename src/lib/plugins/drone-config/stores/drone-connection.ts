@@ -62,11 +62,11 @@ class DroneConnectionService {
     if (!browser) return false;
 
     try {
-      droneConnectionState.update(state => ({ ...state, loading: true, error: null }));
+      droneConnectionState.update((state) => ({ ...state, loading: true, error: null }));
 
       // Use existing Tauri command pattern
       const result = await safeInvoke<boolean>('connect_drone', { connectionString });
-      
+
       if (result) {
         // Get vehicle info
         const vehicleInfo = await safeInvoke<{
@@ -75,7 +75,7 @@ class DroneConnectionService {
           protocolVersion: string;
         }>('get_vehicle_info');
 
-        droneConnectionState.update(state => ({
+        droneConnectionState.update((state) => ({
           ...state,
           connected: true,
           connectionString,
@@ -105,8 +105,8 @@ class DroneConnectionService {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Connection failed';
-      
-      droneConnectionState.update(state => ({
+
+      droneConnectionState.update((state) => ({
         ...state,
         connected: false,
         loading: false,
@@ -131,13 +131,13 @@ class DroneConnectionService {
 
     try {
       await safeInvoke('disconnect_drone');
-      
+
       if (this.heartbeatInterval) {
         clearInterval(this.heartbeatInterval);
         this.heartbeatInterval = null;
       }
 
-      droneConnectionState.update(state => ({
+      droneConnectionState.update((state) => ({
         ...state,
         connected: false,
         connectionString: null,
@@ -166,7 +166,7 @@ class DroneConnectionService {
       try {
         const heartbeat = await safeInvoke<{ timestamp: number }>('get_heartbeat');
         if (heartbeat) {
-          droneConnectionState.update(state => ({
+          droneConnectionState.update((state) => ({
             ...state,
             lastHeartbeat: heartbeat.timestamp
           }));
@@ -188,7 +188,7 @@ class DroneConnectionService {
       this.heartbeatInterval = null;
     }
 
-    droneConnectionState.update(state => ({
+    droneConnectionState.update((state) => ({
       ...state,
       connected: false,
       error: 'Connection lost - no heartbeat'
@@ -218,25 +218,16 @@ export const droneConnectionStore = {
 /**
  * Derived stores for specific connection properties
  */
-export const isConnected = derived(
-  droneConnectionState,
-  $state => $state.connected
-);
+export const isConnected = derived(droneConnectionState, ($state) => $state.connected);
 
-export const connectionStatus = derived(
-  droneConnectionState,
-  $state => ({
-    connected: $state.connected,
-    vehicleType: $state.vehicleType,
-    firmwareVersion: $state.firmwareVersion,
-    lastHeartbeat: $state.lastHeartbeat
-  })
-);
+export const connectionStatus = derived(droneConnectionState, ($state) => ({
+  connected: $state.connected,
+  vehicleType: $state.vehicleType,
+  firmwareVersion: $state.firmwareVersion,
+  lastHeartbeat: $state.lastHeartbeat
+}));
 
-export const connectionError = derived(
-  droneConnectionState,
-  $state => $state.error
-);
+export const connectionError = derived(droneConnectionState, ($state) => $state.error);
 
 /**
  * Send MAVLink command to drone

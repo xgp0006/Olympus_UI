@@ -1,7 +1,7 @@
 <script lang="ts">
   import CalibrationWizard from '$lib/plugins/drone-config/components/CalibrationWizard.svelte';
   import DraggableContainer from '$lib/components/ui/DraggableContainer.svelte';
-  
+
   function handleCalibrationComplete(results: Record<string, any>) {
     console.log('Calibration completed with results:', results);
   }
@@ -13,7 +13,7 @@
 
 <div class="demo-container">
   <h1>Drone Sensor Calibration Wizard Demo</h1>
-  
+
   <DraggableContainer
     id="calibration-wizard-demo"
     title="Sensor Calibration Wizard"
@@ -37,7 +37,7 @@
     padding: 2rem;
     overflow: hidden;
   }
-  
+
   h1 {
     margin: 0 0 2rem 0;
     font-size: 1.5rem;

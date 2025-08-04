@@ -19,7 +19,9 @@
   <div class="instructions">
     <h2>Features:</h2>
     <ul>
-      <li><strong>Map Tools:</strong> Enter coordinates in multiple formats (Lat/Long, UTM, MGRS)</li>
+      <li>
+        <strong>Map Tools:</strong> Enter coordinates in multiple formats (Lat/Long, UTM, MGRS)
+      </li>
       <li><strong>Mission Items:</strong> Manage waypoints and mission sequences</li>
       <li><strong>Draggable:</strong> Click and drag title bars to move components</li>
       <li><strong>Resizable:</strong> Drag edges and corners to resize</li>
