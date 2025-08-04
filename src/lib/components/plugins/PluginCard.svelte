@@ -27,6 +27,7 @@
   // Handle plugin toggle
   function handleToggle(event: Event) {
     event.stopPropagation();
+    event.preventDefault();
     dispatch('toggle', { pluginId: plugin.id, enabled: !plugin.enabled });
   }
 
@@ -117,9 +118,10 @@
     <!-- Plugin Toggle -->
     <button
       class="plugin-toggle"
-      on:click={handleToggle}
+      on:click|stopPropagation={handleToggle}
       aria-label="{plugin.enabled ? 'Disable' : 'Enable'} {plugin.name}"
       data-testid="plugin-toggle"
+      type="button"
     >
       <div class="toggle-switch {plugin.enabled ? 'enabled' : 'disabled'}">
         <div class="toggle-handle"></div>
@@ -264,10 +266,17 @@
     cursor: pointer;
     border-radius: var(--layout-border_radius);
     transition: background-color var(--animation-transition_duration);
+    position: relative;
+    z-index: 10;
   }
 
   .plugin-toggle:hover {
     background-color: var(--color-background_tertiary);
+  }
+
+  .plugin-toggle:focus {
+    outline: 2px solid var(--color-accent_blue);
+    outline-offset: 2px;
   }
 
   .toggle-switch {

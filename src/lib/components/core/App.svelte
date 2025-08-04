@@ -14,6 +14,7 @@
   import CliPanel from '../cli/CliPanel.svelte';
   import ErrorBoundary from './ErrorBoundary.svelte';
   import NotificationCenter from '../ui/NotificationCenter.svelte';
+  import ConnectionStatus from '../ui/ConnectionStatus.svelte';
 
   // Application state
   let appInitialized = false;
@@ -45,6 +46,10 @@
         if (isMobileDevice) {
           cliCollapsed = true;
         }
+
+        // Load directly into Mission Planner as default
+        activePluginWritable.set('mission-planner');
+        console.log('Auto-loaded Mission Planner plugin as default');
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown initialization error';
@@ -156,6 +161,11 @@
                 {$plugins.find((p) => p.id === $activePluginWritable)?.name || 'Unknown Plugin'}
               </div>
 
+              <!-- Connection Status in header -->
+              <div class="header-connection-status">
+                <ConnectionStatus compact={true} />
+              </div>
+
               {#if isMobileDevice}
                 <button
                   class="cli-toggle-mobile"
@@ -181,8 +191,16 @@
           <!-- Plugin Dashboard -->
           <div class="dashboard-view">
             <header class="dashboard-header">
-              <h1 class="app-title">Modular C2 Frontend</h1>
-              <p class="app-subtitle">Aerospace Command & Control Interface</p>
+              <div class="dashboard-header-content">
+                <div class="dashboard-titles">
+                  <h1 class="app-title">Modular C2 Frontend</h1>
+                  <p class="app-subtitle">Aerospace Command & Control Interface</p>
+                </div>
+                <!-- Connection Status in dashboard header -->
+                <div class="header-connection-status">
+                  <ConnectionStatus compact={true} />
+                </div>
+              </div>
             </header>
 
             <div class="dashboard-content">
@@ -330,6 +348,7 @@
     border-bottom: var(--layout-border_width) solid var(--color-background_tertiary);
     gap: var(--layout-spacing_unit);
     min-height: var(--responsive-mobile-touch_target_min, 44px);
+    position: relative;
   }
 
   .home-button {
@@ -416,9 +435,24 @@
   }
 
   .dashboard-header {
-    text-align: center;
     padding: var(--responsive-mobile-panel_padding, 12px);
     padding-top: calc(var(--responsive-mobile-panel_padding, 12px) * 2);
+  }
+
+  .dashboard-header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .dashboard-titles {
+    text-align: center;
+    flex: 1;
+  }
+
+  .header-connection-status {
+    flex-shrink: 0;
   }
 
   .app-title {

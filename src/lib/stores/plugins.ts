@@ -70,19 +70,30 @@ import { TauriApi } from '../utils/tauri-context';
  * Safely invoke Tauri command with error handling and browser context detection
  * @param command - Tauri command name
  * @param args - Command arguments
+ * @param options - Configuration options
  * @returns Promise resolving to command result or null on error
  */
-async function safeInvoke<T>(command: string, args?: Record<string, unknown>): Promise<T | null> {
+async function safeInvoke<T>(
+  command: string, 
+  args?: Record<string, unknown>,
+  options: { silent?: boolean; showNotifications?: boolean } = {}
+): Promise<T | null> {
+  const { silent = false, showNotifications = false } = options;
+  
   if (!browser) {
-    console.warn(`Tauri command '${command}' called in SSR context, returning null`);
+    if (!silent) {
+      console.debug(`Tauri command '${command}' called in SSR context, returning null`);
+    }
     return null;
   }
 
+  const context = TauriApi.getContext();
+  
   // Check if Tauri API is available before attempting to invoke
-  if (!TauriApi.isAvailable()) {
-    console.warn(
-      `Tauri command '${command}' called in browser context without Tauri runtime, returning null`
-    );
+  if (!context.isAvailable) {
+    if (!silent) {
+      console.debug(`Backend command '${command}' not available in browser-only mode`);
+    }
     return null;
   }
 
@@ -95,11 +106,12 @@ async function safeInvoke<T>(command: string, args?: Record<string, unknown>): P
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-    // Only log errors and show notifications if we're in a Tauri context
-    // In browser-only context, silently fail to avoid noise
-    if (typeof window !== 'undefined' && '__TAURI__' in window) {
-      console.error(`Tauri command '${command}' failed:`, errorMessage);
+    // Only log errors and show notifications if explicitly requested
+    if (!silent) {
+      console.error(`Backend command '${command}' failed:`, errorMessage);
+    }
 
+    if (showNotifications) {
       showNotification({
         type: 'error',
         message: `Command failed: ${command}`,
@@ -164,8 +176,26 @@ export async function loadPlugins(): Promise<Plugin[]> {
   }));
 
   try {
+    // Check if we're in Tauri environment first
+    const context = TauriApi.getContext();
+    
+    if (!context.isAvailable) {
+      // Browser-only mode - use mock plugins without noise
+      console.log('Browser-only mode: Using mock plugins for development');
+      
+      pluginState.update((state) => ({
+        ...state,
+        plugins: MOCK_PLUGINS,
+        loading: false,
+        error: null,
+        lastUpdated: Date.now()
+      }));
+      
+      return MOCK_PLUGINS;
+    }
+    
     // Try to get loaded plugins from backend
-    const loadedPlugins = await safeInvoke<Plugin[]>('get_loaded_plugins');
+    const loadedPlugins = await safeInvoke<Plugin[]>('get_loaded_plugins', undefined, { silent: true });
 
     if (loadedPlugins && loadedPlugins.length > 0) {
       // Update store state with backend plugins
@@ -177,11 +207,11 @@ export async function loadPlugins(): Promise<Plugin[]> {
         lastUpdated: Date.now()
       }));
 
-      console.log(`Successfully loaded ${loadedPlugins.length} plugins from backend`);
+      console.log(`Tauri mode: Successfully loaded ${loadedPlugins.length} plugins from backend`);
       return loadedPlugins;
     } else {
-      // Fallback to mock plugins if backend is not available or returns empty
-      console.log('Using mock plugins for development');
+      // Fallback to mock plugins if backend returns empty
+      console.log('Backend returned no plugins, using mock plugins for development');
 
       pluginState.update((state) => ({
         ...state,
@@ -194,11 +224,9 @@ export async function loadPlugins(): Promise<Plugin[]> {
       return MOCK_PLUGINS;
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown plugin loading error';
-
-    console.log('Plugin backend unavailable, using mock plugins for development');
-
     // Fallback to mock plugins on error
+    console.log('Plugin backend error, using mock plugins for development');
+
     pluginState.update((state) => ({
       ...state,
       plugins: MOCK_PLUGINS,
@@ -219,7 +247,7 @@ export async function loadPlugins(): Promise<Plugin[]> {
 export async function loadPlugin(pluginName: string): Promise<boolean> {
   console.log(`Loading plugin: ${pluginName}`);
 
-  const result = await safeInvoke<void>('load_plugin', { name: pluginName });
+  const result = await safeInvoke<void>('load_plugin', { name: pluginName }, { showNotifications: true });
 
   if (result !== null) {
     // Reload plugins to get updated state
@@ -245,7 +273,7 @@ export async function loadPlugin(pluginName: string): Promise<boolean> {
 export async function unloadPlugin(pluginName: string): Promise<boolean> {
   console.log(`Unloading plugin: ${pluginName}`);
 
-  const result = await safeInvoke<void>('unload_plugin', { name: pluginName });
+  const result = await safeInvoke<void>('unload_plugin', { name: pluginName }, { showNotifications: true });
 
   if (result !== null) {
     // Reload plugins to get updated state
@@ -289,6 +317,56 @@ export function setActivePlugin(pluginId: string | null): void {
 }
 
 /**
+ * Toggle plugin enabled state
+ * @param pluginId - ID of the plugin to toggle
+ * @returns Updated plugin or null if not found
+ */
+export function togglePlugin(pluginId: string): Plugin | null {
+  let updatedPlugin: Plugin | null = null;
+
+  pluginState.update((state) => {
+    const plugins = [...state.plugins];
+    const pluginIndex = plugins.findIndex(p => p.id === pluginId);
+    
+    if (pluginIndex !== -1) {
+      // Toggle the enabled state
+      plugins[pluginIndex] = {
+        ...plugins[pluginIndex],
+        enabled: !plugins[pluginIndex].enabled
+      };
+      updatedPlugin = plugins[pluginIndex];
+      
+      // If disabling the active plugin, return to dashboard
+      if (!updatedPlugin.enabled && state.activePlugin === pluginId) {
+        return {
+          ...state,
+          plugins,
+          activePlugin: null
+        };
+      }
+    }
+    
+    return {
+      ...state,
+      plugins
+    };
+  });
+
+  if (updatedPlugin) {
+    console.log(`Plugin ${pluginId} is now ${updatedPlugin.enabled ? 'enabled' : 'disabled'}`);
+    
+    // Show notification
+    showNotification({
+      type: updatedPlugin.enabled ? 'success' : 'info',
+      message: updatedPlugin.enabled ? 'Plugin Enabled' : 'Plugin Disabled',
+      details: `${updatedPlugin.name} has been ${updatedPlugin.enabled ? 'enabled' : 'disabled'}`
+    });
+  }
+
+  return updatedPlugin;
+}
+
+/**
  * Get plugin by ID
  * @param pluginId - ID of the plugin to find
  * @returns Plugin object or null if not found
@@ -315,8 +393,11 @@ export async function setupPluginEventListeners(): Promise<(() => void) | null> 
   }
 
   try {
+    const context = TauriApi.getContext();
+    
     // Check if Tauri is available
-    if (!TauriApi.isAvailable()) {
+    if (!context.isAvailable) {
+      console.debug('Plugin event listeners: Skipped in browser-only mode');
       return null;
     }
 
@@ -335,7 +416,7 @@ export async function setupPluginEventListeners(): Promise<(() => void) | null> 
     console.log('Plugin event listeners setup successfully');
     return pluginEventUnlisten;
   } catch (error) {
-    console.error('Failed to setup plugin event listeners:', error);
+    console.debug('Failed to setup plugin event listeners (expected in development):', error);
     return null;
   }
 }
@@ -378,7 +459,8 @@ export function clearPluginError(): void {
  */
 export async function initializePluginSystem(): Promise<boolean> {
   try {
-    console.log('Initializing plugin system...');
+    const context = TauriApi.getContext();
+    console.log(`Initializing plugin system in ${context.isAvailable ? 'Tauri' : 'browser-only'} mode...`);
 
     // Setup event listeners
     await setupPluginEventListeners();

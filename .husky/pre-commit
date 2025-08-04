@@ -33,6 +33,24 @@ npm run check || {
 }
 echo "✅ Type check PASSED"
 
+# Code consistency checks - NEW
+echo "▶ Running code consistency checks..."
+npm run consistency:check || {
+    echo "❌ GATE FAILED: Code consistency violations detected"
+    echo "   Fix all consistency issues before committing"
+    exit 1
+}
+echo "✅ Consistency check PASSED"
+
+# NASA JPL compliance check - NEW
+echo "▶ Running NASA JPL compliance check..."
+npm run nasa-jpl:validate || {
+    echo "❌ GATE FAILED: NASA JPL compliance violations detected"
+    echo "   Fix all compliance issues before committing"
+    exit 1
+}
+echo "✅ NASA JPL compliance PASSED"
+
 # Check for console.log statements in production code
 echo "▶ Checking for console.log statements..."
 if grep -r "console\.log" src --include="*.ts" --include="*.svelte" --include="*.js" | grep -v test | grep -v "test\."; then
@@ -41,6 +59,13 @@ if grep -r "console\.log" src --include="*.ts" --include="*.svelte" --include="*
     exit 1
 fi
 echo "✅ Console.log check PASSED"
+
+# Check for hardcoded colors in CSS
+echo "▶ Checking for hardcoded colors..."
+if grep -r -E "(#[0-9a-fA-F]{3,8}|rgb\(|rgba\(|hsl\(|hsla\()" src --include="*.svelte" --include="*.css" | grep -v -E "(theme-|var\(|--)" | head -20; then
+    echo "⚠️  WARNING: Possible hardcoded colors found"
+    echo "   Consider using CSS variables or theme tokens"
+fi
 
 # Check for TODO comments
 echo "▶ Checking for TODO comments..."

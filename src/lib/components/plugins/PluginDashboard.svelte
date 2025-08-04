@@ -10,8 +10,7 @@
     pluginLoading,
     pluginError,
     setActivePlugin,
-    loadPlugin,
-    unloadPlugin,
+    togglePlugin,
     initializePluginSystem
   } from '../../stores/plugins';
   import { showNotification } from '../../stores/notifications';
@@ -123,41 +122,18 @@
   /**
    * Handle plugin toggle - enable/disable plugin
    */
-  async function handlePluginToggle(event: CustomEvent<{ pluginId: string; enabled: boolean }>) {
-    const { pluginId, enabled } = event.detail;
-    const plugin = $plugins.find((p) => p.id === pluginId);
-
-    if (!plugin) {
-      console.error(`Plugin not found: ${pluginId}`);
-      return;
-    }
-
-    try {
-      if (enabled) {
-        console.log(`Enabling plugin: ${pluginId}`);
-        await loadPlugin(pluginId);
-
-        showNotification({
-          type: 'success',
-          message: 'Plugin Enabled',
-          details: `${plugin.name} has been enabled`
-        });
-      } else {
-        console.log(`Disabling plugin: ${pluginId}`);
-        await unloadPlugin(pluginId);
-
-        showNotification({
-          type: 'info',
-          message: 'Plugin Disabled',
-          details: `${plugin.name} has been disabled`
-        });
-      }
-    } catch (error) {
-      console.error(`Failed to ${enabled ? 'enable' : 'disable'} plugin:`, error);
+  function handlePluginToggle(event: CustomEvent<{ pluginId: string; enabled: boolean }>) {
+    const { pluginId } = event.detail;
+    
+    // Toggle the plugin state
+    const updatedPlugin = togglePlugin(pluginId);
+    
+    if (!updatedPlugin) {
+      console.error(`Failed to toggle plugin: ${pluginId}`);
       showNotification({
         type: 'error',
-        message: `Plugin ${enabled ? 'Enable' : 'Disable'} Failed`,
-        details: error instanceof Error ? error.message : 'Unknown error'
+        message: 'Plugin Toggle Failed',
+        details: `Could not find plugin: ${pluginId}`
       });
     }
   }
