@@ -14,7 +14,7 @@ const colors = {
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   reset: '\x1b[0m',
-  bold: '\x1b[1m'
+  bold: '\x1b[1m',
 };
 
 function log(message, level = 'info') {
@@ -22,7 +22,7 @@ function log(message, level = 'info') {
     error: `${colors.red}❌${colors.reset}`,
     success: `${colors.green}✅${colors.reset}`,
     warning: `${colors.yellow}⚠️${colors.reset}`,
-    info: `${colors.blue}▶${colors.reset}`
+    info: `${colors.blue}▶${colors.reset}`,
   };
   console.log(`${prefix[level]} ${message}`);
 }
@@ -62,13 +62,22 @@ function initHusky() {
     }
   }
 
-  // Initialize husky
-  try {
-    execSync('npx husky init', { stdio: 'pipe' });
-    log('Husky initialized', 'success');
-  } catch (error) {
-    // Husky might already be initialized
-    log('Husky already initialized or initialization skipped', 'info');
+  // Initialize husky ONLY if not already initialized.
+  // `husky init` overwrites .husky/pre-commit with a default stub, which
+  // destroys the aerospace gates this repo deliberately maintains. We use
+  // the .husky/_/ marker directory (created by husky's first install) to
+  // detect prior initialization. This makes the postinstall hook idempotent
+  // and safe to re-run on every install.
+  const huskyMarker = path.join(process.cwd(), '.husky', '_');
+  if (fs.existsSync(huskyMarker)) {
+    log('Husky already initialized — skipping `husky init` (preserves existing hooks)', 'info');
+  } else {
+    try {
+      execSync('npx husky init', { stdio: 'pipe' });
+      log('Husky initialized', 'success');
+    } catch (error) {
+      log('Husky init failed; continuing — hooks may need manual setup', 'warning');
+    }
   }
 
   // Set up git hooks
