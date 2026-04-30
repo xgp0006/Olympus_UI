@@ -93,5 +93,5 @@
   "lint-staged": {
     "*.{js,cjs,mjs,ts,svelte,vue,json,md,css,scss,html}": ["prettier --write"]
   },
-  "packageManager": "pnpm@9.0.0"
+  "packageManager": "pnpm@9.15.9"
 }
