@@ -3,8 +3,11 @@ name: Build
 on:
   push:
     branches: [master]
+  # No branches filter on pull_request so stacked PRs (those targeting a
+  # feature branch rather than master directly) also trigger CI. Without
+  # this, mid-stack PRs land with no validation until they reach the top
+  # of the stack — defeats the purpose of CI on every change.
   pull_request:
-    branches: [master]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
