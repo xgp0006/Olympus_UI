@@ -47,7 +47,7 @@
     "fix:imports": "eslint . --ext .ts,.tsx,.svelte --fix --rule 'import/order: error'",
     "fix:formatting": "npm run format",
     "fix:all": "npm run fix:formatting && npm run lint:fix",
-    "husky:init": "node scripts/init-husky.js",
+    "husky:init": "node scripts/init-husky.cjs",
     "postinstall": "npm run husky:init"
   },
   "devDependencies": {
