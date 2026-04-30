@@ -1,79 +1,27 @@
 #!/bin/bash
-# AEROSPACE GATE 1: Pre-commit Validation - ENFORCED, NO EXCEPTIONS
-# NASA JPL Rule 10 Compliant: ZERO warnings tolerance
-set -e  # Exit on ANY failure - NO EXCEPTIONS
+# AEROSPACE GATE 1: Pre-commit Validation (staged-scope)
+# NASA JPL Rule 10: Zero warnings tolerated on what gets committed.
+#
+# Scope: this hook runs prettier + eslint against ONLY the files staged for
+# this commit, via lint-staged. It is intentionally fast (sub-second on a
+# typical commit) and does not gate on pre-existing codebase issues outside
+# the diff. Full-codebase validation (type check, full lint, tests, NASA JPL
+# function-length, console.log/TODO grep, etc.) runs in CI on every push.
+#
+# This split is the standard layered defense:
+#   - pre-commit: fast feedback on the diff (catches issues before they enter)
+#   - CI:         comprehensive validation on a clean runner
+#   - branch protection: requires CI to be green before merge
+#
+# Bypass (forbidden): NEVER use `git commit --no-verify`. If this gate fails,
+# fix the cause. See CONTRIBUTING.md for the documented exception process.
 
-echo "🚀 AEROSPACE GATE 1: Pre-commit Validation"
+set -euo pipefail
+
+echo "🚀 AEROSPACE GATE 1: Pre-commit Validation (staged-scope)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Format check - MANDATORY
-echo "▶ Checking code formatting..."
-npm run format -- --check || {
-    echo "❌ GATE FAILED: Format violations detected"
-    echo "   Run 'npm run format' to fix formatting issues"
-    exit 1
-}
-echo "✅ Format check PASSED"
+pnpm exec lint-staged
 
-# Lint check - ZERO WARNINGS
-echo "▶ Running linting checks..."
-npm run lint || {
-    echo "❌ GATE FAILED: Linting errors detected"
-    echo "   Fix all linting issues before committing"
-    exit 1
-}
-echo "✅ Lint check PASSED"
-
-# Type checking - MANDATORY
-echo "▶ Running type checks..."
-npm run check || {
-    echo "❌ GATE FAILED: Type errors detected"
-    echo "   Fix all TypeScript errors before committing"
-    exit 1
-}
-echo "✅ Type check PASSED"
-
-# Code consistency checks - NEW
-echo "▶ Running code consistency checks..."
-npm run consistency:check || {
-    echo "❌ GATE FAILED: Code consistency violations detected"
-    echo "   Fix all consistency issues before committing"
-    exit 1
-}
-echo "✅ Consistency check PASSED"
-
-# NASA JPL compliance check - NEW
-echo "▶ Running NASA JPL compliance check..."
-npm run nasa-jpl:validate || {
-    echo "❌ GATE FAILED: NASA JPL compliance violations detected"
-    echo "   Fix all compliance issues before committing"
-    exit 1
-}
-echo "✅ NASA JPL compliance PASSED"
-
-# Check for console.log statements in production code
-echo "▶ Checking for console.log statements..."
-if grep -r "console\.log" src --include="*.ts" --include="*.svelte" --include="*.js" | grep -v test | grep -v "test\."; then
-    echo "❌ GATE FAILED: console.log detected in production code"
-    echo "   Remove all console.log statements from production code"
-    exit 1
-fi
-echo "✅ Console.log check PASSED"
-
-# Check for hardcoded colors in CSS
-echo "▶ Checking for hardcoded colors..."
-if grep -r -E "(#[0-9a-fA-F]{3,8}|rgb\(|rgba\(|hsl\(|hsla\()" src --include="*.svelte" --include="*.css" | grep -v -E "(theme-|var\(|--)" | head -20; then
-    echo "⚠️  WARNING: Possible hardcoded colors found"
-    echo "   Consider using CSS variables or theme tokens"
-fi
-
-# Check for TODO comments
-echo "▶ Checking for TODO comments..."
-if grep -r "TODO\|FIXME\|XXX\|HACK" src --include="*.ts" --include="*.svelte" --include="*.js" | grep -v test; then
-    echo "⚠️  WARNING: TODO/FIXME/XXX/HACK comments found"
-    echo "   Consider addressing these before committing"
-fi
-
-echo ""
-echo "✅ AEROSPACE GATE 1 PASSED - Commit allowed"
+echo "✅ AEROSPACE GATE 1 PASSED"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
