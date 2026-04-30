@@ -1,0 +1,73 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22.11.0"
+  PNPM_VERSION: "9.15.9"
+
+# Initial mode: report-only on lint/format/typecheck (codebase has known
+# pre-existing violations documented in docs/compliance/baseline.md).
+# Build itself is the only required gate. Once Phase 2 drives the baselines
+# to zero, the continue-on-error flags below come off and every gate blocks
+# merges. Tauri desktop build is intentionally NOT here — that's a release
+# concern (separate release.yml on tag push), not a per-push gate.
+jobs:
+  build:
+    name: Build & Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies (frozen lockfile)
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile
+
+      - name: Prettier format check (report-only)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          pnpm exec prettier --check .
+
+      - name: ESLint (report-only)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          pnpm exec eslint .
+
+      - name: TypeScript / Svelte check (report-only)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          pnpm check
+
+      - name: Vite build (required)
+        run: |
+          set -euo pipefail
+          pnpm build
