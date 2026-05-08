@@ -1,18 +1,24 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with
+code in this repository.
 
 ## Project Overview
 
-Modular C2 Frontend is an aerospace-grade command and control interface built with SvelteKit, Tauri, and TypeScript. The project implements a plugin-based architecture for mission-critical operations including drone control, SDR operations, and mission planning.
+Modular C2 Frontend is an aerospace-grade command and control interface built
+with SvelteKit, Tauri, and TypeScript. The project implements a plugin-based
+architecture for mission-critical operations including drone control, SDR
+operations, and mission planning.
 
 ## Development Environment
 
-- **Operating System:** Windows
-- **Terminal:** WezTerm with PowerShell
-- **Package Manager:** pnpm (NOT npm)
-- **Node.js:** Latest LTS version
-- **Rust:** Required for Tauri backend
+- **Operating System:** Cross-platform (Linux primary; macOS and Windows
+  supported via Tauri).
+- **Terminal:** Any POSIX shell (bash, zsh, fish) or PowerShell. Examples in
+  this doc use bash.
+- **Package Manager:** pnpm (NOT npm).
+- **Node.js:** Latest LTS version (pinned per `.mise.toml` if present).
+- **Rust:** Required for Tauri backend.
 
 ## Architecture
 
@@ -23,7 +29,8 @@ Modular C2 Frontend is an aerospace-grade command and control interface built wi
 - **UI Components:** Custom Svelte components with TailwindCSS
 - **Quality Assurance:** TypeScript type checking, ESLint, runtime assertions
 - **State Management:** Svelte stores with persistent theme management
-- **Real-time Features:** WebSocket connections for telemetry, xterm.js for terminal emulation
+- **Real-time Features:** WebSocket connections for telemetry, xterm.js for
+  terminal emulation
 - **Map Integration:** MapLibre GL for mission planning
 - **Drone Communication:** MAVLink protocol integration
 
@@ -39,7 +46,7 @@ Modular C2 Frontend is an aerospace-grade command and control interface built wi
 
 ### Development & Build
 
-```powershell
+```bash
 # Start development server
 pnpm dev
 
@@ -55,15 +62,15 @@ pnpm tauri build
 # Run Tauri in development mode
 pnpm tauri dev
 
-# Kill process on port 5173 (if port is in use)
-Get-Process -Id (Get-NetTCPConnection -LocalPort 5173).OwningProcess | Stop-Process -Force
-# Or use the custom script
+# Kill process on port 5173 (if port is in use) — cross-platform helper
 node scripts/kill-port.js 5173
+# POSIX-only one-liner: lsof -ti:5173 | xargs -r kill
+# PowerShell equivalent: Get-Process -Id (Get-NetTCPConnection -LocalPort 5173).OwningProcess | Stop-Process -Force
 ```
 
 ### Runtime Quality & Validation
 
-```powershell
+```bash
 # Type checking (primary quality gate)
 pnpm check
 pnpm check:watch    # Watch mode
@@ -88,7 +95,7 @@ The codebase emphasizes runtime assertions and validation:
 
 ### Code Quality
 
-```powershell
+```bash
 # Type checking
 pnpm check
 pnpm check:watch    # Watch mode
@@ -105,7 +112,7 @@ pnpm qa       # check + lint only
 
 ### Development Validation
 
-```powershell
+```bash
 # Validate types for specific components
 pnpm check -- --files src/lib/components/cli/CliPanel.svelte
 
@@ -146,7 +153,8 @@ src/
 
 The application implements a sophisticated theme system with:
 
-- Multiple theme store implementations (`theme.ts`, `theme-fix.ts`, `theme-simple.ts`)
+- Multiple theme store implementations (`theme.ts`, `theme-fix.ts`,
+  `theme-simple.ts`)
 - Persistent theme storage
 - Runtime theme switching with CSS variable updates
 - Tauri-aware theme loading that handles both browser and desktop contexts
@@ -185,24 +193,29 @@ The application implements a sophisticated theme system with:
 
 ### SDR Suite Plugin
 
-- **SpectrumVisualizer:** WebGL 2.0 accelerated FFT visualization (< 0.8ms per frame)
-- **Waterfall Display:** GPU texture scrolling for real-time spectrograms (< 1.2ms per frame)
-- **Professional Color Maps:** Viridis, plasma, turbo, inferno with scientific accuracy
+- **SpectrumVisualizer:** WebGL 2.0 accelerated FFT visualization (< 0.8ms per
+  frame)
+- **Waterfall Display:** GPU texture scrolling for real-time spectrograms (<
+  1.2ms per frame)
+- **Professional Color Maps:** Viridis, plasma, turbo, inferno with scientific
+  accuracy
 - **Automatic Fallback:** Canvas 2D compatibility for older hardware
 - **Real-time Processing:** Direct integration with SDR hardware streams
 
 ### Multi-Agent Orchestration
 
-The project includes an aerospace-grade orchestration system for parallel development:
+The project includes an aerospace-grade orchestration system for parallel
+development:
 
 - **Mission Control:** Centralized orchestrator for multiple Claude Code agents
 - **Agent Profiles:** Specialized agents (UI, Plugin, Telemetry, Test)
 - **Git Worktrees:** Isolated development branches for each agent
-- **WezTerm Integration:** Terminal multiplexing for agent visualization
+- **Terminal Multiplexing:** Optional integration with tmux / zellij / WezTerm
+  for agent visualization (any multiplexer works).
 
 ## Test Commands
 
-```powershell
+```bash
 # Run all tests
 pnpm test
 
@@ -228,7 +241,7 @@ pnpm test:e2e
 
 ## Aerospace Validation Commands
 
-```powershell
+```bash
 # NASA JPL compliance validation
 pnpm nasa-jpl:validate
 
@@ -267,7 +280,10 @@ export function processData(data: unknown): ProcessedData {
   // NASA JPL Rule 5: Runtime assertions
   assert(data !== null && data !== undefined, 'Data cannot be null');
   assert(typeof data === 'object', 'Data must be an object');
-  assert('id' in data && typeof data.id === 'string', 'Data must have string id');
+  assert(
+    'id' in data && typeof data.id === 'string',
+    'Data must have string id'
+  );
 
   // Type guard for external data
   if (!isValidData(data)) {
@@ -302,7 +318,8 @@ The Tauri configuration restricts API access for security:
 
 ### Tauri Context Detection
 
-The application uses `isTauriEnv()` checks throughout to handle differences between web and desktop environments:
+The application uses `isTauriEnv()` checks throughout to handle differences
+between web and desktop environments:
 
 ```typescript
 import { isTauriEnv } from '$lib/utils/tauri-context';
@@ -347,11 +364,14 @@ if (isTauriEnv()) {
 
 ### Theme Loading
 
-Multiple theme implementations exist due to iterative fixes for runtime loading issues. The current working implementation uses careful Tauri context detection and defensive loading strategies.
+Multiple theme implementations exist due to iterative fixes for runtime loading
+issues. The current working implementation uses careful Tauri context detection
+and defensive loading strategies.
 
 ### Development Environment
 
-Focus on runtime validation over test mocks. Use actual Tauri APIs in development mode for realistic behavior.
+Focus on runtime validation over test mocks. Use actual Tauri APIs in
+development mode for realistic behavior.
 
 ## Common Troubleshooting
 
@@ -359,26 +379,30 @@ Focus on runtime validation over test mocks. Use actual Tauri APIs in developmen
 
 If you get "Port 5173 is already in use" error:
 
-```powershell
-# Option 1: Kill the process using PowerShell
-Get-Process -Id (Get-NetTCPConnection -LocalPort 5173).OwningProcess | Stop-Process -Force
-
-# Option 2: Use the kill-port script
+```bash
+# Cross-platform helper (works everywhere Node.js runs)
 node scripts/kill-port.js 5173
 
-# Option 3: Find and kill the process manually
-netstat -ano | findstr :5173
-# Then kill the process with the PID shown
-taskkill /PID <PID> /F
+# POSIX (Linux / macOS):
+lsof -ti:5173 | xargs -r kill
+# or to force:
+fuser -k 5173/tcp
+
+# PowerShell (Windows):
+# Get-Process -Id (Get-NetTCPConnection -LocalPort 5173).OwningProcess | Stop-Process -Force
+# or with netstat + taskkill:
+# netstat -ano | findstr :5173
+# taskkill /PID <PID> /F
 ```
 
-### WezTerm Command Execution
+### Terminal Quirks
 
-When running commands in WezTerm with PowerShell:
-
-- Use `pnpm` instead of `npm`
-- If commands fail, try prefixing with `powershell -Command`
-- For long-running commands like `pnpm dev`, you may need to open a new terminal tab
+- Always use `pnpm` (never `npm` or `yarn`).
+- For long-running commands like `pnpm dev`, run them in a dedicated terminal
+  tab/pane so you can keep the dev server alive while running tests in another
+  tab.
+- On Windows + PowerShell, prefix non-PowerShell-native commands with
+  `powershell -Command` if quoting becomes problematic.
 
 ## CI/CD Considerations
 
